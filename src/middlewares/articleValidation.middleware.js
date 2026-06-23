@@ -124,7 +124,7 @@ export const validateCreateArticle = async (req, res, next) => {
  * @param {Object} res - Response object
  * @param {Function} next - Next middleware function
  */
-export const validateUpdateArticle = (req, res, next) => {
+export const validateUpdateArticle = async (req, res, next) => {
   const dataBody = req.body;
 
   if (dataBody.sub_topic !== undefined && !Array.isArray(dataBody.sub_topic)) {
@@ -135,12 +135,44 @@ export const validateUpdateArticle = (req, res, next) => {
     });
   }
 
-  if (dataBody.authors !== undefined && !Array.isArray(dataBody.authors)) {
-    return res.status(400).json({
-      success: false,
-      code: "AUTHORS_INVALID",
-      message: "authors phải là mảng",
-    });
+  if (dataBody.authors !== undefined) {
+    if (!Array.isArray(dataBody.authors)) {
+      return res.status(400).json({
+        success: false,
+        code: "AUTHORS_INVALID",
+        message: "authors phải là mảng",
+      });
+    }
+
+    const normalizedAuthors = dataBody.authors
+      .map((item) => {
+        if (typeof item === "object" && item !== null) {
+          return Number(item.author_id || item.id);
+        }
+        return Number(item);
+      })
+      .filter((id) => !isNaN(id) && id > 0);
+
+    if (normalizedAuthors.length > 0) {
+      try {
+        const authorIdsNotExist = await checkAuthorsExistence(normalizedAuthors);
+        if (authorIdsNotExist.length > 0) {
+          return res.status(400).json({
+            success: false,
+            code: "AUTHORS_NOT_FOUND",
+            message: `Các tác giả với ID sau không tồn tại: ${authorIdsNotExist.join(", ")}`,
+          });
+        }
+      } catch (error) {
+        return res.status(500).json({
+          success: false,
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Lỗi hệ thống khi xác thực tác giả!",
+        });
+      }
+    }
+
+    req.body.authors = normalizedAuthors;
   }
 
   if (dataBody.keywords !== undefined) {

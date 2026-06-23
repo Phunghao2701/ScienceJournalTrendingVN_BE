@@ -9,6 +9,7 @@ import {
 } from "../services/keyword.service.js";
 import { createSubTopicArticleRelationships } from "../services/topic.service.js";
 import logger from "../utils/logger.js";
+import { createLog } from '../services/log.service.js';
 
 /**
  * Tìm kiếm bài báo theo danh sách từ khóa chuyên biệt.
@@ -107,6 +108,7 @@ export const getArticles = async (req, res) => {
       volumeId: req.query.volume_id,
       issueId: req.query.issue_id,
       isOpenAccess: req.query.is_open_access || req.query.access,
+      countryId: req.query.country_id || req.query.country,
     };
 
     if (serviceParams.isOpenAccess === "all" || serviceParams.isOpenAccess === "") {
@@ -116,11 +118,19 @@ export const getArticles = async (req, res) => {
       serviceParams.isOpenAccess = true;
     }
 
-    const [articles, total, stats] = await Promise.all([
+    const [articles, total] = await Promise.all([
       articleService.getAllArticles(serviceParams),
       articleService.countAllArticles(serviceParams),
-      articleService.getArticleListStats(),
     ]);
+
+    // 2. Sau khi đã có danh sách và giải phóng kết nối trên, mới chạy hàm thống kê nặng một cách tuần tự
+    let stats = { totalArticles: 0, openAccessCount: 0, authorsCount: 0, topicsCount: 0 };
+    try {
+      stats = await articleService.getArticleListStats();
+    } catch (statsError) {
+      logger.error("Lỗi riêng lẻ khi lấy stats (không làm sập API chính):", statsError);
+      // Giữ cho API không bị sập hoàn toàn nếu chỉ lỗi mỗi phần thống kê
+    }
 
     return res.status(200).json({
       success: true,
@@ -254,6 +264,16 @@ export const createArticle = async (req, res) => {
       await addKeywordsToArticle(newArticle.article_id, keywords);
     }
 
+    createLog({
+      userId: req.user?.user_id,
+      userRole: req.user?.role,
+      action: 'CREATE',
+      entityTable: 'Article',
+      entityId: newArticle.article_id,
+      message: `Tạo mới bài báo: ${newArticle.title}`,
+      metadata: { ip: req.ip }
+    });
+
     return res.status(201).json({
       success: true,
       code: "ARTICLE_CREATE_SUCCESS",
@@ -313,6 +333,16 @@ export const updateArticle = async (req, res) => {
       await updateKeywordsToArticle(id, dataBody.keywords);
     }
 
+    createLog({
+      userId: req.user?.user_id,
+      userRole: req.user?.role,
+      action: 'UPDATE',
+      entityTable: 'Article',
+      entityId: updatedArticle.article_id,
+      message: `Cập nhật bài báo: ${updatedArticle.title}`,
+      metadata: { ip: req.ip }
+    });
+
     return res.status(200).json({
       success: true,
       code: "ARTICLE_UPDATE_SUCCESS",
@@ -356,6 +386,17 @@ export const deleteArticle = async (req, res) => {
     }
 
     await articleService.deleteArticle(id);
+
+    createLog({
+      userId: req.user?.user_id,
+      userRole: req.user?.role,
+      action: 'DELETE',
+      entityTable: 'Article',
+      entityId: id,
+      message: `Xóa mềm bài báo có ID: ${id}`,
+      metadata: { ip: req.ip }
+    });
+
     return res
       .status(200)
       .json({

@@ -35,6 +35,28 @@ const router = express.Router();
  *           minimum: 1
  *           default: 10
  *         description: Số lượng bản ghi mỗi trang
+ *       - in: query
+ *         name: subject_area_id
+ *         schema:
+ *           type: integer
+ *         description: Lọc theo lĩnh vực chính (Subject Area)
+ *       - in: query
+ *         name: publisher_id
+ *         schema:
+ *           type: integer
+ *         description: Lọc theo nhà xuất bản (Publisher)
+ *       - in: query
+ *         name: sort_by
+ *         schema:
+ *           type: string
+ *           enum: [display_name, created_at, volume_count]
+ *         description: Sắp xếp theo trường (tên, ngày tạo, hoặc số lượng volume)
+ *       - in: query
+ *         name: sort_order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *         description: Thứ tự sắp xếp (tăng dần hoặc giảm dần)
  *     responses:
  *       200:
  *         description: Lấy danh sách journal thành công

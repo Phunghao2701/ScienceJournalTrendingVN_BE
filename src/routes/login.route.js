@@ -280,4 +280,10 @@ router.get('/refresh', refreshToken);
 router.get('/check-auth', checkAuth);
 router.post('/logout', logout);
 
+/**
+ * Route POST /api/v1/auth/logout
+ * Đăng xuất người dùng bằng cách xóa các token lưu trong cookie
+ */
+router.post('/logout', logout);
+
 export default router;

@@ -1,5 +1,6 @@
 import * as projectService from "../services/project.service.js";
 import logger from "../utils/logger.js";
+import { createLog } from '../services/log.service.js';
 
 export const projectServiceRef = { ...projectService };
 
@@ -110,6 +111,16 @@ export const createProject = async (req, res) => {
       journal_ids,
     });
 
+    createLog({
+      userId: userId,
+      userRole: req.user.role,
+      action: 'CREATE',
+      entityTable: 'Project',
+      entityId: newProject.project_id,
+      message: `Tạo mới dự án nghiên cứu: ${newProject.title}`,
+      metadata: { ip: req.ip }
+    });
+
     return res.status(201).json({
       success: true,
       code: "SUCCESS_CREATE_PROJECT",
@@ -187,6 +198,16 @@ export const updateProject = async (req, res) => {
       });
     }
 
+    createLog({
+      userId: userId,
+      userRole: req.user.role,
+      action: 'UPDATE',
+      entityTable: 'Project',
+      entityId: projectId,
+      message: `Cập nhật dự án nghiên cứu: ${title || projectId}`,
+      metadata: { ip: req.ip }
+    });
+
     return res.status(200).json({
       success: true,
       code: "SUCCESS_UPDATE_PROJECT",
@@ -237,6 +258,16 @@ export const deleteProject = async (req, res) => {
         message: "Không tìm thấy dự án hoặc bạn không có quyền xóa dự án này",
       });
     }
+
+    createLog({
+      userId: userId,
+      userRole: req.user.role,
+      action: 'DELETE',
+      entityTable: 'Project',
+      entityId: projectId,
+      message: `Xóa dự án nghiên cứu có ID: ${projectId}`,
+      metadata: { ip: req.ip }
+    });
 
     return res.status(200).json({
       success: true,

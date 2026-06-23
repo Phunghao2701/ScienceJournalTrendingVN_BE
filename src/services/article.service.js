@@ -81,6 +81,7 @@ export const countAllArticles = async ({
     volumeId,
     issueId,
     isOpenAccess,
+    countryId,
 } = {}) => {
     const values = [];
     const where = ['a."is_deleted" = false'];
@@ -132,6 +133,11 @@ export const countAllArticles = async ({
     if (isOpenAccess !== undefined) {
         values.push(isOpenAccess === true || isOpenAccess === 'true');
         where.push(`COALESCE(j."is_open_access", false) = $${values.length}`);
+    }
+
+    if (countryId) {
+        values.push(Number(countryId));
+        where.push(`j."country" = $${values.length}`);
     }
 
     query += ` WHERE ${where.join(' AND ')}`;
@@ -217,6 +223,7 @@ export const getAllArticles = async (firstParam = {}, offsetParam = 0, sortByPar
             volumeId,
             issueId,
             isOpenAccess,
+            countryId,
         } = params;
 
         const allowedColumns = {
@@ -274,7 +281,12 @@ export const getAllArticles = async (firstParam = {}, offsetParam = 0, sortByPar
             where.push(`COALESCE(j."is_open_access", false) = $${values.length}`);
         }
 
-        values.push(toOptionalNumber(limit) ?? 10);
+        if (countryId) {
+            values.push(Number(countryId));
+            where.push(`j."country" = $${values.length}`);
+        }
+
+        values.push(Number(limit));
         const limitIndex = values.length;
         values.push(toOptionalNumber(offset) ?? 0);
         const offsetIndex = values.length;
@@ -294,7 +306,20 @@ export const getAllArticles = async (firstParam = {}, offsetParam = 0, sortByPar
                 j."journal_id"::text,
                 j."display_name" AS "journal_name",
                 j."issn" AS "journal_issn",
-                COALESCE(j."is_open_access", false) AS "is_open_access"
+                COALESCE(j."is_open_access", false) AS "is_open_access",
+                COALESCE(
+                    (
+                        SELECT json_agg(json_build_object(
+                            'author_id', au."author_id"::text,
+                            'display_name', au."display_name"
+                        ))
+                        FROM "Author_Article" aa
+                        JOIN "Author" au ON au."author_id" = aa."author_id"
+                        WHERE aa."article_id" = a."article_id"
+                          AND COALESCE(au."is_deleted", false) = false
+                    ),
+                    '[]'::json
+                ) AS "authors"
             FROM "Article" a
             LEFT JOIN "Issue" i   ON i."issue_id"   = a."issue_id" AND COALESCE(i."is_deleted", false) = false
             LEFT JOIN "Volume" v  ON v."volume_id"  = i."volume_id" AND COALESCE(v."is_deleted", false) = false
@@ -344,7 +369,7 @@ export const getArticleById = async (articleId) => {
                 j."issn" AS "journal_issn",
                 p."publisher_id"::text AS "publisher_id",
                 p."display_name" AS "publisher_name",
-                a."cited_by_count",
+                a."citation_count",
                 a."references",
                 a."reference_count",
                 COALESCE(j."is_open_access", false) AS "is_open_access",

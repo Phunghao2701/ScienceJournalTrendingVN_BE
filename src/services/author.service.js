@@ -81,30 +81,51 @@ export const getAuthorAreasBreakdownService = async (authorId) => {
  */
 export const getAuthorArticlesService = async (authorId, limit, page) => {
   try {
-    const queryText = `
-            SELECT 
-                a.article_id,
-                a.title,
-                a.abstract,
-                a.publication_year,
-                a.doi,
-                COALESCE(a.cited_by_count, 0) AS cited_by_count,
-                COALESCE(a.cited_by_count, 0) AS citation_count,
-                a.primary_topic,
-                a.created_at
-            FROM "Article" a
-            JOIN "Author_Article" aa ON a.article_id = aa.article_id
-            WHERE aa.author_id = $1
-            ORDER BY a.publication_year DESC, a.article_id DESC
-            LIMIT $2 OFFSET $3
-        `;
-
     const safeLimit = Math.max(1, parseInt(limit) || 10);
     const safePage = Math.max(1, parseInt(page) || 1);
     const safeOffset = (safePage - 1) * safeLimit;
 
-    const res = await pool.query(queryText, [authorId, safeLimit, safeOffset]);
-    return res.rows;
+    const countQuery = `
+      SELECT COUNT(DISTINCT a.article_id)::integer AS total
+      FROM "Article" a
+      JOIN "Author_Article" aa ON a.article_id = aa.article_id
+      WHERE aa.author_id = $1
+    `;
+
+    const dataQuery = `
+      SELECT 
+        a.article_id,
+        a.title,
+        a.abstract,
+        a.publication_year,
+        a.doi,
+        COALESCE(a."citation_count", 0) AS cited_by_count,
+        COALESCE(a."citation_count", 0) AS citation_count,
+        a.primary_topic,
+        a.created_at
+      FROM "Article" a
+      JOIN "Author_Article" aa ON a.article_id = aa.article_id
+      WHERE aa.author_id = $1
+      ORDER BY a.publication_year DESC, a.article_id DESC
+      LIMIT $2 OFFSET $3
+    `;
+
+    const [countResult, dataResult] = await Promise.all([
+      pool.query(countQuery, [authorId]),
+      pool.query(dataQuery, [authorId, safeLimit, safeOffset]),
+    ]);
+
+    const total = countResult.rows[0]?.total || 0;
+
+    return {
+      items: dataResult.rows,
+      pagination: {
+        page: safePage,
+        limit: safeLimit,
+        total,
+        total_pages: Math.max(1, Math.ceil(total / safeLimit)),
+      },
+    };
   } catch (error) {
     logger.error("Lỗi khi lấy bài viết của tác giả:", error);
     throw error;
@@ -120,36 +141,55 @@ export const getAuthorArticlesService = async (authorId, limit, page) => {
  */
 export const getAuthorLeaderboardService = async (limit, page) => {
   try {
-    const queryText = `
-            SELECT 
-                author_id,
-                orcid,
-                display_name,
-                url_image,
-                -- Nếu NULL thì hiển thị là 0 cho đẹp mắt trên giao diện
-                COALESCE(works_count, 0) AS works_count,
-                COALESCE(cited_by_count, 0) AS cited_by_count,
-                COALESCE(h_index, 0) AS h_index,
-                COALESCE(i10_index, 0) AS i10_index,
-                -- Tính toán số hạng từ hạng 1 trở xuống
-                ROW_NUMBER() OVER (
-                    ORDER BY 
-                        h_index DESC NULLS LAST, 
-                        cited_by_count DESC NULLS LAST, 
-                        i10_index DESC NULLS LAST, 
-                        works_count DESC NULLS LAST
-                ) AS final_rank
-            FROM "Author"
-            ORDER BY final_rank ASC
-            LIMIT $1 OFFSET $2;
-        `;
-
     const safeLimit = Math.max(1, parseInt(limit) || 10);
     const safePage = Math.max(1, parseInt(page) || 1);
     const safeOffset = (safePage - 1) * safeLimit;
 
-    const res = await pool.query(queryText, [safeLimit, safeOffset]);
-    return res.rows;
+    const countQuery = `
+      SELECT COUNT(*)::integer AS total
+      FROM "Author"
+      WHERE COALESCE(is_deleted, false) = false
+    `;
+
+    const dataQuery = `
+      SELECT 
+        author_id,
+        orcid,
+        display_name,
+        url_image,
+        COALESCE(works_count, 0) AS works_count,
+        COALESCE(cited_by_count, 0) AS cited_by_count,
+        COALESCE(h_index, 0) AS h_index,
+        COALESCE(i10_index, 0) AS i10_index,
+        ROW_NUMBER() OVER (
+          ORDER BY 
+            h_index DESC NULLS LAST, 
+            cited_by_count DESC NULLS LAST, 
+            i10_index DESC NULLS LAST, 
+            works_count DESC NULLS LAST
+        ) AS final_rank
+      FROM "Author"
+      WHERE COALESCE(is_deleted, false) = false
+      ORDER BY final_rank ASC
+      LIMIT $1 OFFSET $2;
+    `;
+
+    const [countResult, dataResult] = await Promise.all([
+      pool.query(countQuery),
+      pool.query(dataQuery, [safeLimit, safeOffset]),
+    ]);
+
+    const total = countResult.rows[0]?.total || 0;
+
+    return {
+      items: dataResult.rows,
+      pagination: {
+        page: safePage,
+        limit: safeLimit,
+        total,
+        total_pages: Math.max(1, Math.ceil(total / safeLimit)),
+      },
+    };
   } catch (error) {
     logger.error("Lỗi khi lấy bảng xếp hạng tác giả:", error);
     throw error;
@@ -226,8 +266,16 @@ export const createAuthorArticleRelationships = async (
       return;
     }
 
-    // Loại bỏ trùng lặp và chuyển thành Number gọn gàng hơn với Set
-    const uniqueAuthorIds = [...new Set(authorIds.map((id) => Number(id)))];
+    // Loại bỏ trùng lặp, chuyển thành Number, và lọc bỏ NaN / ID không hợp lệ
+    const uniqueAuthorIds = [...new Set(
+      authorIds
+        .map((id) => Number(id))
+        .filter((id) => !isNaN(id) && id > 0)
+    )];
+
+    if (uniqueAuthorIds.length === 0) {
+      return;
+    }
 
     const query = `
             INSERT INTO "Author_Article" (article_id, author_id)
@@ -314,7 +362,7 @@ export const getAllAuthors = async ({ page = 1, limit = 10, search = "", sort = 
       author_id, orcid, display_name, url_image, openalex_id,
       works_count, cited_by_count, h_index, i10_index,
       last_known_institution, last_known_institution_id,
-      homepage_url, openalex_synced_at
+      created_at
     FROM "Author"
     WHERE is_deleted = false
       AND ($1 = '%%' OR (
@@ -351,7 +399,6 @@ export const createAuthor = async (data) => {
     display_name,
     orcid = null,
     url_image = null,
-    homepage_url = null,
     works_count = null,
     cited_by_count = null,
     h_index = null,
@@ -362,16 +409,15 @@ export const createAuthor = async (data) => {
 
   const { rows } = await pool.query(
     `INSERT INTO "Author" (
-      display_name, orcid, url_image, homepage_url,
+      display_name, orcid, url_image,
       works_count, cited_by_count, h_index, i10_index,
       last_known_institution, last_known_institution_id
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
     RETURNING *`,
     [
       display_name,
       orcid,
       url_image,
-      homepage_url,
       works_count,
       cited_by_count,
       h_index,
@@ -391,7 +437,6 @@ export const updateAuthor = async (id, data) => {
     "display_name",
     "orcid",
     "url_image",
-    "homepage_url",
     "works_count",
     "cited_by_count",
     "h_index",

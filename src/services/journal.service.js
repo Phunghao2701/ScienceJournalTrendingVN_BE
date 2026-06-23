@@ -25,6 +25,10 @@ export const getJournals = async ({
   rankingYear,
   isOaDiamond,
   countryIds,
+  subject_area_id,
+  publisher_id,
+  sort_by,
+  sort_order,
 } = {}) => {
   const pageNum = Math.max(1, parseInt(page, 10) || 1);
   const limitNum = Math.max(1, parseInt(limit, 10) || 10);
@@ -43,7 +47,7 @@ export const getJournals = async ({
     whereClauses.push(`j.display_name ILIKE $${values.length}`);
   }
 
-  const areaIds = pushCsvFilter(subjectAreaIds);
+  const areaIds = pushCsvFilter(subjectAreaIds || subject_area_id);
   if (areaIds.length > 0) {
     values.push(areaIds);
     whereClauses.push(`EXISTS (
@@ -74,6 +78,11 @@ export const getJournals = async ({
   // Filter by OA Diamond when requested
   if (isOaDiamond === true || String(isOaDiamond) === 'true') {
     whereClauses.push(`j.is_oa_diamond = true`);
+  }
+
+  if (publisher_id) {
+    values.push(BigInt(publisher_id));
+    whereClauses.push(`j.publisher_id = $${values.length}`);
   }
 
   const countryIdValues = pushCsvFilter(countryIds);
@@ -132,11 +141,23 @@ export const getJournals = async ({
 
   const whereSql = `WHERE ${whereClauses.join(' AND ')}`;
 
-  const orderBySql = sort === 'name'
-    ? 'ORDER BY j.display_name ASC'
-    : sort === 'metric'
-      ? 'ORDER BY latest_sjr.metric_value DESC NULLS LAST, j.display_name ASC'
-      : 'ORDER BY j.display_name ASC';
+  let orderBySql = 'ORDER BY j.display_name ASC';
+  if (sort_by) {
+    const order = (sort_order || 'ASC').toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+    if (sort_by === 'display_name') {
+      orderBySql = `ORDER BY j.display_name ${order}`;
+    } else if (sort_by === 'created_at') {
+      orderBySql = `ORDER BY j.created_at ${order}`;
+    } else if (sort_by === 'volume_count') {
+      orderBySql = `ORDER BY volume_count ${order}`;
+    }
+  } else {
+    orderBySql = sort === 'name'
+      ? 'ORDER BY j.display_name ASC'
+      : sort === 'metric'
+        ? 'ORDER BY latest_sjr.metric_value DESC NULLS LAST, j.display_name ASC'
+        : 'ORDER BY j.display_name ASC';
+  }
 
   const query = `
     SELECT
@@ -154,7 +175,8 @@ export const getJournals = async ({
       latest_sjr.metric_year,
       latest_quartile.quartile,
       latest_quartile.quartile AS best_quartile,
-      latest_quartile.quartile_year
+      latest_quartile.quartile_year,
+      (SELECT COUNT(*) FROM "Volume" v WHERE v.journal_id = j.journal_id AND v.is_deleted = false)::integer AS volume_count
     ${fromSql}
     ${whereSql}
     ${orderBySql}
@@ -195,7 +217,7 @@ export const getJournalsById = async (id) => {
         j.issn,
         j.type,
         j.coverage,
-        j.scope_detail,
+        j.coverage AS description,
         j.is_open_access,
         j.is_oa_diamond,
         p.publisher_id::text AS publisher_id,
@@ -266,7 +288,7 @@ export const getJournalsById = async (id) => {
 
     return {
       ...journal,
-      description: journal.scope_detail,
+      description: journal.description,
       subject_categories: categoriesRes.rows,
       quartile: quartileMetric?.value_txt || null,
       metric_value: metricValue(sjrMetric),
@@ -318,7 +340,7 @@ export const createJournal = async (data) => {
     // Nhận các field từ object data truyền vào
     let {
       source_id, publisher_id, country, region, display_name,
-      type, is_open_access, is_oa_diamond, coverage, issn, scope_detail
+      type, is_open_access, is_oa_diamond, coverage, issn, scope_detail, description
     } = data;
 
     // Chuẩn hóa dữ liệu sang null nếu trống
@@ -330,17 +352,16 @@ export const createJournal = async (data) => {
     type = type || null;
     is_open_access = is_open_access ?? null;
     is_oa_diamond = is_oa_diamond ?? null;
-    coverage = coverage || null;
+    coverage = coverage || scope_detail || description || null;
     issn = issn || null;
-    scope_detail = scope_detail || null;
     const is_deleted = false; 
 
     const query = `
         INSERT INTO "Journal" (
             source_id, publisher_id, country, region, display_name,
-            type, is_open_access, is_oa_diamond, coverage, issn, scope_detail, is_deleted
+            type, is_open_access, is_oa_diamond, coverage, issn, is_deleted
         ) 
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING *;
     `;
 
@@ -349,7 +370,7 @@ export const createJournal = async (data) => {
         publisher_id ? BigInt(publisher_id) : null,
         country ? BigInt(country) : null,
         region ? BigInt(region) : null,
-        display_name, type, is_open_access, is_oa_diamond, coverage, issn, scope_detail, is_deleted
+        display_name, type, is_open_access, is_oa_diamond, coverage, issn, is_deleted
     ];
 
     const result = await pool.query(query, values);
@@ -367,7 +388,7 @@ export const createJournal = async (data) => {
   * - Kiểm tra tính hợp lệ của ID (phải là số nguyên dương).
   * - Cập nhật các trường được phép trong database nếu chúng tồn tại trong dữ liệu mới.
   * - Trả về thông tin journal đã cập nhật nếu thành công, hoặc null nếu không tìm thấy journal với ID đó, hoặc lỗi nếu có lỗi hệ thống.
-  * Các trường được phép cập nhật bao gồm: source_id, publisher_id, country, region, display_name, type, is_open_access, is_oa_diamond, coverage, issn, scope_detail. Các trường publisher_id, country, region sẽ được chuyển sang kiểu BigInt trước khi cập nhật.
+  * Các trường được phép cập nhật bao gồm: source_id, publisher_id, country, region, display_name, type, is_open_access, is_oa_diamond, coverage, issn. Nếu client gửi scope_detail/description thì service sẽ ánh xạ sang coverage vì schema hiện tại không có cột scope_detail. Các trường publisher_id, country, region sẽ được chuyển sang kiểu BigInt trước khi cập nhật.
   * @async
   * @param {number|string} id - ID của journal cần cập nhật (có thể là số hoặc chuỗi số).
   * @param {Object} data - Dữ liệu mới để cập nhật cho journal, có thể chứa một hoặc nhiều trường trong số các trường được phép cập nhật.
@@ -375,9 +396,14 @@ export const createJournal = async (data) => {
 */ 
 export const updateJournal = async (id, data) => {
   try {
+    const normalizedData = { ...data };
+    if (normalizedData.coverage === undefined) {
+      normalizedData.coverage = normalizedData.scope_detail ?? normalizedData.description;
+    }
+
     const allowedFields = [
       'source_id', 'publisher_id', 'country', 'region', 'display_name',
-      'type', 'is_open_access', 'is_oa_diamond', 'coverage', 'issn', 'scope_detail'
+      'type', 'is_open_access', 'is_oa_diamond', 'coverage', 'issn'
     ];
 
     const updateParts = [];
@@ -385,8 +411,8 @@ export const updateJournal = async (id, data) => {
     let placeholderIndex = 1;
 
     for (const field of allowedFields) {
-      if (data[field] !== undefined && data[field] !== null) {
-        let value = data[field];
+      if (normalizedData[field] !== undefined && normalizedData[field] !== null) {
+        let value = normalizedData[field];
 
         if (['publisher_id', 'country', 'region'].includes(field)) {
           value = BigInt(value);
@@ -467,3 +493,60 @@ export const restoreJournal = async (id) => {
     throw error;
   }
 }
+
+/**
+ * Lấy dữ liệu tổng quan cho một tạp chí (Repository Summary).
+ * @async
+ * @param {string|number} journalId - ID của tạp chí.
+ * @returns {Promise<Object>} Dữ liệu tổng quan bao gồm total_volumes, active_issues, total_publications, next_release.
+ */
+export const getJournalRepositorySummary = async (journalId) => {
+  try {
+    const id = BigInt(journalId);
+
+    const query = `
+      SELECT 
+        (
+          SELECT COUNT(*)::integer 
+          FROM "Volume" 
+          WHERE journal_id = $1 AND is_deleted = false
+        ) AS total_volumes,
+        
+        (
+          SELECT COUNT(i.issue_id)::integer 
+          FROM "Issue" i
+          JOIN "Volume" v ON i.volume_id = v.volume_id
+          WHERE v.journal_id = $1 AND i.is_deleted = false
+        ) AS active_issues,
+        
+        (
+          SELECT COUNT(a.article_id)::integer 
+          FROM "Article" a
+          JOIN "Issue" i ON a.issue_id = i.issue_id
+          JOIN "Volume" v ON i.volume_id = v.volume_id
+          WHERE v.journal_id = $1 AND a.is_deleted = false
+        ) AS total_publications,
+        
+        (
+          SELECT MIN(i.publication_year)::integer 
+          FROM "Issue" i
+          JOIN "Volume" v ON i.volume_id = v.volume_id
+          WHERE v.journal_id = $1 AND i.is_deleted = false AND i.publication_year > EXTRACT(YEAR FROM NOW())
+        ) AS next_release;
+    `;
+
+    // Chỉ gọi pool.query ĐÚNG 1 LẦN -> Chỉ tốn 1 kết nối
+    const result = await pool.query(query, [id]);
+
+    return result.rows[0] || {
+      total_volumes: 0,
+      active_issues: 0,
+      total_publications: 0,
+      next_release: null
+    };
+
+  } catch (error) {
+    logger.error(`Lỗi khi lấy repository summary cho journal ID ${journalId}:`, error);
+    throw error;
+  }
+};

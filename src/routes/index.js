@@ -17,30 +17,26 @@ import authRouter from "./auth.route.js";
 import subjectAreaRouter from "./subjectArea.route.js";
 import subjectCategoryRouter from "./subjectCategory.route.js";
 import searchRotuer from "./search.route.js";
+import adminRouter from "./admin.route.js";
+import publisherRouter from "./publisher.route.js"
+
 
 const router = express.Router();
 
-// Gom router của user vào đường dẫn /users
 router.use("/users", userRouter);
 router.use("/projects", projectRouter);
 router.use("/zones", zoneRouter);
 router.use("/catalog", catalogRouter);
 
-// Gom router của login, register và google vào đường dẫn /auth
 router.use("/auth", loginRouter);
 router.use("/auth", registerRouter);
 router.use("/auth", googleRouter);
 router.use("/auth", authRouter);
 
-// Gom router của article vào đường dẫn /articles
 router.use("/articles", articleRouter);
-
-// Gom router của keyword vào đường dẫn /projects
 router.use("/projects", keywordRouter);
 
 router.use("/author", authorRouter);
-
-// Gom router của topic vào đường dẫn /topics
 router.use("/topics", topicRouter);
 
 router.use("/keywords", keywordRouter);
@@ -51,5 +47,7 @@ router.use("/subject-categories", subjectCategoryRouter);
 router.use("/issues", issueRouter);
 
 router.use("/search", searchRotuer);
+router.use("/admin", adminRouter);
+router.use("/publishers", publisherRouter);
 
 export default router;

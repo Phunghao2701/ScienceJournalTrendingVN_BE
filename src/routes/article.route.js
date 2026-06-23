@@ -1,5 +1,5 @@
 import express from 'express';
-import { requireAuth } from '../middlewares/auth.middleware.js';
+import { requireAuth, verifyToken } from '../middlewares/auth.middleware.js';
 import { 
     createArticle, 
     getArticle, 
@@ -89,7 +89,7 @@ const router = express.Router();
 router.get('/', async (req, res, next) => {
     if (req.query.keywords !== undefined && req.query.keywords.trim() !== '') {
         // Có keywords -> Bắt buộc kiểm tra token tài khoản
-        return requireAuth(req, res, () => getArticlesByKeywords(req, res));
+        return verifyToken(req, res, () => getArticlesByKeywords(req, res));
     }
     // Không có keywords -> Cho phép đi thẳng mà không cần token
     return getArticles(req, res);
@@ -201,7 +201,7 @@ router.get('/:id', validateId, getArticleById);
  *       500:
  *         description: Lỗi server
  */
-router.post('/', requireAuth, validateCreateArticle, createArticle);
+router.post('/', verifyToken, validateCreateArticle, createArticle);
 
 /**
  * @swagger
@@ -278,7 +278,7 @@ router.post('/', requireAuth, validateCreateArticle, createArticle);
  *       500:
  *         description: Lỗi server
  */
-router.put('/:id', requireAuth, validateUpdateArticle, updateArticle);
+router.put('/:id', verifyToken, validateUpdateArticle, updateArticle);
 
 /**
  * @swagger
@@ -318,7 +318,7 @@ router.put('/:id', requireAuth, validateUpdateArticle, updateArticle);
  *       500:
  *         description: Lỗi server
  */
-router.delete('/:id', requireAuth, validateId, deleteArticle);
+router.delete('/:id', verifyToken, validateId, deleteArticle);
 
 /**
  * @swagger
@@ -358,6 +358,6 @@ router.delete('/:id', requireAuth, validateId, deleteArticle);
  *       500:
  *         description: Lỗi server
  */
-router.patch('/:id/restore', requireAuth, validateId, restoreArticle);
+router.patch('/:id/restore', verifyToken, validateId, restoreArticle);
 
 export default router;
