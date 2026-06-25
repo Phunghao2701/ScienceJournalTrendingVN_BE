@@ -909,6 +909,23 @@ export const getTrendingArticles = async ({ years = 2, limit = 10, hot_limit = 1
   const hotKeywordIds = hotKeywordsResult.rows.map((row) => row.keyword_id);
   const hotTopicIds = hotTopicsResult.rows.map((row) => row.topic_id);
 
+  const relationTablesResult = await pool.query(
+    `
+    SELECT table_name
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
+      AND table_name = ANY($1::text[]);
+    `,
+    [["Article_Citing_Work", "Article_Reference"]]
+  );
+  const relationTables = new Set(relationTablesResult.rows.map((row) => row.table_name));
+  const citingCountsCte = relationTables.has("Article_Citing_Work")
+    ? 'SELECT "article_id"::text AS "article_id", COUNT(*)::integer AS "citing_works_count" FROM "Article_Citing_Work" GROUP BY "article_id"::text'
+    : 'SELECT NULL::text AS "article_id", 0::integer AS "citing_works_count" WHERE false';
+  const referenceCountsCte = relationTables.has("Article_Reference")
+    ? 'SELECT "article_id"::text AS "article_id", COUNT(*)::integer AS "references_count" FROM "Article_Reference" GROUP BY "article_id"::text'
+    : 'SELECT NULL::text AS "article_id", 0::integer AS "references_count" WHERE false';
+
   const articlesResult = await pool.query(
     `
     WITH recent_articles AS (
@@ -945,10 +962,10 @@ export const getTrendingArticles = async ({ years = 2, limit = 10, hot_limit = 1
       GROUP BY tp."article_id"
     ),
     citing_counts AS (
-      SELECT "article_id", COUNT(*)::integer AS "citing_works_count" FROM "Article_Citing_Work" GROUP BY "article_id"
+      ${citingCountsCte}
     ),
     reference_counts AS (
-      SELECT "article_id", COUNT(*)::integer AS "references_count" FROM "Article_Reference" GROUP BY "article_id"
+      ${referenceCountsCte}
     ),
     scored AS (
       SELECT
@@ -961,8 +978,8 @@ export const getTrendingArticles = async ({ years = 2, limit = 10, hot_limit = 1
       FROM recent_articles ra
       LEFT JOIN keyword_matches km ON km."article_id" = ra."article_id"
       LEFT JOIN topic_matches tm ON tm."article_id" = ra."article_id"
-      LEFT JOIN citing_counts cc ON cc."article_id" = ra."article_id"
-      LEFT JOIN reference_counts rc ON rc."article_id" = ra."article_id"
+      LEFT JOIN citing_counts cc ON cc."article_id" = ra."article_id"::text
+      LEFT JOIN reference_counts rc ON rc."article_id" = ra."article_id"::text
       WHERE COALESCE(km."hot_keyword_match_count", 0) > 0 OR COALESCE(tm."hot_topic_match_count", 0) > 0
     )
     SELECT
