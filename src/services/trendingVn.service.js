@@ -850,3 +850,205 @@ export const getTrendingAuthors = async ({ years = 2, limit = 10, hot_limit = 10
     items: result.rows.map((row, index) => ({ rank: index + 1, ...row })),
   };
 };
+
+export const getTrendingArticles = async ({ years = 2, limit = 10, hot_limit = 10 } = {}) => {
+  const yearsWindow = clampInt(years, 2, 1, 10);
+  const limitNum = clampInt(limit, 10, 1, 50);
+  const hotLimitNum = clampInt(hot_limit, 10, 1, 50);
+
+  const windowResult = await pool.query(`
+    SELECT MAX(a."publication_year")::integer AS "to_year"
+    FROM "Article" a
+    WHERE a."publication_year" IS NOT NULL
+      AND COALESCE(a."is_deleted", false) = false;
+  `);
+  const toYear = windowResult.rows[0]?.to_year;
+  if (!toYear) {
+    return { window: { from_year: null, to_year: null, years: yearsWindow }, hot_basis: { keywords: [], topics: [] }, items: [] };
+  }
+  const fromYear = toYear - yearsWindow + 1;
+
+  const [hotKeywordsResult, hotTopicsResult] = await Promise.all([
+    pool.query(
+      `
+      SELECT k."keyword_id"::text AS "keyword_id", k."display_name", COUNT(DISTINCT a."article_id")::integer AS "article_count"
+      FROM "Article" a
+      INNER JOIN "Keyword_Article" ka ON ka."article_id" = a."article_id"
+      INNER JOIN "Keyword" k ON k."keyword_id" = ka."keyword_id"
+      WHERE COALESCE(a."is_deleted", false) = false AND a."publication_year" BETWEEN $1 AND $2
+      GROUP BY k."keyword_id", k."display_name"
+      ORDER BY "article_count" DESC, k."display_name" ASC
+      LIMIT $3;
+      `,
+      [fromYear, toYear, hotLimitNum]
+    ),
+    pool.query(
+      `
+      WITH article_topics AS (
+        SELECT DISTINCT a."article_id", a."primary_topic" AS "topic_id"
+        FROM "Article" a
+        WHERE COALESCE(a."is_deleted", false) = false AND a."publication_year" BETWEEN $1 AND $2 AND a."primary_topic" IS NOT NULL
+        UNION
+        SELECT DISTINCT a."article_id", st."topic_id"
+        FROM "Article" a
+        INNER JOIN "Sub_Topic" st ON st."article_id" = a."article_id"
+        WHERE COALESCE(a."is_deleted", false) = false AND a."publication_year" BETWEEN $1 AND $2
+      )
+      SELECT t."topic_id"::text AS "topic_id", t."display_name", COUNT(DISTINCT at."article_id")::integer AS "article_count"
+      FROM article_topics at
+      INNER JOIN "Topic" t ON t."topic_id" = at."topic_id"
+      WHERE COALESCE(t."is_deleted", false) = false
+      GROUP BY t."topic_id", t."display_name"
+      ORDER BY "article_count" DESC, t."display_name" ASC
+      LIMIT $3;
+      `,
+      [fromYear, toYear, hotLimitNum]
+    ),
+  ]);
+
+  const hotKeywordIds = hotKeywordsResult.rows.map((row) => row.keyword_id);
+  const hotTopicIds = hotTopicsResult.rows.map((row) => row.topic_id);
+
+  const articlesResult = await pool.query(
+    `
+    WITH recent_articles AS (
+      SELECT
+        a."article_id",
+        a."title",
+        a."doi",
+        a."publication_year",
+        COALESCE(a."citation_count", 0) AS "citation_count",
+        a."primary_topic",
+        j."journal_id",
+        j."display_name" AS "journal_name"
+      FROM "Article" a
+      LEFT JOIN "Issue" i ON i."issue_id" = a."issue_id" AND COALESCE(i."is_deleted", false) = false
+      LEFT JOIN "Volume" v ON v."volume_id" = i."volume_id" AND COALESCE(v."is_deleted", false) = false
+      LEFT JOIN "Journal" j ON j."journal_id" = v."journal_id" AND COALESCE(j."is_deleted", false) = false
+      WHERE COALESCE(a."is_deleted", false) = false AND a."publication_year" BETWEEN $1 AND $2
+    ),
+    keyword_matches AS (
+      SELECT ka."article_id", COUNT(DISTINCT ka."keyword_id")::integer AS "hot_keyword_match_count"
+      FROM "Keyword_Article" ka
+      WHERE ka."keyword_id"::text = ANY($3::text[])
+      GROUP BY ka."article_id"
+    ),
+    topic_pairs AS (
+      SELECT DISTINCT ra."article_id", ra."primary_topic" AS "topic_id" FROM recent_articles ra WHERE ra."primary_topic" IS NOT NULL
+      UNION
+      SELECT DISTINCT ra."article_id", st."topic_id" FROM recent_articles ra INNER JOIN "Sub_Topic" st ON st."article_id" = ra."article_id"
+    ),
+    topic_matches AS (
+      SELECT tp."article_id", COUNT(DISTINCT tp."topic_id")::integer AS "hot_topic_match_count"
+      FROM topic_pairs tp
+      WHERE tp."topic_id"::text = ANY($4::text[])
+      GROUP BY tp."article_id"
+    ),
+    citing_counts AS (
+      SELECT "article_id", COUNT(*)::integer AS "citing_works_count" FROM "Article_Citing_Work" GROUP BY "article_id"
+    ),
+    reference_counts AS (
+      SELECT "article_id", COUNT(*)::integer AS "references_count" FROM "Article_Reference" GROUP BY "article_id"
+    ),
+    scored AS (
+      SELECT
+        ra.*,
+        COALESCE(km."hot_keyword_match_count", 0)::integer AS "hot_keyword_match_count",
+        COALESCE(tm."hot_topic_match_count", 0)::integer AS "hot_topic_match_count",
+        COALESCE(cc."citing_works_count", 0)::integer AS "citing_works_count",
+        COALESCE(rc."references_count", 0)::integer AS "references_count",
+        ROUND((COALESCE(ra."citation_count", 0) * 3 + COALESCE(km."hot_keyword_match_count", 0) * 2 + COALESCE(tm."hot_topic_match_count", 0) * 2 + COALESCE(cc."citing_works_count", 0) * 2 + COALESCE(rc."references_count", 0) * 0.5)::numeric, 2)::float AS "trending_score"
+      FROM recent_articles ra
+      LEFT JOIN keyword_matches km ON km."article_id" = ra."article_id"
+      LEFT JOIN topic_matches tm ON tm."article_id" = ra."article_id"
+      LEFT JOIN citing_counts cc ON cc."article_id" = ra."article_id"
+      LEFT JOIN reference_counts rc ON rc."article_id" = ra."article_id"
+      WHERE COALESCE(km."hot_keyword_match_count", 0) > 0 OR COALESCE(tm."hot_topic_match_count", 0) > 0
+    )
+    SELECT
+      "article_id"::text,
+      "title",
+      "doi",
+      "publication_year",
+      "citation_count"::integer,
+      "hot_keyword_match_count",
+      "hot_topic_match_count",
+      "citing_works_count",
+      "references_count",
+      "trending_score",
+      "journal_id"::text,
+      "journal_name"
+    FROM scored
+    ORDER BY "trending_score" DESC, "citation_count" DESC, "citing_works_count" DESC, "references_count" DESC, "publication_year" DESC NULLS LAST, "title" ASC
+    LIMIT $5;
+    `,
+    [fromYear, toYear, hotKeywordIds, hotTopicIds, limitNum]
+  );
+
+  const articles = articlesResult.rows;
+  const articleIds = articles.map((article) => article.article_id);
+  if (articleIds.length === 0) {
+    return { window: { from_year: fromYear, to_year: toYear, years: yearsWindow }, hot_basis: { keywords: hotKeywordsResult.rows, topics: hotTopicsResult.rows }, items: [] };
+  }
+
+  const [keywordsResult, topicsResult, authorsResult] = await Promise.all([
+    pool.query(
+      `
+      SELECT ka."article_id"::text AS "article_id", k."keyword_id"::text AS "keyword_id", k."display_name"
+      FROM "Keyword_Article" ka
+      INNER JOIN "Keyword" k ON k."keyword_id" = ka."keyword_id"
+      WHERE ka."article_id"::text = ANY($1::text[]) AND ka."keyword_id"::text = ANY($2::text[])
+      ORDER BY k."display_name" ASC;
+      `,
+      [articleIds, hotKeywordIds]
+    ),
+    pool.query(
+      `
+      WITH article_topics AS (
+        SELECT DISTINCT a."article_id", a."primary_topic" AS "topic_id" FROM "Article" a WHERE a."article_id"::text = ANY($1::text[]) AND a."primary_topic" IS NOT NULL
+        UNION
+        SELECT DISTINCT st."article_id", st."topic_id" FROM "Sub_Topic" st WHERE st."article_id"::text = ANY($1::text[])
+      )
+      SELECT at."article_id"::text AS "article_id", t."topic_id"::text AS "topic_id", t."display_name"
+      FROM article_topics at
+      INNER JOIN "Topic" t ON t."topic_id" = at."topic_id"
+      WHERE COALESCE(t."is_deleted", false) = false AND at."topic_id"::text = ANY($2::text[])
+      ORDER BY t."display_name" ASC;
+      `,
+      [articleIds, hotTopicIds]
+    ),
+    pool.query(
+      `
+      SELECT aa."article_id"::text AS "article_id", au."author_id"::text AS "author_id", au."display_name", au."last_known_institution", au."last_known_institution_id"
+      FROM "Author_Article" aa
+      INNER JOIN "Author" au ON au."author_id" = aa."author_id"
+      WHERE aa."article_id"::text = ANY($1::text[]) AND COALESCE(au."is_deleted", false) = false
+      ORDER BY aa."article_id", au."display_name" ASC;
+      `,
+      [articleIds]
+    ),
+  ]);
+
+  const groupByArticle = (rows) => rows.reduce((acc, row) => {
+    const articleId = String(row.article_id);
+    if (!acc[articleId]) acc[articleId] = [];
+    acc[articleId].push(row);
+    return acc;
+  }, {});
+
+  const keywordsByArticle = groupByArticle(keywordsResult.rows);
+  const topicsByArticle = groupByArticle(topicsResult.rows);
+  const authorsByArticle = groupByArticle(authorsResult.rows);
+
+  return {
+    window: { from_year: fromYear, to_year: toYear, years: yearsWindow },
+    hot_basis: { keywords: hotKeywordsResult.rows, topics: hotTopicsResult.rows },
+    items: articles.map((article, index) => ({
+      rank: index + 1,
+      ...article,
+      keywords: keywordsByArticle[article.article_id] || [],
+      topics: topicsByArticle[article.article_id] || [],
+      authors: authorsByArticle[article.article_id] || [],
+    })),
+  };
+};

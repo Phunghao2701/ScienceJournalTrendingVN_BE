@@ -113,3 +113,11 @@ export const getTrendingAuthors = buildHandler(
   "Lỗi khi lấy trending authors VN:",
   trendingQuery
 );
+
+export const getTrendingArticles = buildHandler(
+  trendingVnService.getTrendingArticles,
+  "TRENDING_VN_TRENDING_ARTICLES_SUCCESS",
+  "Lấy trending article VN thành công!",
+  "Lỗi khi lấy trending articles VN:",
+  trendingQuery
+);

@@ -4,6 +4,7 @@ import {
   getJournalRankings,
   getTopJournals,
   getTopUniversities,
+  getTrendingArticles,
   getTrendingAuthors,
   getTrendingJournals,
   getTrendingUniversities,
@@ -424,5 +425,27 @@ router.get("/ranking/authors", getAuthorRankings);
  *       200: { description: Lấy trending authors thành công }
  */
 router.get("/trending/authors", getTrendingAuthors);
+
+/**
+ * @swagger
+ * /api/v1/trending-vn/trending/articles:
+ *   get:
+ *     summary: Trending Articles VN theo hot keyword/topic, citing và references
+ *     description: Tính trending_score từ citation_count, hot keyword/topic matches, citing works count và references count.
+ *     tags: [Trending VN]
+ *     parameters:
+ *       - in: query
+ *         name: years
+ *         schema: { type: integer, default: 2, minimum: 1, maximum: 10 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10, minimum: 1, maximum: 50 }
+ *       - in: query
+ *         name: hot_limit
+ *         schema: { type: integer, default: 10, minimum: 1, maximum: 50 }
+ *     responses:
+ *       200: { description: Lấy trending articles thành công }
+ */
+router.get("/trending/articles", getTrendingArticles);
 
 export default router;
