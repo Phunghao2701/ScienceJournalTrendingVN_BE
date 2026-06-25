@@ -3,7 +3,9 @@ import { requireAuth, verifyToken } from '../middlewares/auth.middleware.js';
 import { 
     createArticle, 
     getArticle, 
-    getArticleById, 
+    getArticleById,
+    getArticleCitingWorks,
+    getArticleReferences,
     getArticlesByKeywords, 
     getArticles, 
     updateArticle,
@@ -127,6 +129,8 @@ router.get('/', async (req, res, next) => {
  *       500:
  *         description: Lỗi server
  */
+router.get('/:id/citing-works', validateId, getArticleCitingWorks);
+router.get('/:id/references', validateId, getArticleReferences);
 router.get('/:id', validateId, getArticleById);
 
 /**

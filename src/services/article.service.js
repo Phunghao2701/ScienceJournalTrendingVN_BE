@@ -370,6 +370,8 @@ export const getArticleById = async (articleId) => {
                 p."publisher_id"::text AS "publisher_id",
                 p."display_name" AS "publisher_name",
                 a."citation_count",
+                a."citing_patents_count",
+                a."citations_by_year",
                 a."references",
                 a."reference_count",
                 COALESCE(j."is_open_access", false) AS "is_open_access",
@@ -455,6 +457,83 @@ export const getArticleById = async (articleId) => {
         logger.error('Lỗi khi lấy thông tin bài báo theo ID:', error);
         throw error;
     }
+};
+
+const normalizeLimitOffset = (limit, offset, defaultLimit = 20) => {
+    const parsedLimit = Number(limit);
+    const parsedOffset = Number(offset);
+    return {
+        limit: Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 100) : defaultLimit,
+        offset: Number.isFinite(parsedOffset) && parsedOffset >= 0 ? parsedOffset : 0,
+    };
+};
+
+export const countArticleCitingWorks = async (articleId) => {
+    const result = await pool.query(
+        'SELECT COUNT(*)::integer AS "total" FROM "Article_Citing_Work" WHERE "article_id" = $1',
+        [articleId]
+    );
+    return result.rows[0]?.total || 0;
+};
+
+export const getArticleCitingWorks = async (articleId, { limit = 20, offset = 0 } = {}) => {
+    const paging = normalizeLimitOffset(limit, offset, 20);
+    const query = `
+        SELECT
+            "article_id"::text,
+            "openalex_work_id",
+            "doi",
+            "title",
+            "publication_year",
+            "source_name",
+            "source_url",
+            "landing_url",
+            "pdf_url",
+            "cited_by_count",
+            "type",
+            COALESCE("authors", '[]'::jsonb) AS "authors"
+        FROM "Article_Citing_Work"
+        WHERE "article_id" = $1
+        ORDER BY "publication_year" DESC NULLS LAST, "cited_by_count" DESC NULLS LAST, "title" ASC
+        LIMIT $2 OFFSET $3;
+    `;
+    const result = await pool.query(query, [articleId, paging.limit, paging.offset]);
+    return result.rows;
+};
+
+export const countArticleReferences = async (articleId) => {
+    const result = await pool.query(
+        'SELECT COUNT(*)::integer AS "total" FROM "Article_Reference" WHERE "article_id" = $1',
+        [articleId]
+    );
+    return result.rows[0]?.total || 0;
+};
+
+export const getArticleReferences = async (articleId, { limit = 50, offset = 0 } = {}) => {
+    const paging = normalizeLimitOffset(limit, offset, 50);
+    const query = `
+        SELECT
+            "article_id"::text,
+            "reference_key",
+            "openalex_work_id",
+            "semantic_scholar_id",
+            "doi",
+            "title",
+            "publication_year",
+            "source_name",
+            "source_url",
+            "landing_url",
+            "pdf_url",
+            "cited_by_count",
+            "type",
+            COALESCE("authors", '[]'::jsonb) AS "authors"
+        FROM "Article_Reference"
+        WHERE "article_id" = $1
+        ORDER BY "publication_year" DESC NULLS LAST, "title" ASC, "reference_key" ASC
+        LIMIT $2 OFFSET $3;
+    `;
+    const result = await pool.query(query, [articleId, paging.limit, paging.offset]);
+    return result.rows;
 };
 
 /**

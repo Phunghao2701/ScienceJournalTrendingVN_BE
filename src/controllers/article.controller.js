@@ -216,6 +216,83 @@ export const getArticleById = async (req, res) => {
   }
 };
 
+const getPaginationParams = (req, defaultLimit = 20) => {
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || defaultLimit, 1), 100);
+  const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+  const offset = req.query.offset !== undefined
+    ? Math.max(parseInt(req.query.offset, 10) || 0, 0)
+    : (page - 1) * limit;
+  return { limit, page, offset };
+};
+
+export const getArticleCitingWorks = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { limit, page, offset } = getPaginationParams(req, 20);
+    const [items, total] = await Promise.all([
+      articleService.getArticleCitingWorks(id, { limit, offset }),
+      articleService.countArticleCitingWorks(id),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      code: "ARTICLE_CITING_WORKS_GET_SUCCESS",
+      message: "Lấy danh sách bài báo trích dẫn thành công!",
+      data: {
+        items,
+        pagination: {
+          total,
+          page,
+          limit,
+          offset,
+          total_pages: Math.ceil(total / limit),
+        },
+      },
+    });
+  } catch (error) {
+    logger.error("Lỗi khi lấy citing works của bài báo:", error);
+    return res.status(500).json({
+      success: false,
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Có lỗi xảy ra ở Server!",
+    });
+  }
+};
+
+export const getArticleReferences = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { limit, page, offset } = getPaginationParams(req, 50);
+    const [items, total] = await Promise.all([
+      articleService.getArticleReferences(id, { limit, offset }),
+      articleService.countArticleReferences(id),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      code: "ARTICLE_REFERENCES_GET_SUCCESS",
+      message: "Lấy danh sách tài liệu tham khảo thành công!",
+      data: {
+        items,
+        pagination: {
+          total,
+          page,
+          limit,
+          offset,
+          total_pages: Math.ceil(total / limit),
+        },
+      },
+    });
+  } catch (error) {
+    logger.error("Lỗi khi lấy references của bài báo:", error);
+    return res.status(500).json({
+      success: false,
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Có lỗi xảy ra ở Server!",
+    });
+  }
+};
+
 /**
  * Tạo mới một bài báo đầy đủ (Đã bóc tách Validation).
  */
