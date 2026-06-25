@@ -121,3 +121,11 @@ export const getTrendingArticles = buildHandler(
   "Lỗi khi lấy trending articles VN:",
   trendingQuery
 );
+
+export const getTrendingKeywords = buildHandler(
+  trendingVnService.getTrendingKeywords,
+  "TRENDING_VN_TRENDING_KEYWORDS_SUCCESS",
+  "Lấy trending keyword VN thành công!",
+  "Lỗi khi lấy trending keywords VN:",
+  trendingQuery
+);

@@ -1069,3 +1069,117 @@ export const getTrendingArticles = async ({ years = 2, limit = 10, hot_limit = 1
     })),
   };
 };
+
+export const getTrendingKeywords = async ({ limit = 10, hot_limit = 10 } = {}) => {
+  const limitNum = clampInt(limit, 10, 1, 50);
+  const hotLimitNum = clampInt(hot_limit, 10, 1, 50);
+
+  const hotTopicsResult = await pool.query(
+    `
+    WITH article_topics AS (
+      SELECT DISTINCT a."article_id", a."primary_topic" AS "topic_id"
+      FROM "Article" a
+      WHERE COALESCE(a."is_deleted", false) = false
+        AND a."primary_topic" IS NOT NULL
+
+      UNION
+
+      SELECT DISTINCT a."article_id", st."topic_id"
+      FROM "Article" a
+      INNER JOIN "Sub_Topic" st ON st."article_id" = a."article_id"
+      WHERE COALESCE(a."is_deleted", false) = false
+    )
+    SELECT
+      t."topic_id"::text AS "topic_id",
+      t."display_name",
+      COUNT(DISTINCT at."article_id")::integer AS "article_count"
+    FROM article_topics at
+    INNER JOIN "Topic" t ON t."topic_id" = at."topic_id"
+    WHERE COALESCE(t."is_deleted", false) = false
+    GROUP BY t."topic_id", t."display_name"
+    ORDER BY "article_count" DESC, t."display_name" ASC
+    LIMIT $1;
+    `,
+    [hotLimitNum]
+  );
+
+  const hotTopicIds = hotTopicsResult.rows.map((topic) => topic.topic_id);
+
+  const keywordsResult = await pool.query(
+    `
+    WITH valid_articles AS (
+      SELECT a."article_id", a."citation_count", a."primary_topic"
+      FROM "Article" a
+      WHERE COALESCE(a."is_deleted", false) = false
+    ),
+    article_topics AS (
+      SELECT DISTINCT va."article_id", va."primary_topic" AS "topic_id"
+      FROM valid_articles va
+      WHERE va."primary_topic" IS NOT NULL
+
+      UNION
+
+      SELECT DISTINCT va."article_id", st."topic_id"
+      FROM valid_articles va
+      INNER JOIN "Sub_Topic" st ON st."article_id" = va."article_id"
+    ),
+    keyword_articles AS (
+      SELECT
+        k."keyword_id",
+        k."display_name" AS "keyword_name",
+        va."article_id",
+        COALESCE(va."citation_count", 0) AS "citation_count"
+      FROM valid_articles va
+      INNER JOIN "Keyword_Article" ka ON ka."article_id" = va."article_id"
+      INNER JOIN "Keyword" k ON k."keyword_id" = ka."keyword_id"
+      WHERE $1::integer = 0
+         OR EXISTS (
+          SELECT 1
+          FROM article_topics at
+          WHERE at."article_id" = va."article_id"
+            AND at."topic_id"::text = ANY($2::text[])
+        )
+    ),
+    keyword_topic_matches AS (
+      SELECT
+        ka."keyword_id",
+        t."topic_id"::text AS "topic_id",
+        t."display_name" AS "display_name",
+        COUNT(DISTINCT ka."article_id")::integer AS "article_count"
+      FROM keyword_articles ka
+      INNER JOIN article_topics at ON at."article_id" = ka."article_id"
+      INNER JOIN "Topic" t ON t."topic_id" = at."topic_id"
+      WHERE COALESCE(t."is_deleted", false) = false
+        AND ($1::integer = 0 OR t."topic_id"::text = ANY($2::text[]))
+      GROUP BY ka."keyword_id", t."topic_id", t."display_name"
+    )
+    SELECT
+      ka."keyword_id"::text AS "keyword_id",
+      ka."keyword_name" AS "display_name",
+      COUNT(DISTINCT ka."article_id")::integer AS "article_count",
+      COALESCE(SUM(ka."citation_count"), 0)::integer AS "total_citations",
+      ROUND(COALESCE(AVG(ka."citation_count"), 0)::numeric, 2)::float AS "avg_citations",
+      COALESCE(
+        jsonb_agg(
+          DISTINCT jsonb_build_object(
+            'topic_id', ktm."topic_id",
+            'display_name', ktm."display_name",
+            'article_count', ktm."article_count"
+          )
+        ) FILTER (WHERE ktm."topic_id" IS NOT NULL),
+        '[]'::jsonb
+      ) AS "hot_topics"
+    FROM keyword_articles ka
+    LEFT JOIN keyword_topic_matches ktm ON ktm."keyword_id" = ka."keyword_id"
+    GROUP BY ka."keyword_id", ka."keyword_name"
+    ORDER BY "article_count" DESC, "total_citations" DESC, ka."keyword_name" ASC
+    LIMIT $3;
+    `,
+    [hotTopicIds.length, hotTopicIds, limitNum]
+  );
+
+  return {
+    hot_basis: { topics: hotTopicsResult.rows },
+    items: keywordsResult.rows.map((row, index) => ({ rank: index + 1, ...row })),
+  };
+};

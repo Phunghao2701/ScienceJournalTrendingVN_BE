@@ -7,6 +7,7 @@ import {
   getTrendingArticles,
   getTrendingAuthors,
   getTrendingJournals,
+  getTrendingKeywords,
   getTrendingUniversities,
   getUniversityRankings,
 } from "../controllers/trendingVn.controller.js";
@@ -447,5 +448,24 @@ router.get("/trending/authors", getTrendingAuthors);
  *       200: { description: Lấy trending articles thành công }
  */
 router.get("/trending/articles", getTrendingArticles);
+
+/**
+ * @swagger
+ * /api/v1/trending-vn/trending/keywords:
+ *   get:
+ *     summary: Trending Keywords VN theo hot topic/keyword toàn bộ DB
+ *     description: Lấy keyword xuất hiện nhiều trong các bài thuộc topic hot, không giới hạn theo năm.
+ *     tags: [Trending VN]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10, minimum: 1, maximum: 50 }
+ *       - in: query
+ *         name: hot_limit
+ *         schema: { type: integer, default: 10, minimum: 1, maximum: 50 }
+ *     responses:
+ *       200: { description: Lấy trending keywords thành công }
+ */
+router.get("/trending/keywords", getTrendingKeywords);
 
 export default router;
