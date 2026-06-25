@@ -129,8 +129,98 @@ router.get('/', async (req, res, next) => {
  *       500:
  *         description: Lỗi server
  */
+/*
+ * Article relationship APIs
+ * - citing-works/citing: bài báo khác trích dẫn article hiện tại
+ * - references/refer: bài báo/tài liệu mà article hiện tại tham khảo
+ */
+
+/**
+ * @swagger
+ * /api/v1/articles/{id}/citing-works:
+ *   get:
+ *     summary: Lấy danh sách bài báo trích dẫn article hiện tại
+ *     description: Trả về các bài báo trong bảng Article_Citing_Work, tức các bài khác đang cite bài báo `{id}`.
+ *     tags:
+ *       - Article
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Article ID cần xem citing works
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *           minimum: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *           minimum: 1
+ *           maximum: 100
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           minimum: 0
+ *         description: Nếu truyền offset thì offset được ưu tiên hơn page
+ *     responses:
+ *       200:
+ *         description: Lấy danh sách citing works thành công
+ *       500:
+ *         description: Lỗi hệ thống
+ */
 router.get('/:id/citing-works', validateId, getArticleCitingWorks);
+router.get('/:id/citing', validateId, getArticleCitingWorks);
+
+/**
+ * @swagger
+ * /api/v1/articles/{id}/references:
+ *   get:
+ *     summary: Lấy danh sách bài báo/tài liệu mà article hiện tại tham khảo
+ *     description: Trả về các record trong bảng Article_Reference, tức references của bài báo `{id}`.
+ *     tags:
+ *       - Article
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Article ID cần xem references
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *           minimum: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *           minimum: 1
+ *           maximum: 100
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           minimum: 0
+ *         description: Nếu truyền offset thì offset được ưu tiên hơn page
+ *     responses:
+ *       200:
+ *         description: Lấy danh sách references thành công
+ *       500:
+ *         description: Lỗi hệ thống
+ */
 router.get('/:id/references', validateId, getArticleReferences);
+router.get('/:id/refer', validateId, getArticleReferences);
+
 router.get('/:id', validateId, getArticleById);
 
 /**
