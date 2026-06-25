@@ -1,5 +1,14 @@
 import express from "express";
-import { getTopJournals, getTopUniversities } from "../controllers/trendingVn.controller.js";
+import {
+  getAuthorRankings,
+  getJournalRankings,
+  getTopJournals,
+  getTopUniversities,
+  getTrendingAuthors,
+  getTrendingJournals,
+  getTrendingUniversities,
+  getUniversityRankings,
+} from "../controllers/trendingVn.controller.js";
 
 const router = express.Router();
 
@@ -310,5 +319,110 @@ router.get("/top-journals", getTopJournals);
  *         description: Lỗi hệ thống khi lấy Top Universities VN
  */
 router.get("/top-universities", getTopUniversities);
+
+/**
+ * @swagger
+ * /api/v1/trending-vn/ranking/journals:
+ *   get:
+ *     summary: Ranking Journals VN theo tổng citation/toàn bộ bài trong DB
+ *     tags: [Trending VN]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10, minimum: 1, maximum: 50 }
+ *     responses:
+ *       200: { description: Lấy ranking journals thành công }
+ */
+router.get("/ranking/journals", getJournalRankings);
+
+/**
+ * @swagger
+ * /api/v1/trending-vn/trending/journals:
+ *   get:
+ *     summary: Trending Journals VN trong N năm gần nhất
+ *     tags: [Trending VN]
+ *     parameters:
+ *       - in: query
+ *         name: years
+ *         schema: { type: integer, default: 2, minimum: 1, maximum: 10 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10, minimum: 1, maximum: 50 }
+ *     responses:
+ *       200: { description: Lấy trending journals thành công }
+ */
+router.get("/trending/journals", getTrendingJournals);
+
+/**
+ * @swagger
+ * /api/v1/trending-vn/ranking/universities:
+ *   get:
+ *     summary: Ranking Universities VN theo toàn bộ bài của tác giả chính
+ *     tags: [Trending VN]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10, minimum: 1, maximum: 50 }
+ *     responses:
+ *       200: { description: Lấy ranking universities thành công }
+ */
+router.get("/ranking/universities", getUniversityRankings);
+
+/**
+ * @swagger
+ * /api/v1/trending-vn/trending/universities:
+ *   get:
+ *     summary: Trending Universities VN theo hot keyword/topic và tác giả chính
+ *     tags: [Trending VN]
+ *     parameters:
+ *       - in: query
+ *         name: years
+ *         schema: { type: integer, default: 2, minimum: 1, maximum: 10 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10, minimum: 1, maximum: 50 }
+ *       - in: query
+ *         name: hot_limit
+ *         schema: { type: integer, default: 10, minimum: 1, maximum: 50 }
+ *     responses:
+ *       200: { description: Lấy trending universities thành công }
+ */
+router.get("/trending/universities", getTrendingUniversities);
+
+/**
+ * @swagger
+ * /api/v1/trending-vn/ranking/authors:
+ *   get:
+ *     summary: Ranking Authors VN theo h-index/citation/works trong DB
+ *     tags: [Trending VN]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10, minimum: 1, maximum: 50 }
+ *     responses:
+ *       200: { description: Lấy ranking authors thành công }
+ */
+router.get("/ranking/authors", getAuthorRankings);
+
+/**
+ * @swagger
+ * /api/v1/trending-vn/trending/authors:
+ *   get:
+ *     summary: Trending Authors VN theo hot keyword/topic và tác giả chính
+ *     tags: [Trending VN]
+ *     parameters:
+ *       - in: query
+ *         name: years
+ *         schema: { type: integer, default: 2, minimum: 1, maximum: 10 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10, minimum: 1, maximum: 50 }
+ *       - in: query
+ *         name: hot_limit
+ *         schema: { type: integer, default: 10, minimum: 1, maximum: 50 }
+ *     responses:
+ *       200: { description: Lấy trending authors thành công }
+ */
+router.get("/trending/authors", getTrendingAuthors);
 
 export default router;

@@ -47,3 +47,69 @@ export const getTopUniversities = async (req, res) => {
     });
   }
 };
+
+const buildHandler = (serviceFn, code, message, logMessage, mapQuery = (query) => query) => async (req, res) => {
+  try {
+    const result = await serviceFn(mapQuery(req.query));
+    return res.status(200).json({ success: true, code, message, data: result });
+  } catch (error) {
+    logger.error(logMessage, error);
+    return res.status(500).json({
+      success: false,
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Có lỗi xảy ra ở Server!",
+    });
+  }
+};
+
+const rankingQuery = (query) => ({ limit: query.limit });
+const trendingQuery = (query) => ({ years: query.years, limit: query.limit, hot_limit: query.hot_limit });
+const journalTrendingQuery = (query) => ({ years: query.years, limit: query.limit });
+
+export const getJournalRankings = buildHandler(
+  trendingVnService.getJournalRankings,
+  "TRENDING_VN_RANKING_JOURNALS_SUCCESS",
+  "Lấy ranking journal VN thành công!",
+  "Lỗi khi lấy ranking journals VN:",
+  rankingQuery
+);
+
+export const getTrendingJournals = buildHandler(
+  trendingVnService.getTrendingJournals,
+  "TRENDING_VN_TRENDING_JOURNALS_SUCCESS",
+  "Lấy trending journal VN thành công!",
+  "Lỗi khi lấy trending journals VN:",
+  journalTrendingQuery
+);
+
+export const getUniversityRankings = buildHandler(
+  trendingVnService.getUniversityRankings,
+  "TRENDING_VN_RANKING_UNIVERSITIES_SUCCESS",
+  "Lấy ranking university VN thành công!",
+  "Lỗi khi lấy ranking universities VN:",
+  rankingQuery
+);
+
+export const getTrendingUniversities = buildHandler(
+  trendingVnService.getTrendingUniversities,
+  "TRENDING_VN_TRENDING_UNIVERSITIES_SUCCESS",
+  "Lấy trending university VN thành công!",
+  "Lỗi khi lấy trending universities VN:",
+  trendingQuery
+);
+
+export const getAuthorRankings = buildHandler(
+  trendingVnService.getAuthorRankings,
+  "TRENDING_VN_RANKING_AUTHORS_SUCCESS",
+  "Lấy ranking author VN thành công!",
+  "Lỗi khi lấy ranking authors VN:",
+  rankingQuery
+);
+
+export const getTrendingAuthors = buildHandler(
+  trendingVnService.getTrendingAuthors,
+  "TRENDING_VN_TRENDING_AUTHORS_SUCCESS",
+  "Lấy trending author VN thành công!",
+  "Lỗi khi lấy trending authors VN:",
+  trendingQuery
+);

@@ -375,10 +375,13 @@ export const getTopUniversities = async ({ years = 2, limit = 10, hot_limit = 10
         au."last_known_institution_id" AS "institution_id"
       FROM trending_articles ta
       INNER JOIN recent_articles ra ON ra."article_id" = ta."article_id"
-      INNER JOIN "Author_Article" aa ON aa."article_id" = ra."article_id"
+      INNER JOIN (
+        SELECT "article_id", MIN("author_id") AS "author_id"
+        FROM "Author_Article"
+        GROUP BY "article_id"
+      ) aa ON aa."article_id" = ra."article_id"
       INNER JOIN "Author" au ON au."author_id" = aa."author_id"
-      WHERE LOWER(COALESCE(aa."author_position", '')) = 'first'
-        AND COALESCE(au."is_deleted", false) = false
+      WHERE COALESCE(au."is_deleted", false) = false
         AND NULLIF(TRIM(au."last_known_institution"), '') IS NOT NULL
     )
     SELECT
@@ -417,11 +420,14 @@ export const getTopUniversities = async ({ years = 2, limit = 10, hot_limit = 10
           a."article_id",
           COALESCE(au."last_known_institution_id", au."last_known_institution") AS "institution_key"
         FROM "Article" a
-        INNER JOIN "Author_Article" aa ON aa."article_id" = a."article_id"
+        INNER JOIN (
+        SELECT "article_id", MIN("author_id") AS "author_id"
+        FROM "Author_Article"
+        GROUP BY "article_id"
+      ) aa ON aa."article_id" = a."article_id"
         INNER JOIN "Author" au ON au."author_id" = aa."author_id"
         WHERE COALESCE(a."is_deleted", false) = false
           AND a."publication_year" BETWEEN $1 AND $2
-          AND LOWER(COALESCE(aa."author_position", '')) = 'first'
           AND COALESCE(au."is_deleted", false) = false
           AND NULLIF(TRIM(au."last_known_institution"), '') IS NOT NULL
           AND COALESCE(au."last_known_institution_id", au."last_known_institution") = ANY($5::text[])
@@ -470,11 +476,14 @@ export const getTopUniversities = async ({ years = 2, limit = 10, hot_limit = 10
           a."primary_topic",
           COALESCE(au."last_known_institution_id", au."last_known_institution") AS "institution_key"
         FROM "Article" a
-        INNER JOIN "Author_Article" aa ON aa."article_id" = a."article_id"
+        INNER JOIN (
+        SELECT "article_id", MIN("author_id") AS "author_id"
+        FROM "Author_Article"
+        GROUP BY "article_id"
+      ) aa ON aa."article_id" = a."article_id"
         INNER JOIN "Author" au ON au."author_id" = aa."author_id"
         WHERE COALESCE(a."is_deleted", false) = false
           AND a."publication_year" BETWEEN $1 AND $2
-          AND LOWER(COALESCE(aa."author_position", '')) = 'first'
           AND COALESCE(au."is_deleted", false) = false
           AND NULLIF(TRIM(au."last_known_institution"), '') IS NOT NULL
           AND COALESCE(au."last_known_institution_id", au."last_known_institution") = ANY($5::text[])
@@ -541,11 +550,14 @@ export const getTopUniversities = async ({ years = 2, limit = 10, hot_limit = 10
             ORDER BY COALESCE(a."citation_count", 0) DESC, a."publication_year" DESC NULLS LAST, a."title" ASC
           ) AS rn
         FROM "Article" a
-        INNER JOIN "Author_Article" aa ON aa."article_id" = a."article_id"
+        INNER JOIN (
+        SELECT "article_id", MIN("author_id") AS "author_id"
+        FROM "Author_Article"
+        GROUP BY "article_id"
+      ) aa ON aa."article_id" = a."article_id"
         INNER JOIN "Author" au ON au."author_id" = aa."author_id"
         WHERE COALESCE(a."is_deleted", false) = false
           AND a."publication_year" BETWEEN $1 AND $2
-          AND LOWER(COALESCE(aa."author_position", '')) = 'first'
           AND COALESCE(au."is_deleted", false) = false
           AND NULLIF(TRIM(au."last_known_institution"), '') IS NOT NULL
           AND COALESCE(au."last_known_institution_id", au."last_known_institution") = ANY($5::text[])
@@ -595,5 +607,246 @@ export const getTopUniversities = async ({ years = 2, limit = 10, hot_limit = 10
       top_topics: topicsByInstitution[university.institution_key] || [],
       representative_articles: articlesByInstitution[university.institution_key] || [],
     })),
+  };
+};
+
+export const getTrendingJournals = getTopJournals;
+export const getTrendingUniversities = getTopUniversities;
+
+export const getJournalRankings = async ({ limit = 10 } = {}) => {
+  const limitNum = clampInt(limit, 10, 1, 50);
+  const result = await pool.query(
+    `
+    SELECT
+      j."journal_id"::text AS "journal_id",
+      j."display_name" AS "journal_name",
+      j."issn",
+      j."type" AS "journal_type",
+      j."is_open_access" AS "journal_is_open_access",
+      p."display_name" AS "publisher_name",
+      COUNT(DISTINCT a."article_id")::integer AS "total_articles_count",
+      COALESCE(SUM(COALESCE(a."citation_count", 0)), 0)::integer AS "total_citations",
+      ROUND(COALESCE(AVG(COALESCE(a."citation_count", 0)), 0)::numeric, 2)::float AS "avg_citations",
+      MAX(a."publication_year")::integer AS "latest_publication_year"
+    FROM "Journal" j
+    LEFT JOIN "Publisher" p ON p."publisher_id" = j."publisher_id"
+    INNER JOIN "Volume" v ON v."journal_id" = j."journal_id" AND COALESCE(v."is_deleted", false) = false
+    INNER JOIN "Issue" i ON i."volume_id" = v."volume_id" AND COALESCE(i."is_deleted", false) = false
+    INNER JOIN "Article" a ON a."issue_id" = i."issue_id" AND COALESCE(a."is_deleted", false) = false
+    WHERE COALESCE(j."is_deleted", false) = false
+    GROUP BY j."journal_id", j."display_name", j."issn", j."type", j."is_open_access", p."display_name"
+    ORDER BY "total_citations" DESC, "total_articles_count" DESC, j."display_name" ASC
+    LIMIT $1;
+    `,
+    [limitNum]
+  );
+
+  return {
+    items: result.rows.map((row, index) => ({ rank: index + 1, ...row })),
+  };
+};
+
+export const getUniversityRankings = async ({ limit = 10 } = {}) => {
+  const limitNum = clampInt(limit, 10, 1, 50);
+  const result = await pool.query(
+    `
+    SELECT
+      COALESCE(au."last_known_institution_id", au."last_known_institution") AS "institution_key",
+      au."last_known_institution_id" AS "institution_id",
+      au."last_known_institution" AS "institution_name",
+      COUNT(DISTINCT a."article_id")::integer AS "total_articles_count",
+      COUNT(DISTINCT au."author_id")::integer AS "first_authors_count",
+      COALESCE(SUM(COALESCE(a."citation_count", 0)), 0)::integer AS "total_citations",
+      ROUND(COALESCE(AVG(COALESCE(a."citation_count", 0)), 0)::numeric, 2)::float AS "avg_citations",
+      MAX(a."publication_year")::integer AS "latest_publication_year"
+    FROM "Article" a
+    INNER JOIN (
+        SELECT "article_id", MIN("author_id") AS "author_id"
+        FROM "Author_Article"
+        GROUP BY "article_id"
+      ) aa ON aa."article_id" = a."article_id"
+    INNER JOIN "Author" au ON au."author_id" = aa."author_id"
+    WHERE COALESCE(a."is_deleted", false) = false
+      AND COALESCE(au."is_deleted", false) = false
+      AND NULLIF(TRIM(au."last_known_institution"), '') IS NOT NULL
+    GROUP BY COALESCE(au."last_known_institution_id", au."last_known_institution"), au."last_known_institution_id", au."last_known_institution"
+    ORDER BY "total_citations" DESC, "total_articles_count" DESC, au."last_known_institution" ASC
+    LIMIT $1;
+    `,
+    [limitNum]
+  );
+
+  return {
+    items: result.rows.map((row, index) => ({
+      rank: index + 1,
+      institution_id: row.institution_id,
+      institution_name: row.institution_name,
+      total_articles_count: row.total_articles_count,
+      first_authors_count: row.first_authors_count,
+      total_citations: row.total_citations,
+      avg_citations: row.avg_citations,
+      latest_publication_year: row.latest_publication_year,
+    })),
+  };
+};
+
+export const getAuthorRankings = async ({ limit = 10 } = {}) => {
+  const limitNum = clampInt(limit, 10, 1, 50);
+  const result = await pool.query(
+    `
+    SELECT
+      au."author_id"::text AS "author_id",
+      au."display_name",
+      au."openalex_id",
+      au."last_known_institution",
+      au."last_known_institution_id",
+      COALESCE(au."works_count", 0)::integer AS "works_count",
+      COALESCE(au."cited_by_count", 0)::integer AS "cited_by_count",
+      COALESCE(au."h_index", 0)::integer AS "h_index",
+      COALESCE(au."i10_index", 0)::integer AS "i10_index",
+      COUNT(DISTINCT aa."article_id")::integer AS "local_articles_count",
+      COUNT(DISTINCT first_aa."article_id")::integer AS "local_first_author_articles_count"
+    FROM "Author" au
+    LEFT JOIN "Author_Article" aa ON aa."author_id" = au."author_id"
+    LEFT JOIN (
+      SELECT "article_id", MIN("author_id") AS "author_id"
+      FROM "Author_Article"
+      GROUP BY "article_id"
+    ) first_aa ON first_aa."author_id" = au."author_id"
+    WHERE COALESCE(au."is_deleted", false) = false
+    GROUP BY au."author_id", au."display_name", au."openalex_id", au."last_known_institution", au."last_known_institution_id", au."works_count", au."cited_by_count", au."h_index", au."i10_index"
+    ORDER BY "h_index" DESC, "cited_by_count" DESC, "works_count" DESC, au."display_name" ASC
+    LIMIT $1;
+    `,
+    [limitNum]
+  );
+
+  return {
+    items: result.rows.map((row, index) => ({ rank: index + 1, ...row })),
+  };
+};
+
+export const getTrendingAuthors = async ({ years = 2, limit = 10, hot_limit = 10 } = {}) => {
+  const yearsWindow = clampInt(years, 2, 1, 10);
+  const limitNum = clampInt(limit, 10, 1, 50);
+  const hotLimitNum = clampInt(hot_limit, 10, 1, 50);
+
+  const windowResult = await pool.query(`
+    SELECT MAX(a."publication_year")::integer AS "to_year"
+    FROM "Article" a
+    WHERE a."publication_year" IS NOT NULL
+      AND COALESCE(a."is_deleted", false) = false;
+  `);
+  const toYear = windowResult.rows[0]?.to_year;
+  if (!toYear) {
+    return { window: { from_year: null, to_year: null, years: yearsWindow }, hot_basis: { keywords: [], topics: [] }, items: [] };
+  }
+  const fromYear = toYear - yearsWindow + 1;
+
+  const [hotKeywordsResult, hotTopicsResult] = await Promise.all([
+    pool.query(
+      `
+      SELECT k."keyword_id"::text AS "keyword_id", k."display_name", COUNT(DISTINCT a."article_id")::integer AS "article_count"
+      FROM "Article" a
+      INNER JOIN "Keyword_Article" ka ON ka."article_id" = a."article_id"
+      INNER JOIN "Keyword" k ON k."keyword_id" = ka."keyword_id"
+      WHERE COALESCE(a."is_deleted", false) = false AND a."publication_year" BETWEEN $1 AND $2
+      GROUP BY k."keyword_id", k."display_name"
+      ORDER BY "article_count" DESC, k."display_name" ASC
+      LIMIT $3;
+      `,
+      [fromYear, toYear, hotLimitNum]
+    ),
+    pool.query(
+      `
+      WITH article_topics AS (
+        SELECT DISTINCT a."article_id", a."primary_topic" AS "topic_id"
+        FROM "Article" a
+        WHERE COALESCE(a."is_deleted", false) = false AND a."publication_year" BETWEEN $1 AND $2 AND a."primary_topic" IS NOT NULL
+        UNION
+        SELECT DISTINCT a."article_id", st."topic_id"
+        FROM "Article" a
+        INNER JOIN "Sub_Topic" st ON st."article_id" = a."article_id"
+        WHERE COALESCE(a."is_deleted", false) = false AND a."publication_year" BETWEEN $1 AND $2
+      )
+      SELECT t."topic_id"::text AS "topic_id", t."display_name", COUNT(DISTINCT at."article_id")::integer AS "article_count"
+      FROM article_topics at
+      INNER JOIN "Topic" t ON t."topic_id" = at."topic_id"
+      WHERE COALESCE(t."is_deleted", false) = false
+      GROUP BY t."topic_id", t."display_name"
+      ORDER BY "article_count" DESC, t."display_name" ASC
+      LIMIT $3;
+      `,
+      [fromYear, toYear, hotLimitNum]
+    ),
+  ]);
+
+  const hotKeywordIds = hotKeywordsResult.rows.map((row) => row.keyword_id);
+  const hotTopicIds = hotTopicsResult.rows.map((row) => row.topic_id);
+
+  const result = await pool.query(
+    `
+    WITH trending_articles AS (
+      SELECT DISTINCT a."article_id"
+      FROM "Article" a
+      WHERE COALESCE(a."is_deleted", false) = false
+        AND a."publication_year" BETWEEN $1 AND $2
+        AND (
+          EXISTS (SELECT 1 FROM "Keyword_Article" ka WHERE ka."article_id" = a."article_id" AND ka."keyword_id"::text = ANY($3::text[]))
+          OR a."primary_topic"::text = ANY($4::text[])
+          OR EXISTS (SELECT 1 FROM "Sub_Topic" st WHERE st."article_id" = a."article_id" AND st."topic_id"::text = ANY($4::text[]))
+        )
+    ),
+    first_author_articles AS (
+      SELECT DISTINCT
+        a."article_id",
+        a."title",
+        a."publication_year",
+        COALESCE(a."citation_count", 0) AS "citation_count",
+        au."author_id",
+        au."display_name",
+        au."openalex_id",
+        au."last_known_institution",
+        au."last_known_institution_id",
+        au."works_count",
+        au."cited_by_count",
+        au."h_index",
+        au."i10_index"
+      FROM trending_articles ta
+      INNER JOIN "Article" a ON a."article_id" = ta."article_id"
+      INNER JOIN (
+        SELECT "article_id", MIN("author_id") AS "author_id"
+        FROM "Author_Article"
+        GROUP BY "article_id"
+      ) aa ON aa."article_id" = a."article_id"
+      INNER JOIN "Author" au ON au."author_id" = aa."author_id"
+      WHERE COALESCE(au."is_deleted", false) = false
+    )
+    SELECT
+      faa."author_id"::text AS "author_id",
+      faa."display_name",
+      faa."openalex_id",
+      faa."last_known_institution",
+      faa."last_known_institution_id",
+      COALESCE(MAX(faa."works_count"), 0)::integer AS "works_count",
+      COALESCE(MAX(faa."cited_by_count"), 0)::integer AS "cited_by_count",
+      COALESCE(MAX(faa."h_index"), 0)::integer AS "h_index",
+      COALESCE(MAX(faa."i10_index"), 0)::integer AS "i10_index",
+      COUNT(DISTINCT faa."article_id")::integer AS "trending_articles_count",
+      COALESCE(SUM(faa."citation_count"), 0)::integer AS "total_recent_citations",
+      ROUND(COALESCE(AVG(faa."citation_count"), 0)::numeric, 2)::float AS "avg_recent_citations",
+      MAX(faa."publication_year")::integer AS "latest_publication_year"
+    FROM first_author_articles faa
+    GROUP BY faa."author_id", faa."display_name", faa."openalex_id", faa."last_known_institution", faa."last_known_institution_id"
+    ORDER BY "total_recent_citations" DESC, "trending_articles_count" DESC, "h_index" DESC, faa."display_name" ASC
+    LIMIT $5;
+    `,
+    [fromYear, toYear, hotKeywordIds, hotTopicIds, limitNum]
+  );
+
+  return {
+    window: { from_year: fromYear, to_year: toYear, years: yearsWindow },
+    hot_basis: { keywords: hotKeywordsResult.rows, topics: hotTopicsResult.rows },
+    items: result.rows.map((row, index) => ({ rank: index + 1, ...row })),
   };
 };
