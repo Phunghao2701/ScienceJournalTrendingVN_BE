@@ -1,4 +1,5 @@
 import * as articleService from "../services/article.service.js";
+import { getArticleAnalysis as getArticleAnalysisService } from "../services/articleAnalysis.service.js";
 import {
   createAuthorArticleRelationships,
   updateAuthorArticleRelationships,
@@ -43,10 +44,11 @@ export const getArticlesByKeywords = async (req, res) => {
     const limit = parseInt(req.query.limit, 10) || 20;
     const page = parseInt(req.query.page, 10) || 1;
     const offset = (page - 1) * limit;
+    const scope = req.query.scope || "all";
 
     const [articles, total] = await Promise.all([
-      articleService.getArticlesByKeywords(keywords, limit, offset),
-      articleService.countArticlesByKeywords(keywords),
+      articleService.getArticlesByKeywords(keywords, limit, offset, { scope }),
+      articleService.countArticlesByKeywords(keywords, { scope }),
     ]);
 
     return res.status(200).json({
@@ -54,6 +56,7 @@ export const getArticlesByKeywords = async (req, res) => {
       code: "ARTICLES_GET_BY_KEYWORDS_SUCCESS",
       message: "Lấy danh sách bài báo thành công!",
       data: {
+        scope,
         articles: articles,
         pagination: {
           total: total,
@@ -65,10 +68,10 @@ export const getArticlesByKeywords = async (req, res) => {
     });
   } catch (error) {
     console.error("getArticlesByKeywords error:", error);
-    return res.status(500).json({
+    return res.status(error.statusCode || 500).json({
       success: false,
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Có lỗi xảy ra ở Server!",
+      code: error.code || "INTERNAL_SERVER_ERROR",
+      message: error.statusCode ? error.message : "Có lỗi xảy ra ở Server!",
     });
   }
 };
@@ -105,18 +108,17 @@ export const getArticles = async (req, res) => {
       publicationYear: req.query.publication_year || req.query.year,
       journalId: req.query.journal_id || req.query.journal,
       topicId: req.query.topic_id || req.query.topic,
+      publisherId: req.query.publisher_id || req.query.publisher,
+      authorId: req.query.author_id || req.query.author,
+      keywordId: req.query.keyword_id || req.query.keyword,
+      institutionId: req.query.institution_id || req.query.institution,
       volumeId: req.query.volume_id,
       issueId: req.query.issue_id,
-      isOpenAccess: req.query.is_open_access || req.query.access,
+      isOpenAccess: req.query.is_open_access,
+      access: req.query.access,
+      scope: req.query.scope || "all",
       countryId: req.query.country_id || req.query.country,
     };
-
-    if (serviceParams.isOpenAccess === "all" || serviceParams.isOpenAccess === "") {
-      serviceParams.isOpenAccess = undefined;
-    }
-    if (serviceParams.isOpenAccess === "oa") {
-      serviceParams.isOpenAccess = true;
-    }
 
     const [articles, total] = await Promise.all([
       articleService.getAllArticles(serviceParams),
@@ -126,7 +128,7 @@ export const getArticles = async (req, res) => {
     // 2. Sau khi đã có danh sách và giải phóng kết nối trên, mới chạy hàm thống kê nặng một cách tuần tự
     let stats = { totalArticles: 0, openAccessCount: 0, authorsCount: 0, topicsCount: 0 };
     try {
-      stats = await articleService.getArticleListStats();
+      stats = await articleService.getArticleListStats(serviceParams);
     } catch (statsError) {
       logger.error("Lỗi riêng lẻ khi lấy stats (không làm sập API chính):", statsError);
       // Giữ cho API không bị sập hoàn toàn nếu chỉ lỗi mỗi phần thống kê
@@ -137,6 +139,7 @@ export const getArticles = async (req, res) => {
       code: "ARTICLES_GET_SUCCESS",
       message: "Lấy danh sách bài báo thành công!",
       data: {
+        scope: serviceParams.scope,
         articles,
         items: articles,
         pagination: {
@@ -150,10 +153,85 @@ export const getArticles = async (req, res) => {
     });
   } catch (error) {
     logger.error("Lỗi khi lấy danh sách bài báo:", error);
-    return res.status(500).json({
+    return res.status(error.statusCode || 500).json({
       success: false,
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Có lỗi xảy ra ở Server!",
+      code: error.code || "INTERNAL_SERVER_ERROR",
+      message: error.statusCode ? error.message : "Có lỗi xảy ra ở Server!",
+    });
+  }
+};
+
+export const getArticleAnalytics = async (req, res) => {
+  try {
+    const params = {
+      search: (req.query.search || "").trim(),
+      publicationYear: req.query.publication_year || req.query.year,
+      journalId: req.query.journal_id || req.query.journal,
+      topicId: req.query.topic_id || req.query.topic,
+      publisherId: req.query.publisher_id || req.query.publisher,
+      authorId: req.query.author_id || req.query.author,
+      keywordId: req.query.keyword_id || req.query.keyword,
+      institutionId: req.query.institution_id || req.query.institution,
+      volumeId: req.query.volume_id,
+      issueId: req.query.issue_id,
+      isOpenAccess: req.query.is_open_access,
+      access: req.query.access,
+      scope: req.query.scope || "all",
+      countryId: req.query.country_id || req.query.country,
+    };
+
+    const analytics = await articleService.getArticleAnalytics(params);
+    return res.status(200).json({
+      success: true,
+      code: "ARTICLE_ANALYTICS_SUCCESS",
+      message: "Lấy analytics bài báo thành công!",
+      data: analytics,
+    });
+  } catch (error) {
+    logger.error("Lỗi khi lấy analytics bài báo:", error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      code: error.code || "INTERNAL_SERVER_ERROR",
+      message: error.statusCode ? error.message : "Có lỗi xảy ra ở Server!",
+    });
+  }
+};
+
+export const getArticleAnalysis = async (req, res) => {
+  try {
+    const params = {
+      search: (req.query.search || "").trim(),
+      publicationYear: req.query.publication_year || req.query.year,
+      fromYear: req.query.from_year || req.query.current_from_year,
+      toYear: req.query.to_year || req.query.current_to_year,
+      journalId: req.query.journal_id || req.query.journal,
+      topicId: req.query.topic_id || req.query.topic,
+      publisherId: req.query.publisher_id || req.query.publisher,
+      authorId: req.query.author_id || req.query.author,
+      keywordId: req.query.keyword_id || req.query.keyword,
+      institutionId: req.query.institution_id || req.query.institution,
+      volumeId: req.query.volume_id,
+      issueId: req.query.issue_id,
+      isOpenAccess: req.query.is_open_access,
+      access: req.query.access,
+      scope: req.query.scope || "all",
+      countryId: req.query.country_id || req.query.country,
+      limit: req.query.limit,
+    };
+
+    const analysis = await getArticleAnalysisService(params);
+    return res.status(200).json({
+      success: true,
+      code: "ARTICLE_ANALYSIS_SUCCESS",
+      message: "Lay analysis bai bao thanh cong!",
+      data: analysis,
+    });
+  } catch (error) {
+    logger.error("Loi khi lay analysis bai bao:", error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      code: error.code || "INTERNAL_SERVER_ERROR",
+      message: error.statusCode ? error.message : "Co loi xay ra o Server!",
     });
   }
 };
@@ -251,6 +329,27 @@ export const getArticleCitingWorks = async (req, res) => {
     });
   } catch (error) {
     logger.error("Lỗi khi lấy citing works của bài báo:", error);
+    return res.status(500).json({
+      success: false,
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Có lỗi xảy ra ở Server!",
+    });
+  }
+};
+
+export const getArticleCitingWorksAnalytics = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const analytics = await articleService.getArticleCitingWorksAnalytics(id);
+
+    return res.status(200).json({
+      success: true,
+      code: "ARTICLE_CITING_WORKS_ANALYTICS_GET_SUCCESS",
+      message: "Lấy thống kê bài báo trích dẫn thành công!",
+      data: analytics,
+    });
+  } catch (error) {
+    logger.error("Lỗi khi lấy analytics citing works của bài báo:", error);
     return res.status(500).json({
       success: false,
       code: "INTERNAL_SERVER_ERROR",

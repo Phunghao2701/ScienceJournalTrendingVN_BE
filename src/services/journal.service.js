@@ -43,8 +43,16 @@ export const getJournals = async ({
     .filter(Boolean);
 
   if (search && search.trim() !== '') {
-    values.push(`%${search.trim()}%`);
-    whereClauses.push(`j.display_name ILIKE $${values.length}`);
+    const normalizedSearch = search.trim();
+    values.push(`%${normalizedSearch}%`);
+    const searchIndex = values.length;
+    values.push(`%${normalizedSearch.replace(/-/g, '')}%`);
+    const normalizedIssnIndex = values.length;
+    whereClauses.push(`(
+      j.display_name ILIKE $${searchIndex}
+      OR j.issn ILIKE $${searchIndex}
+      OR REPLACE(j.issn, '-', '') ILIKE $${normalizedIssnIndex}
+    )`);
   }
 
   const areaIds = pushCsvFilter(subjectAreaIds || subject_area_id);

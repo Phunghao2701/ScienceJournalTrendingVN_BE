@@ -1,5 +1,9 @@
 import pool from '../config/database.js';
 import logger from '../utils/logger.js';
+import {
+    buildArticleFilter,
+    normalizeArticleSort,
+} from './articleFilter.service.js';
 
 /**
  * Tìm Topic theo ID.
@@ -194,22 +198,71 @@ export const getTopics = async ({
  * @param {number} offset  - Vị trí bắt đầu (phân trang).
  * @returns {Promise<Array<Object>>} Danh sách bài báo.
  */
-export const getArticlesByTopicId = async (topicId, limit = 10, offset = 0) => {
+export const getArticlesByTopicId = async (topicId, limit = 10, offset = 0, { scope = 'all', sortBy = 'publication_year', sortOrder = 'desc' } = {}) => {
+    const articleFilter = buildArticleFilter({ scope });
+    const { column, sortOrder: safeOrder } = normalizeArticleSort(sortBy, sortOrder, {
+        allowedColumns: {
+            publication_year: 'a."publication_year"',
+            title: 'a."title"',
+            created_at: 'a."created_at"',
+        },
+        defaultSort: 'publication_year',
+        throwOnInvalid: true,
+    });
+    const values = [...articleFilter.values, topicId, limit, offset];
+    const topicIndex = articleFilter.values.length + 1;
+    const limitIndex = articleFilter.values.length + 2;
+    const offsetIndex = articleFilter.values.length + 3;
     const query = `
-        SELECT DISTINCT
-            a."article_id",
+        SELECT
+            a."article_id"::text,
+            a."version",
+            a."issue_id"::text,
             a."title",
+            a."abstract",
             a."publication_year",
-            a."doi"
+            a."doi",
+            a."primary_topic"::text,
+            t."display_name" AS "topic_name",
+            a."created_at",
+            j."journal_id"::text,
+            j."display_name" AS "journal_name",
+            j."issn" AS "journal_issn",
+            p."publisher_id"::text AS "publisher_id",
+            p."display_name" AS "publisher_name",
+            v."volume_id"::text AS "volume_id",
+            v."volume_number",
+            i."issue_number",
+            COALESCE(j."is_open_access", false) AS "is_open_access",
+            a."citation_count",
+            a."reference_count",
+            COALESCE(
+                (
+                    SELECT json_agg(json_build_object(
+                        'author_id', au."author_id"::text,
+                        'display_name', au."display_name"
+                    ))
+                    FROM "Author_Article" aa
+                    JOIN "Author" au ON au."author_id" = aa."author_id"
+                    WHERE aa."article_id" = a."article_id"
+                      AND COALESCE(au."is_deleted", false) = false
+                ),
+                '[]'::json
+            ) AS "authors"
         FROM "Article" a
         LEFT JOIN "Sub_Topic" st ON st."article_id" = a."article_id"
-        WHERE (a."primary_topic" = $1 OR st."topic_id" = $1)
-          AND a."is_deleted" = false
-        ORDER BY a."publication_year" DESC NULLS LAST, a."article_id" DESC
-        LIMIT $2 OFFSET $3
+        LEFT JOIN "Issue" i   ON i."issue_id"   = a."issue_id" AND COALESCE(i."is_deleted", false) = false
+        LEFT JOIN "Volume" v  ON v."volume_id"  = i."volume_id" AND COALESCE(v."is_deleted", false) = false
+        LEFT JOIN "Journal" j ON j."journal_id" = v."journal_id" AND COALESCE(j."is_deleted", false) = false
+        LEFT JOIN "Publisher" p ON p."publisher_id" = j."publisher_id"
+        LEFT JOIN "Topic" t   ON t."topic_id"   = a."primary_topic"
+        WHERE ${articleFilter.whereSql}
+          AND (a."primary_topic" = $${topicIndex} OR st."topic_id" = $${topicIndex})
+        ORDER BY ${column} ${safeOrder} NULLS LAST, a."article_id" DESC
+        LIMIT $${limitIndex} OFFSET $${offsetIndex}
     `;
 
-    const result = await pool.query(query, [topicId, limit, offset]);
+    const result = await pool.query(query, values);
     return result.rows;
 };
 
@@ -220,16 +273,22 @@ export const getArticlesByTopicId = async (topicId, limit = 10, offset = 0) => {
  * @param {number} topicId - ID của topic.
  * @returns {Promise<number>} Tổng số bài báo.
  */
-export const countArticlesByTopicId = async (topicId) => {
+export const countArticlesByTopicId = async (topicId, { scope = 'all' } = {}) => {
+    const articleFilter = buildArticleFilter({ scope });
+    const values = [...articleFilter.values, topicId];
+    const topicIndex = values.length;
     const query = `
         SELECT COUNT(DISTINCT a."article_id") AS "total"
         FROM "Article" a
         LEFT JOIN "Sub_Topic" st ON st."article_id" = a."article_id"
-        WHERE (a."primary_topic" = $1 OR st."topic_id" = $1)
-          AND a."is_deleted" = false
+        LEFT JOIN "Issue" i   ON i."issue_id"   = a."issue_id" AND COALESCE(i."is_deleted", false) = false
+        LEFT JOIN "Volume" v  ON v."volume_id"  = i."volume_id" AND COALESCE(v."is_deleted", false) = false
+        LEFT JOIN "Journal" j ON j."journal_id" = v."journal_id" AND COALESCE(j."is_deleted", false) = false
+        WHERE ${articleFilter.whereSql}
+          AND (a."primary_topic" = $${topicIndex} OR st."topic_id" = $${topicIndex})
     `;
 
-    const result = await pool.query(query, [topicId]);
+    const result = await pool.query(query, values);
     return parseInt(result.rows[0].total);
 };
 

@@ -4,7 +4,10 @@ import {
     createArticle, 
     getArticle, 
     getArticleById,
+    getArticleAnalysis,
+    getArticleAnalytics,
     getArticleCitingWorks,
+    getArticleCitingWorksAnalytics,
     getArticleReferences,
     getArticlesByKeywords, 
     getArticles, 
@@ -97,6 +100,9 @@ router.get('/', async (req, res, next) => {
     return getArticles(req, res);
 });
 
+router.get('/analytics', getArticleAnalytics);
+router.get('/analysis', getArticleAnalysis);
+
 /**
  * @swagger
  * /api/v1/articles/{id}:
@@ -175,6 +181,7 @@ router.get('/', async (req, res, next) => {
  *       500:
  *         description: Lỗi hệ thống
  */
+router.get('/:id/citing-works/analytics', validateId, getArticleCitingWorksAnalytics);
 router.get('/:id/citing-works', validateId, getArticleCitingWorks);
 router.get('/:id/citing', validateId, getArticleCitingWorks);
 

@@ -272,11 +272,14 @@ export const getArticlesByTopic = async (req, res) => {
     }
 
     const offset = (page - 1) * limit;
+    const sortBy = req.query.sortBy || req.query.sort_by || "publication_year";
+    const sortOrder = req.query.sortOrder || req.query.sort_order || "desc";
+    const scope = req.query.scope || "all";
 
     // 4. Gọi service song song (lấy data + đếm tổng)
     const [articles, total] = await Promise.all([
-      topicServiceRef.getArticlesByTopicId(topicId, limit, offset),
-      topicServiceRef.countArticlesByTopicId(topicId),
+      topicServiceRef.getArticlesByTopicId(topicId, limit, offset, { scope, sortBy, sortOrder }),
+      topicServiceRef.countArticlesByTopicId(topicId, { scope }),
     ]);
 
     // 5. Trả response
@@ -288,12 +291,8 @@ export const getArticlesByTopic = async (req, res) => {
           topic_id: topic.topic_id,
           display_name: topic.display_name,
         },
-        articles: articles.map((a) => ({
-          article_id: a.article_id,
-          title: a.title,
-          publication_year: a.publication_year,
-          doi: a.doi,
-        })),
+        articles,
+        scope,
         pagination: {
           page,
           limit,
@@ -303,9 +302,9 @@ export const getArticlesByTopic = async (req, res) => {
     });
   } catch (error) {
     logger.error("getArticlesByTopic error:", error);
-    return res.status(500).json({
+    return res.status(error.statusCode || 500).json({
       success: false,
-      code: "SERVER_ERROR",
+      code: error.code || "SERVER_ERROR",
       message: "Có lỗi xảy ra ở Server!",
     });
   }
