@@ -1,43 +1,7 @@
 # Harness Handoff
 
-> **Generated**: 2026-06-30 15:05:22
+> **Generated**: 2026-06-30 15:14:13
 > **Reason**: session-stop
-
-## Paper VN Analysis Entity Filter Semantics Corrective
-
-Completed on 2026-06-30.
-
-Sprint: `plans/sprints/20260630-1413-paper-vn-analysis-entity-filter-semantics-corrective.sprint.md` (Status: Completed)
-PRD: `plans/prds/20260630-1412-paper-vn-analysis-entity-filter-semantics-corrective.prd.md`
-
-### Implemented
-
-- Added `institution_id` to list (`GET /api/v1/articles`), analytics (`GET /api/v1/articles/analytics`), and analysis (`GET /api/v1/articles/analysis`) via the shared `buildArticleFilter()`.
-- Institution filter uses exact-year affiliation: `Article -> Author_Article -> Author -> Institution_Author(year=publication_year) -> Institution`, excluding soft-deleted authors and institutions.
-- Topic filter (`topic_id`) now matches `Article.primary_topic` OR `Sub_Topic` (single reused placeholder, EXISTS-based, deduped — an article matching via both is counted once), aligned with how Analysis topic ranking unions primary topic and `Sub_Topic`.
-- `last_known_institution` is not used anywhere in this filter.
-- `articleAnalysis.service.js`'s `buildAnalysisFilter()` required no code change — `institutionId`/the topic semantics flow through automatically via its existing `...filterParams` spread into `buildArticleFilter()`.
-
-### Verification
-
-- Focused tests: `node --test src/tests/unit/service/article.test.js src/tests/unit/service/articleFilter.test.js src/tests/unit/service/articleAnalysis.test.js src/tests/unit/service/paperVnDiscovery.test.js` — 50/50 passed.
-- Institution smoke (read-only, Supabase): `institution_id=8` — service count 14 = independent SQL count 14.
-- Topic smoke (read-only, Supabase): `topic_id=50` — service count 138 = independent SQL count 138 (primary-only 41 + sub-topic-only 97 = 138, confirms dedup correctness).
-- Full suite: 283/359 passed; 76 pre-existing/unrelated failures (Keyword/Project/Subject Category/Author/journal/issue controller tests, DB-mock and sandbox issues) — none reference `institutionId`, `topicId`, or `articleFilter`.
-- No schema migration, production write, commit, or push performed.
-
-### FE Contract
-
-FE may now send `institution_id` and `topic_id` to:
-- `GET /api/v1/articles`
-- `GET /api/v1/articles/analytics`
-- `GET /api/v1/articles/analysis`
-
-`institution_id` pins one exact institution by exact-year affiliation (independent of `scope=vn_universities`, which can coexist). `topic_id` matches primary topic or sub-topic, deduped. Invalid `institution_id` returns `INVALID_ENTITY_ID` (400).
-
-See `docs/researches/paper-vn-discovery-api-contract.md` and `docs/researches/paper-vn-trending-analysis-api-contract.md` for full contract details.
-
----
 
 ## Goal
 
@@ -135,11 +99,11 @@ plans/sprints/20260630-1413-paper-vn-analysis-entity-filter-semantics-corrective
 
 ## Commands Run
 
-- {"ts":"2026-06-30T15:04:15+0700","event_type":"PostToolUse","tool_name":"Edit","file_path":"e:\\Science_Journal_Trending_VN\\ScienceJournalTrendingVN_BE\\.ai\\harness\\handoff\\current.md","exit_code":0,"duration_ms":20,"session_key":"da96f23b-b189-40ca-8e7c-0f694152c5bb","run_id":"run-session-da96f23b-b189-40ca-8e7c-0f694152c5bb","host":"unknown","agent_name":"unknown","session_source":"unknown"}
-- {"ts":"2026-06-30T15:04:30+0700","event_type":"PostToolUse","tool_name":"Edit","file_path":"e:\\Science_Journal_Trending_VN\\ScienceJournalTrendingVN_BE\\.ai\\harness\\handoff\\current.md","exit_code":0,"duration_ms":13,"session_key":"da96f23b-b189-40ca-8e7c-0f694152c5bb","run_id":"run-session-da96f23b-b189-40ca-8e7c-0f694152c5bb","host":"unknown","agent_name":"unknown","session_source":"unknown"}
-- {"ts":"2026-06-30T15:04:42+0700","event_type":"PostToolUse","tool_name":"Bash","file_path":"","exit_code":0,"duration_ms":3979,"session_key":"da96f23b-b189-40ca-8e7c-0f694152c5bb","run_id":"run-session-da96f23b-b189-40ca-8e7c-0f694152c5bb","host":"unknown","agent_name":"unknown","session_source":"unknown"}
-- {"ts":"2026-06-30T15:04:53+0700","event_type":"PostToolUse","tool_name":"Bash","file_path":"","exit_code":0,"duration_ms":3828,"session_key":"da96f23b-b189-40ca-8e7c-0f694152c5bb","run_id":"run-session-da96f23b-b189-40ca-8e7c-0f694152c5bb","host":"unknown","agent_name":"unknown","session_source":"unknown"}
-- {"ts":"2026-06-30T15:05:03+0700","event_type":"PostToolUse","tool_name":"TodoWrite","file_path":"","exit_code":0,"duration_ms":0,"session_key":"da96f23b-b189-40ca-8e7c-0f694152c5bb","run_id":"run-session-da96f23b-b189-40ca-8e7c-0f694152c5bb","host":"unknown","agent_name":"unknown","session_source":"unknown"}
+- {"ts":"2026-06-30T15:12:05+0700","event_type":"PostToolUse","tool_name":"Bash","file_path":"","exit_code":0,"duration_ms":3548,"session_key":"da96f23b-b189-40ca-8e7c-0f694152c5bb","run_id":"run-session-da96f23b-b189-40ca-8e7c-0f694152c5bb","host":"unknown","agent_name":"unknown","session_source":"unknown"}
+- {"ts":"2026-06-30T15:12:25+0700","event_type":"PostToolUse","tool_name":"Bash","file_path":"","exit_code":0,"duration_ms":3702,"session_key":"da96f23b-b189-40ca-8e7c-0f694152c5bb","run_id":"run-session-da96f23b-b189-40ca-8e7c-0f694152c5bb","host":"unknown","agent_name":"unknown","session_source":"unknown"}
+- {"ts":"2026-06-30T15:12:44+0700","event_type":"PostToolUse","tool_name":"Edit","file_path":"e:\\Science_Journal_Trending_VN\\ScienceJournalTrendingVN_BE\\.ai\\harness\\handoff\\current.md","exit_code":0,"duration_ms":15,"session_key":"da96f23b-b189-40ca-8e7c-0f694152c5bb","run_id":"run-session-da96f23b-b189-40ca-8e7c-0f694152c5bb","host":"unknown","agent_name":"unknown","session_source":"unknown"}
+- {"ts":"2026-06-30T15:12:58+0700","event_type":"PostToolUse","tool_name":"Bash","file_path":"","exit_code":0,"duration_ms":3517,"session_key":"da96f23b-b189-40ca-8e7c-0f694152c5bb","run_id":"run-session-da96f23b-b189-40ca-8e7c-0f694152c5bb","host":"unknown","agent_name":"unknown","session_source":"unknown"}
+- {"ts":"2026-06-30T15:14:04+0700","event_type":"PostToolUse","tool_name":"Bash","file_path":"","exit_code":0,"duration_ms":3370,"session_key":"da96f23b-b189-40ca-8e7c-0f694152c5bb","run_id":"run-session-da96f23b-b189-40ca-8e7c-0f694152c5bb","host":"unknown","agent_name":"unknown","session_source":"unknown"}
 
 ## Checks
 
@@ -185,8 +149,8 @@ plans/sprints/20260630-1413-paper-vn-analysis-entity-filter-semantics-corrective
 
 - Next action stage: none
 - Next recommended action: (none)
-- Working tree:  29 files changed, 3996 insertions(+), 232 deletions(-); 70 untracked files
-- Parent Run ID: run-20260630T150521-579
+- Working tree:  29 files changed, 4028 insertions(+), 232 deletions(-); 70 untracked files
+- Parent Run ID: run-20260630T151412-249
 - Supersedes: (none)
 
 ## Changed Files
