@@ -8,7 +8,24 @@ import logger from "../utils/logger.js";
  */
 export const getAuthorById = async (authorId) => {
   try {
-    const queryText = `SELECT * FROM "Author" WHERE "author_id" = $1`;
+    const queryText = `
+      SELECT
+        author_id::text AS author_id,
+        orcid,
+        display_name,
+        url_image,
+        openalex_id,
+        works_count,
+        cited_by_count,
+        h_index,
+        i10_index,
+        last_known_institution,
+        last_known_institution_id::text AS last_known_institution_id,
+        created_at
+      FROM "Author"
+      WHERE "author_id" = $1
+        AND COALESCE(is_deleted, false) = false
+    `;
     const res = await pool.query(queryText, [authorId]);
     return res.rows[0];
   } catch (error) {

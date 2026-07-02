@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find src/tests/unit/controllers -iname \"*article*\")",
+      "Bash(ls src/tests/unit/controllers)",
+      "Bash(node --test src/tests/unit/service/articleFilter.test.js src/tests/unit/service/articleAnalysis.test.js)",
+      "Read(//tmp/**)",
+      "Bash(git add *)",
+      "Bash(node --test src/tests/unit/service/articleFilter.test.js src/tests/unit/service/articleAnalysis.test.js src/tests/unit/service/article.test.js)",
+      "Bash(node --check src/services/articleFilter.service.js)",
+      "Bash(node --check src/controllers/article.controller.js)",
+      "Bash(node --check src/services/article.service.js)",
+      "Bash(node --check src/services/articleAnalysis.service.js)",
+      "Bash(node --check src/routes/article.route.js)",
+      "Bash(node --check src/services/keyword.service.js)",
+      "Bash(node --test src/tests/unit/service/article.test.js src/tests/unit/service/articleFilter.test.js src/tests/unit/service/articleAnalysis.test.js src/tests/unit/service/paperVnDiscovery.test.js)",
+      "Bash(npm test *)",
+      "Bash(grep -oE 'src[/\\\\\\\\][^:]+\\\\.test\\\\.js')",
+      "Bash(cd \"e:\\\\Science_Journal_Trending_VN\\\\ScienceJournalTrendingVN_BE\" && grep \"^✖\\\\|^  ✖\" /tmp/full_test.txt | sed -E 's/\\\\\\([0-9.]+ms\\\\\\)//' | sort | uniq -c | sort -rn | head -80)",
+      "Bash(cd \"e:\\\\Science_Journal_Trending_VN\\\\ScienceJournalTrendingVN_BE\" && grep -A 15 \"Thất bại: Trả về 500 khi service throw lỗi\" /tmp/full_test.txt | head -20)",
+      "Bash(cd \"e:\\\\Science_Journal_Trending_VN\\\\ScienceJournalTrendingVN_BE\" && grep \"^▶\\\\|^✖ \" /tmp/full_test.txt | grep -v \"  ✖\" | sort -u | head -60)",
+      "Bash(cd \"e:\\\\Science_Journal_Trending_VN\\\\ScienceJournalTrendingVN_BE\" && grep -A 40 \"Article Controller - GET /api/v1/articles Unit Test Suite\" /tmp/full_test.txt | head -60)",
+      "Bash(git stash *)",
+      "Bash(git --no-pager stash list)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(node scripts/smoke_pick.mjs)",
+      "Bash(node scripts/smoke_filters.mjs)",
+      "Bash(tee /tmp/smoke_filters_out2.txt)"
+    ]
+  }
+}

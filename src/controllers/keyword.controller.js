@@ -328,13 +328,15 @@ export const getArticlesByKeywordController = async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 10, 50);
     const sortBy = req.query.sortBy || req.query.sort_by || "publication_year";
     const sortOrder = req.query.sortOrder || req.query.sort_order || "desc";
+    const scope = req.query.scope || "all";
 
-    const result = await getArticlesByKeyword(req.keywordId, { page, limit, sortBy, sortOrder });
+    const result = await getArticlesByKeyword(req.keywordId, { page, limit, sortBy, sortOrder, scope });
     return res.status(200).json({
       success: true,
       code: "KEYWORD_ARTICLES_FETCHED",
       message: "Lấy danh sách bài báo theo keyword thành công",
       data: result.data,
+      scope: result.scope,
       pagination: result.pagination,
     });
   } catch (error) {

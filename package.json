@@ -8,7 +8,14 @@
     "start": "node server.js",
     "test": "node --test src/tests/unit/**/*.test.js",
     "test:controller": "node --test src/tests/unit/controllers/*.test.js",
-    "test:service": "node --test src/tests/unit/service/*.test.js"
+    "test:service": "node --test src/tests/unit/service/*.test.js",
+    "check:brain-manifest": "repo-harness run check-brain-manifest",
+    "check:context-files": "repo-harness run check-context-files",
+    "check:deploy-sql": "repo-harness run check-deploy-sql-order",
+    "check:architecture-sync": "repo-harness run check-architecture-sync",
+    "check:task-sync": "repo-harness run check-task-sync",
+    "check:task-workflow": "repo-harness run check-task-workflow --strict",
+    "sync:brain-docs": "repo-harness run sync-brain-docs --all"
   },
   "keywords": [],
   "author": "",
@@ -31,5 +38,6 @@
   "devDependencies": {
     "nodemon": "3.1.14",
     "supertest": "7.2.2"
-  }
+  },
+  "private": true
 }
