@@ -46,15 +46,13 @@ test('keyword article endpoint applies vn_universities scope predicate', async (
   const result = await getArticlesByKeyword(7, { scope: 'vn_universities' });
 
   assert.strictEqual(result.scope, 'vn_universities');
-  assert.ok(calls.every(call => call.sql.includes('"Institution_Author"')));
-  assert.ok(calls.every(call => call.sql.includes('scope_ia."year" = a."publication_year"')));
+  assert.ok(calls.every(call => call.sql.includes('a."is_vn_journal" IS TRUE')));
   assert.ok(calls[1].sql.includes('p."display_name" AS "publisher_name"'));
   assert.ok(calls[1].sql.includes('a."citation_count"'));
   assert.ok(calls[1].sql.includes('a."reference_count"'));
   assert.ok(calls[1].sql.includes('json_agg(json_build_object'));
   assert.ok(!calls[1].sql.includes('0 AS citations_count'));
-  assert.deepStrictEqual(calls[0].params.slice(0, 2), [['VN'], ['education']]);
-  assert.strictEqual(calls[0].params[2], 7);
+  assert.strictEqual(calls[0].params[0], 7);
 });
 
 test('topic article endpoint applies scope to list and count queries', async () => {
@@ -72,8 +70,7 @@ test('topic article endpoint applies scope to list and count queries', async () 
 
   assert.strictEqual(articles.length, 1);
   assert.strictEqual(total, 1);
-  assert.ok(calls.every(call => call.sql.includes('"Institution_Author"')));
-  assert.ok(calls.every(call => call.sql.includes('scope_ia."year" = a."publication_year"')));
+  assert.ok(calls.every(call => call.sql.includes('a."is_vn_journal" IS TRUE')));
   const listCall = calls.find(call => !call.sql.includes('COUNT'));
   assert.ok(listCall.sql.includes('p."display_name" AS "publisher_name"'));
   assert.ok(listCall.sql.includes('a."citation_count"'));

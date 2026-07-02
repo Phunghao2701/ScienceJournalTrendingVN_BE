@@ -3,9 +3,6 @@ export const ARTICLE_SCOPES = Object.freeze({
   VN_UNIVERSITIES: 'vn_universities',
 });
 
-export const VN_UNIVERSITY_COUNTRY_CODES = Object.freeze(['VN']);
-export const VN_UNIVERSITY_INSTITUTION_TYPES = Object.freeze(['education']);
-
 export const ARTICLE_SORT_COLUMNS = Object.freeze({
   article_id: 'a."article_id"',
   title: 'a."title"',
@@ -286,23 +283,7 @@ export const buildArticleFilter = ({
   }
 
   if (resolvedScope === ARTICLE_SCOPES.VN_UNIVERSITIES) {
-    values.push(VN_UNIVERSITY_COUNTRY_CODES);
-    const countryIndex = values.length;
-    values.push(VN_UNIVERSITY_INSTITUTION_TYPES);
-    const typeIndex = values.length;
-    where.push(`EXISTS (
-      SELECT 1
-      FROM "Author_Article" scope_aa
-      JOIN "Author" scope_author ON scope_author."author_id" = scope_aa."author_id"
-      JOIN "Institution_Author" scope_ia ON scope_ia."author_id" = scope_aa."author_id"
-      JOIN "Institution" scope_inst ON scope_inst."institution_id" = scope_ia."institution_id"
-      WHERE scope_aa."article_id" = ${articleAlias}."article_id"
-        AND COALESCE(scope_author."is_deleted", false) = false
-        AND scope_ia."year" = ${articleAlias}."publication_year"
-        AND COALESCE(scope_inst."is_deleted", false) = false
-        AND UPPER(TRIM(scope_inst."country_code")) = ANY($${countryIndex}::text[])
-        AND LOWER(TRIM(scope_inst."type")) = ANY($${typeIndex}::text[])
-    )`);
+    where.push(`${articleAlias}."is_vn_journal" IS TRUE`);
   }
 
   return {

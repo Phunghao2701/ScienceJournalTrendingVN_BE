@@ -20,6 +20,7 @@ import searchRotuer from "./search.route.js";
 import adminRouter from "./admin.route.js";
 import publisherRouter from "./publisher.route.js"
 import trendingVnRouter from "./trendingVn.route.js";
+import institutionRouter from "./institution.route.js";
 
 
 const router = express.Router();
@@ -51,5 +52,6 @@ router.use("/search", searchRotuer);
 router.use("/admin", adminRouter);
 router.use("/publishers", publisherRouter);
 router.use("/trending-vn", trendingVnRouter);
+router.use("/institution", institutionRouter);
 
 export default router;

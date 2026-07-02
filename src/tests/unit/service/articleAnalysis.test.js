@@ -115,8 +115,8 @@ test.describe('resolveAnalysisWindows()', () => {
     assert.deepStrictEqual(window.comparison, { from_year: 2022, to_year: 2023 });
     assert.strictEqual(window.mode, 'default_latest');
     assert.ok(calls[0].sql.includes('MAX(a."publication_year")::integer AS "to_year"'));
-    assert.ok(calls[0].sql.includes('"Institution_Author"'));
-    assert.deepStrictEqual(calls[0].params, ['%AI%', ['VN'], ['education']]);
+    assert.ok(calls[0].sql.includes('a."is_vn_journal" IS TRUE'));
+    assert.deepStrictEqual(calls[0].params, ['%AI%']);
   });
 });
 
@@ -195,10 +195,10 @@ test.describe('getArticleAnalysis()', () => {
       eligible_articles: 1,
       total_articles: 2,
     });
-    assert.strictEqual(calls[1].params.length, 6, 'summary query should receive a fully typed analysis window');
-    assert.strictEqual(calls[2].params.length, 6, 'works query should receive a fully typed analysis window');
-    assert.strictEqual(calls[3].params.length, 6, 'citations query should receive a fully typed analysis window');
-    assert.strictEqual(calls.at(-1).params.length, 6, 'coverage query should receive a fully typed analysis window');
+    assert.strictEqual(calls[1].params.length, 4, 'summary query should receive a fully typed analysis window');
+    assert.strictEqual(calls[2].params.length, 4, 'works query should receive a fully typed analysis window');
+    assert.strictEqual(calls[3].params.length, 4, 'citations query should receive a fully typed analysis window');
+    assert.strictEqual(calls.at(-1).params.length, 4, 'coverage query should receive a fully typed analysis window');
     assert.ok(calls.some(call => call.sql.includes('jsonb_each_text(a."citations_by_year"')));
     assert.ok(calls.some(call => call.sql.includes('ia."year" = fa."publication_year"')));
     assert.ok(calls.every(call => !call.sql.includes('last_known_institution')));

@@ -46,17 +46,13 @@ test.describe('Article filter scope contract', () => {
     });
   });
 
-  test('builds exact-year VN university EXISTS predicate', () => {
+  test('builds vn_universities scope predicate from the precomputed is_vn_journal flag', () => {
     const filter = buildArticleFilter({ scope: 'vn_universities', publicationYear: 2024 });
 
     assert.strictEqual(filter.scope, 'vn_universities');
-    assert.ok(filter.whereSql.includes('"Institution_Author"'));
-    assert.ok(filter.whereSql.includes('JOIN "Author" scope_author'));
-    assert.ok(filter.whereSql.includes('COALESCE(scope_author."is_deleted", false) = false'));
-    assert.ok(filter.whereSql.includes('scope_ia."year" = a."publication_year"'));
-    assert.ok(filter.whereSql.includes('scope_inst."country_code"'));
-    assert.ok(filter.whereSql.includes('scope_inst."type"'));
-    assert.deepStrictEqual(filter.values, [2024, ['VN'], ['education']]);
+    assert.ok(filter.whereSql.includes('a."is_vn_journal" IS TRUE'));
+    assert.ok(!filter.whereSql.includes('Institution_Author'));
+    assert.deepStrictEqual(filter.values, [2024]);
   });
 
   test('builds reusable publisher, author and keyword entity filters', () => {
@@ -133,8 +129,7 @@ test.describe('Article filter scope contract', () => {
   test('institution filter can coexist with vn_universities scope', () => {
     const filter = buildArticleFilter({ institutionId: '7', scope: 'vn_universities', publicationYear: 2024 });
 
-    assert.ok(filter.whereSql.includes('scope_inst'), 'expects scope predicate still present');
-    assert.deepStrictEqual(filter.values, [2024, 7, ['VN'], ['education']].sort ? filter.values : filter.values);
+    assert.ok(filter.whereSql.includes('a."is_vn_journal" IS TRUE'), 'expects scope predicate still present');
     assert.ok(filter.values.includes(7));
     assert.ok(filter.values.includes(2024));
   });

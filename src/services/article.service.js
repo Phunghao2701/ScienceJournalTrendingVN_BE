@@ -197,6 +197,9 @@ export const getAllArticles = async (firstParam = {}, offsetParam = 0, sortByPar
                 a."abstract",
                 a."publication_year",
                 a."doi",
+                a."openalex_id",
+                a."pdf_url",
+                a."landing_url",
                 a."primary_topic"::text,
                 t."display_name" AS "topic_name",
                 a."created_at",
@@ -223,7 +226,19 @@ export const getAllArticles = async (firstParam = {}, offsetParam = 0, sortByPar
                           AND COALESCE(au."is_deleted", false) = false
                     ),
                     '[]'::json
-                ) AS "authors"
+                ) AS "authors",
+                COALESCE(
+                    (
+                        SELECT json_agg(json_build_object(
+                            'keyword_id', k."keyword_id"::text,
+                            'display_name', k."display_name"
+                        ) ORDER BY COALESCE(ka."score", 0) DESC, k."display_name" ASC)
+                        FROM "Keyword_Article" ka
+                        JOIN "Keyword" k ON k."keyword_id" = ka."keyword_id"
+                        WHERE ka."article_id" = a."article_id"
+                    ),
+                    '[]'::json
+                ) AS "keywords"
             FROM "Article" a
             LEFT JOIN "Issue" i   ON i."issue_id"   = a."issue_id" AND COALESCE(i."is_deleted", false) = false
             LEFT JOIN "Volume" v  ON v."volume_id"  = i."volume_id" AND COALESCE(v."is_deleted", false) = false
@@ -378,6 +393,9 @@ export const getArticleById = async (articleId) => {
                 a."abstract",
                 a."publication_year",
                 a."doi",
+                a."openalex_id",
+                a."pdf_url",
+                a."landing_url",
                 a."primary_topic"::text AS "primary_topic",
                 pt."display_name" AS "topic_name",
                 a."is_deleted",
