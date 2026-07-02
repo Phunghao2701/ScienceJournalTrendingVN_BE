@@ -1,5 +1,10 @@
 import pool from '../config/database.js';
 import logger from '../utils/logger.js';
+import {
+    buildArticleFilter,
+    normalizeArticleSort,
+    toOptionalNumber,
+} from './articleFilter.service.js';
 
 /**
  * Tìm các bài báo có chứa các keyword người dùng nhập vào trên toàn hệ thống
@@ -9,12 +14,15 @@ import logger from '../utils/logger.js';
  * @param {number} offset - Vị trí bắt đầu (dùng cho phân trang)
  * @returns {Array} Danh sách bài báo kèm keyword matched
  */
-export const getArticlesByKeywords = async (keywords, limit = 20, offset = 0) => {
+export const getArticlesByKeywords = async (keywords, limit = 20, offset = 0, params = {}) => {
+    const filter = buildArticleFilter(params);
     const keywordPlaceholders = keywords
-        .map((_, index) => `$${index + 3}`)
+        .map((_, index) => `$${filter.values.length + index + 1}`)
         .join(', ');
 
-    const values = [limit, offset, ...keywords];
+    const values = [...filter.values, ...keywords, limit, offset];
+    const limitIndex = values.length - 1;
+    const offsetIndex = values.length;
 
     const query = `
         SELECT DISTINCT
@@ -27,10 +35,13 @@ export const getArticlesByKeywords = async (keywords, limit = 20, offset = 0) =>
         FROM "Article" a
         JOIN "Keyword_Article" ka ON ka."article_id" = a."article_id"
         JOIN "Keyword" k         ON k."keyword_id"   = ka."keyword_id"
+        LEFT JOIN "Issue" i   ON i."issue_id"   = a."issue_id" AND COALESCE(i."is_deleted", false) = false
+        LEFT JOIN "Volume" v  ON v."volume_id"  = i."volume_id" AND COALESCE(v."is_deleted", false) = false
+        LEFT JOIN "Journal" j ON j."journal_id" = v."journal_id" AND COALESCE(j."is_deleted", false) = false
         WHERE LOWER(k."display_name") IN (${keywordPlaceholders})
-          AND a."is_deleted" = false
+          AND ${filter.whereSql}
         ORDER BY a."publication_year" DESC NULLS LAST, a."created_at" DESC
-        LIMIT $1 OFFSET $2
+        LIMIT $${limitIndex} OFFSET $${offsetIndex}
     `;
 
     const result = await pool.query(query, values);
@@ -43,100 +54,47 @@ export const getArticlesByKeywords = async (keywords, limit = 20, offset = 0) =>
  * @param {string[]} keywords - Mảng tên keyword (sẽ được so sánh bằng LOWER)
  * @returns {Promise<number>} Tổng số bài báo khớp
  */
-export const countArticlesByKeywords = async (keywords) => {
+export const countArticlesByKeywords = async (keywords, params = {}) => {
+    const filter = buildArticleFilter(params);
     const keywordPlaceholders = keywords
-        .map((_, index) => `$${index + 1}`)
+        .map((_, index) => `$${filter.values.length + index + 1}`)
         .join(', ');
 
-    const values = [...keywords];
+    const values = [...filter.values, ...keywords];
 
     const query = `
         SELECT COUNT(DISTINCT a."article_id") AS "total"
         FROM "Article" a
         JOIN "Keyword_Article" ka ON ka."article_id" = a."article_id"
         JOIN "Keyword" k         ON k."keyword_id"   = ka."keyword_id"
+        LEFT JOIN "Issue" i   ON i."issue_id"   = a."issue_id" AND COALESCE(i."is_deleted", false) = false
+        LEFT JOIN "Volume" v  ON v."volume_id"  = i."volume_id" AND COALESCE(v."is_deleted", false) = false
+        LEFT JOIN "Journal" j ON j."journal_id" = v."journal_id" AND COALESCE(j."is_deleted", false) = false
         WHERE LOWER(k."display_name") IN (${keywordPlaceholders})
-          AND a."is_deleted" = false
+          AND ${filter.whereSql}
     `;
 
     const result = await pool.query(query, values);
     return parseInt(result.rows[0].total);
 };
 
-const toOptionalNumber = (value) => {
-    if (value === undefined || value === null || value === '') return undefined;
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : undefined;
-};
-
 /**
  * Đếm tổng số bài báo công khai theo cùng bộ lọc với trang Article List.
  * @param {Object} params
  */
-export const countAllArticles = async ({
-    search = '',
-    publicationYear,
-    journalId,
-    topicId,
-    volumeId,
-    issueId,
-    isOpenAccess,
-} = {}) => {
-    const values = [];
-    const where = ['a."is_deleted" = false'];
-
-    let query = `
+export const countAllArticles = async (params = {}) => {
+    const filter = buildArticleFilter(params);
+    const query = `
         SELECT COUNT(*) AS "total"
         FROM "Article" a
         LEFT JOIN "Issue" i   ON i."issue_id"   = a."issue_id" AND COALESCE(i."is_deleted", false) = false
         LEFT JOIN "Volume" v  ON v."volume_id"  = i."volume_id" AND COALESCE(v."is_deleted", false) = false
         LEFT JOIN "Journal" j ON j."journal_id" = v."journal_id" AND COALESCE(j."is_deleted", false) = false
         LEFT JOIN "Topic" t   ON t."topic_id"   = a."primary_topic"
+        WHERE ${filter.whereSql}
     `;
 
-    if (search) {
-        values.push(`%${search}%`);
-        where.push(`(a."title" ILIKE $${values.length} OR a."doi" ILIKE $${values.length} OR a."abstract" ILIKE $${values.length})`);
-    }
-
-    const publicationYearNum = toOptionalNumber(publicationYear);
-    if (publicationYearNum !== undefined) {
-        values.push(publicationYearNum);
-        where.push(`a."publication_year" = $${values.length}`);
-    }
-
-    const journalIdNum = toOptionalNumber(journalId);
-    if (journalIdNum !== undefined) {
-        values.push(journalIdNum);
-        where.push(`j."journal_id" = $${values.length}`);
-    }
-
-    const topicIdNum = toOptionalNumber(topicId);
-    if (topicIdNum !== undefined) {
-        values.push(topicIdNum);
-        where.push(`a."primary_topic" = $${values.length}`);
-    }
-
-    const volumeIdNum = toOptionalNumber(volumeId);
-    if (volumeIdNum !== undefined) {
-        values.push(volumeIdNum);
-        where.push(`v."volume_id" = $${values.length}`);
-    }
-
-    const issueIdNum = toOptionalNumber(issueId);
-    if (issueIdNum !== undefined) {
-        values.push(issueIdNum);
-        where.push(`a."issue_id" = $${values.length}`);
-    }
-
-    if (isOpenAccess !== undefined) {
-        values.push(isOpenAccess === true || isOpenAccess === 'true');
-        where.push(`COALESCE(j."is_open_access", false) = $${values.length}`);
-    }
-
-    query += ` WHERE ${where.join(' AND ')}`;
-
-    const result = await pool.query(query, values);
+    const result = await pool.query(query, filter.values);
     return parseInt(result.rows[0].total, 10);
 };
 
@@ -156,12 +114,13 @@ export const getTotalArticles = async () => {
     }
 };
 
-export const getArticleListStats = async () => {
+export const getArticleListStats = async (params = {}) => {
     try {
+        const filter = buildArticleFilter(params);
         const query = `
             SELECT
                 COUNT(DISTINCT a."article_id")::integer AS "totalArticles",
-                COUNT(DISTINCT a."article_id") FILTER (WHERE COALESCE(j."is_open_access", false) = true)::integer AS "openAccessCount",
+                COUNT(DISTINCT a."article_id") FILTER (WHERE a."is_open_access" IS TRUE)::integer AS "openAccessCount",
                 COUNT(DISTINCT aa."author_id")::integer AS "authorsCount",
                 COUNT(DISTINCT a."primary_topic") FILTER (WHERE a."primary_topic" IS NOT NULL)::integer AS "topicsCount"
             FROM "Article" a
@@ -169,9 +128,9 @@ export const getArticleListStats = async () => {
             LEFT JOIN "Volume" v ON v."volume_id" = i."volume_id" AND COALESCE(v."is_deleted", false) = false
             LEFT JOIN "Journal" j ON j."journal_id" = v."journal_id" AND COALESCE(j."is_deleted", false) = false
             LEFT JOIN "Author_Article" aa ON aa."article_id" = a."article_id"
-            WHERE a."is_deleted" = false;
+            WHERE ${filter.whereSql};
         `;
-        const result = await pool.query(query);
+        const result = await pool.query(query, filter.values);
         return result.rows[0] || {
             totalArticles: 0,
             openAccessCount: 0,
@@ -217,64 +176,14 @@ export const getAllArticles = async (firstParam = {}, offsetParam = 0, sortByPar
             volumeId,
             issueId,
             isOpenAccess,
+            countryId,
         } = params;
 
-        const allowedColumns = {
-            article_id: 'a."article_id"',
-            title: 'a."title"',
-            publication_year: 'a."publication_year"',
-            created_at: 'a."created_at"',
-            doi: 'a."doi"',
-        };
-        const column = allowedColumns[sortBy] || allowedColumns.created_at;
-        const order = ['ASC', 'DESC'].includes(String(sortOrder).toUpperCase())
-            ? String(sortOrder).toUpperCase()
-            : 'DESC';
+        const { column, sortOrder: order } = normalizeArticleSort(sortBy, sortOrder);
+        const filter = buildArticleFilter(params);
+        const values = [...filter.values];
 
-        const values = [];
-        const where = ['a."is_deleted" = false'];
-
-        if (search && search.trim()) {
-            values.push(`%${search.trim()}%`);
-            where.push(`(a."title" ILIKE $${values.length} OR a."doi" ILIKE $${values.length} OR a."abstract" ILIKE $${values.length})`);
-        }
-
-        const publicationYearNum = toOptionalNumber(publicationYear);
-        if (publicationYearNum !== undefined) {
-            values.push(publicationYearNum);
-            where.push(`a."publication_year" = $${values.length}`);
-        }
-
-        const journalIdNum = toOptionalNumber(journalId);
-        if (journalIdNum !== undefined) {
-            values.push(journalIdNum);
-            where.push(`j."journal_id" = $${values.length}`);
-        }
-
-        const topicIdNum = toOptionalNumber(topicId);
-        if (topicIdNum !== undefined) {
-            values.push(topicIdNum);
-            where.push(`a."primary_topic" = $${values.length}`);
-        }
-
-        const volumeIdNum = toOptionalNumber(volumeId);
-        if (volumeIdNum !== undefined) {
-            values.push(volumeIdNum);
-            where.push(`v."volume_id" = $${values.length}`);
-        }
-
-        const issueIdNum = toOptionalNumber(issueId);
-        if (issueIdNum !== undefined) {
-            values.push(issueIdNum);
-            where.push(`a."issue_id" = $${values.length}`);
-        }
-
-        if (isOpenAccess !== undefined) {
-            values.push(isOpenAccess === true || isOpenAccess === 'true');
-            where.push(`COALESCE(j."is_open_access", false) = $${values.length}`);
-        }
-
-        values.push(toOptionalNumber(limit) ?? 10);
+        values.push(Number(limit));
         const limitIndex = values.length;
         values.push(toOptionalNumber(offset) ?? 0);
         const offsetIndex = values.length;
@@ -288,19 +197,55 @@ export const getAllArticles = async (firstParam = {}, offsetParam = 0, sortByPar
                 a."abstract",
                 a."publication_year",
                 a."doi",
+                a."openalex_id",
+                a."pdf_url",
+                a."landing_url",
                 a."primary_topic"::text,
                 t."display_name" AS "topic_name",
                 a."created_at",
                 j."journal_id"::text,
                 j."display_name" AS "journal_name",
                 j."issn" AS "journal_issn",
-                COALESCE(j."is_open_access", false) AS "is_open_access"
+                p."publisher_id"::text AS "publisher_id",
+                p."display_name" AS "publisher_name",
+                v."volume_id"::text AS "volume_id",
+                v."volume_number",
+                i."issue_number",
+                a."is_open_access" AS "is_open_access",
+                a."citation_count",
+                a."reference_count",
+                COALESCE(
+                    (
+                        SELECT json_agg(json_build_object(
+                            'author_id', au."author_id"::text,
+                            'display_name', au."display_name"
+                        ))
+                        FROM "Author_Article" aa
+                        JOIN "Author" au ON au."author_id" = aa."author_id"
+                        WHERE aa."article_id" = a."article_id"
+                          AND COALESCE(au."is_deleted", false) = false
+                    ),
+                    '[]'::json
+                ) AS "authors",
+                COALESCE(
+                    (
+                        SELECT json_agg(json_build_object(
+                            'keyword_id', k."keyword_id"::text,
+                            'display_name', k."display_name"
+                        ) ORDER BY COALESCE(ka."score", 0) DESC, k."display_name" ASC)
+                        FROM "Keyword_Article" ka
+                        JOIN "Keyword" k ON k."keyword_id" = ka."keyword_id"
+                        WHERE ka."article_id" = a."article_id"
+                    ),
+                    '[]'::json
+                ) AS "keywords"
             FROM "Article" a
             LEFT JOIN "Issue" i   ON i."issue_id"   = a."issue_id" AND COALESCE(i."is_deleted", false) = false
             LEFT JOIN "Volume" v  ON v."volume_id"  = i."volume_id" AND COALESCE(v."is_deleted", false) = false
             LEFT JOIN "Journal" j ON j."journal_id" = v."journal_id" AND COALESCE(j."is_deleted", false) = false
+            LEFT JOIN "Publisher" p ON p."publisher_id" = j."publisher_id"
             LEFT JOIN "Topic" t   ON t."topic_id"   = a."primary_topic"
-            WHERE ${where.join(' AND ')}
+            WHERE ${filter.whereSql}
             ORDER BY ${column} ${order} NULLS LAST, a."article_id" DESC
             LIMIT $${limitIndex} OFFSET $${offsetIndex};
         `;
@@ -321,6 +266,122 @@ export const getAllArticles = async (firstParam = {}, offsetParam = 0, sortByPar
  * @param {number|string} articleId - ID bài báo
  * @returns {Promise<Object|null>} Bản ghi bài báo hoặc `null` nếu không tồn tại
  */
+export const getArticleAnalytics = async (params = {}) => {
+    try {
+        const filter = buildArticleFilter(params);
+        const baseFrom = `
+            FROM "Article" a
+            LEFT JOIN "Issue" i   ON i."issue_id"   = a."issue_id" AND COALESCE(i."is_deleted", false) = false
+            LEFT JOIN "Volume" v  ON v."volume_id"  = i."volume_id" AND COALESCE(v."is_deleted", false) = false
+            LEFT JOIN "Journal" j ON j."journal_id" = v."journal_id" AND COALESCE(j."is_deleted", false) = false
+            LEFT JOIN "Publisher" p ON p."publisher_id" = j."publisher_id"
+            LEFT JOIN "Topic" t   ON t."topic_id"   = a."primary_topic"
+            WHERE ${filter.whereSql}
+        `;
+
+        const totalsQuery = `
+            SELECT
+                COUNT(DISTINCT a."article_id")::integer AS "totalArticles",
+                COUNT(DISTINCT a."article_id") FILTER (WHERE a."is_open_access" IS TRUE)::integer AS "openAccessCount",
+                COUNT(DISTINCT a."article_id") FILTER (WHERE a."is_open_access" IS FALSE)::integer AS "closedAccessCount",
+                COUNT(DISTINCT a."article_id") FILTER (WHERE a."is_open_access" IS NULL)::integer AS "unknownAccessCount"
+            ${baseFrom};
+        `;
+
+        const yearQuery = `
+            SELECT a."publication_year"::integer AS "year", COUNT(DISTINCT a."article_id")::integer AS "count"
+            ${baseFrom}
+            GROUP BY a."publication_year"
+            ORDER BY a."publication_year" DESC NULLS LAST;
+        `;
+
+        const publisherQuery = `
+            SELECT p."publisher_id"::text AS "publisher_id", p."display_name" AS "display_name", COUNT(DISTINCT a."article_id")::integer AS "article_count"
+            ${baseFrom}
+              AND p."publisher_id" IS NOT NULL
+            GROUP BY p."publisher_id", p."display_name"
+            ORDER BY "article_count" DESC, p."display_name" ASC
+            LIMIT 10;
+        `;
+
+        const authorQuery = `
+            WITH filtered_articles AS (
+                SELECT DISTINCT a."article_id"
+                ${baseFrom}
+            )
+            SELECT au."author_id"::text AS "author_id", au."display_name" AS "display_name", COUNT(DISTINCT fa."article_id")::integer AS "article_count"
+            FROM filtered_articles fa
+            JOIN "Author_Article" aa ON aa."article_id" = fa."article_id"
+            JOIN "Author" au ON au."author_id" = aa."author_id" AND COALESCE(au."is_deleted", false) = false
+            GROUP BY au."author_id", au."display_name"
+            ORDER BY "article_count" DESC, au."display_name" ASC
+            LIMIT 10;
+        `;
+
+        const topicQuery = `
+            SELECT t."topic_id"::text AS "topic_id", t."display_name" AS "display_name", COUNT(DISTINCT a."article_id")::integer AS "article_count"
+            ${baseFrom}
+              AND t."topic_id" IS NOT NULL
+            GROUP BY t."topic_id", t."display_name"
+            ORDER BY "article_count" DESC, t."display_name" ASC
+            LIMIT 10;
+        `;
+
+        const institutionQuery = `
+            WITH filtered_articles AS (
+                SELECT DISTINCT a."article_id", a."publication_year"
+                ${baseFrom}
+            )
+            SELECT
+                inst."institution_id"::text AS "institution_id",
+                inst."display_name" AS "display_name",
+                COUNT(DISTINCT fa."article_id")::integer AS "article_count"
+            FROM filtered_articles fa
+            JOIN "Author_Article" aa ON aa."article_id" = fa."article_id"
+            JOIN "Author" au ON au."author_id" = aa."author_id" AND COALESCE(au."is_deleted", false) = false
+            JOIN "Institution_Author" ia ON ia."author_id" = aa."author_id" AND ia."year" = fa."publication_year"
+            JOIN "Institution" inst ON inst."institution_id" = ia."institution_id" AND COALESCE(inst."is_deleted", false) = false
+            ${filter.scope === 'vn_universities' ? 'WHERE UPPER(TRIM(inst."country_code")) = \'VN\' AND LOWER(TRIM(inst."type")) = \'education\'' : ''}
+            GROUP BY inst."institution_id", inst."display_name"
+            ORDER BY "article_count" DESC, inst."display_name" ASC
+            LIMIT 10;
+        `;
+
+        const [totals, years, publishers, authors, topics, institutions] = await Promise.all([
+            pool.query(totalsQuery, filter.values),
+            pool.query(yearQuery, filter.values),
+            pool.query(publisherQuery, filter.values),
+            pool.query(authorQuery, filter.values),
+            pool.query(topicQuery, filter.values),
+            pool.query(institutionQuery, filter.values),
+        ]);
+
+        const totalRow = totals.rows[0] || {};
+        return {
+            scope: filter.scope,
+            totals: {
+                totalArticles: totalRow.totalArticles || 0,
+                openAccessCount: totalRow.openAccessCount || 0,
+                closedAccessCount: totalRow.closedAccessCount || 0,
+                unknownAccessCount: totalRow.unknownAccessCount || 0,
+            },
+            yearDistribution: years.rows,
+            topPublishers: publishers.rows,
+            topAuthors: authors.rows,
+            topTopics: topics.rows,
+            topInstitutions: institutions.rows,
+            accessDistribution: [
+                { key: 'oa', label: 'Open access', count: totalRow.openAccessCount || 0 },
+                { key: 'closed', label: 'Closed access', count: totalRow.closedAccessCount || 0 },
+                { key: 'unknown', label: 'Unknown', count: totalRow.unknownAccessCount || 0 },
+            ],
+        };
+    } catch (error) {
+        logger.error('Lỗi khi lấy analytics bài báo:', error);
+        throw error;
+    }
+};
+
 export const getArticleById = async (articleId) => {
     try {
         const detailQuery = `
@@ -332,6 +393,9 @@ export const getArticleById = async (articleId) => {
                 a."abstract",
                 a."publication_year",
                 a."doi",
+                a."openalex_id",
+                a."pdf_url",
+                a."landing_url",
                 a."primary_topic"::text AS "primary_topic",
                 pt."display_name" AS "topic_name",
                 a."is_deleted",
@@ -341,13 +405,25 @@ export const getArticleById = async (articleId) => {
                 v."volume_number" AS "volume_number",
                 j."journal_id"::text AS "journal_id",
                 j."display_name" AS "journal_name",
-                j."issn" AS "journal_issn",
+                NULLIF(j."issn", '') AS "journal_issn",
                 p."publisher_id"::text AS "publisher_id",
                 p."display_name" AS "publisher_name",
-                a."cited_by_count",
+                a."citation_count",
+                a."citing_patents_count",
+                a."citations_by_year",
                 a."references",
                 a."reference_count",
-                COALESCE(j."is_open_access", false) AS "is_open_access",
+                (
+                    SELECT COUNT(*)::integer
+                    FROM "Article_Citing_Work" acw
+                    WHERE acw."article_id" = a."article_id"
+                ) AS "citing_works_count",
+                (
+                    SELECT COUNT(*)::integer
+                    FROM "Article_Reference" ar
+                    WHERE ar."article_id" = a."article_id"
+                ) AS "available_references_count",
+                a."is_open_access" AS "is_open_access",
                 CASE
                     WHEN a."doi" IS NULL OR TRIM(a."doi") = '' THEN NULL
                     WHEN a."doi" ILIKE 'http%' THEN a."doi"
@@ -376,11 +452,35 @@ export const getArticleById = async (articleId) => {
                 au."orcid",
                 au."url_image",
                 au."last_known_institution",
-                au."works_count"
+                au."works_count",
+                COALESCE(
+                    json_agg(
+                        DISTINCT jsonb_build_object(
+                            'institution_id', inst."institution_id"::text,
+                            'display_name', inst."display_name",
+                            'country_code', inst."country_code",
+                            'type', inst."type"
+                        )
+                    ) FILTER (WHERE inst."institution_id" IS NOT NULL),
+                    '[]'::json
+                ) AS "institutions"
             FROM "Author_Article" aa
             JOIN "Author" au ON au."author_id" = aa."author_id"
+            LEFT JOIN "Institution_Author" ia
+              ON ia."author_id" = au."author_id"
+             AND ia."year" = $2
+            LEFT JOIN "Institution" inst
+              ON inst."institution_id" = ia."institution_id"
+             AND COALESCE(inst."is_deleted", false) = false
             WHERE aa."article_id" = $1
               AND COALESCE(au."is_deleted", false) = false
+            GROUP BY
+                au."author_id",
+                au."display_name",
+                au."orcid",
+                au."url_image",
+                au."last_known_institution",
+                au."works_count"
             ORDER BY au."display_name" ASC;
         `;
 
@@ -415,14 +515,24 @@ export const getArticleById = async (articleId) => {
         `;
 
         const [authorsResult, keywordsResult, topicsResult] = await Promise.all([
-            pool.query(authorsQuery, [articleId]),
+            pool.query(authorsQuery, [articleId, article.publication_year]),
             pool.query(keywordsQuery, [articleId]),
             pool.query(topicsQuery, [articleId])
         ]);
 
+        const institutionMap = new Map();
+        for (const author of authorsResult.rows) {
+            for (const institution of author.institutions || []) {
+                if (institution?.institution_id && !institutionMap.has(institution.institution_id)) {
+                    institutionMap.set(institution.institution_id, institution);
+                }
+            }
+        }
+
         return {
             ...article,
             authors: authorsResult.rows,
+            institutions: Array.from(institutionMap.values()),
             keywords: keywordsResult.rows,
             topics: topicsResult.rows,
         };
@@ -430,6 +540,108 @@ export const getArticleById = async (articleId) => {
         logger.error('Lỗi khi lấy thông tin bài báo theo ID:', error);
         throw error;
     }
+};
+
+const normalizeLimitOffset = (limit, offset, defaultLimit = 20) => {
+    const parsedLimit = Number(limit);
+    const parsedOffset = Number(offset);
+    return {
+        limit: Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 100) : defaultLimit,
+        offset: Number.isFinite(parsedOffset) && parsedOffset >= 0 ? parsedOffset : 0,
+    };
+};
+
+export const countArticleCitingWorks = async (articleId) => {
+    const result = await pool.query(
+        'SELECT COUNT(*)::integer AS "total" FROM "Article_Citing_Work" WHERE "article_id" = $1',
+        [articleId]
+    );
+    return result.rows[0]?.total || 0;
+};
+
+export const getArticleCitingWorksAnalytics = async (articleId) => {
+    const query = `
+        SELECT
+            "publication_year" AS "year",
+            COUNT(*)::integer AS "count"
+        FROM "Article_Citing_Work"
+        WHERE "article_id" = $1
+        GROUP BY "publication_year"
+        ORDER BY "publication_year" ASC NULLS LAST;
+    `;
+
+    const [totalResult, distributionResult] = await Promise.all([
+        pool.query(
+            'SELECT COUNT(*)::integer AS "total" FROM "Article_Citing_Work" WHERE "article_id" = $1',
+            [articleId]
+        ),
+        pool.query(query, [articleId]),
+    ]);
+
+    return {
+        total: totalResult.rows[0]?.total || 0,
+        year_distribution: distributionResult.rows,
+    };
+};
+
+export const getArticleCitingWorks = async (articleId, { limit = 20, offset = 0 } = {}) => {
+    const paging = normalizeLimitOffset(limit, offset, 20);
+    const query = `
+        SELECT
+            "article_id"::text,
+            "openalex_work_id",
+            "doi",
+            "title",
+            "publication_year",
+            "source_name",
+            "source_url",
+            "landing_url",
+            "pdf_url",
+            "cited_by_count",
+            "type",
+            COALESCE("authors", '[]'::jsonb) AS "authors"
+        FROM "Article_Citing_Work"
+        WHERE "article_id" = $1
+        ORDER BY "publication_year" DESC NULLS LAST, "cited_by_count" DESC NULLS LAST, "title" ASC
+        LIMIT $2 OFFSET $3;
+    `;
+    const result = await pool.query(query, [articleId, paging.limit, paging.offset]);
+    return result.rows;
+};
+
+export const countArticleReferences = async (articleId) => {
+    const result = await pool.query(
+        'SELECT COUNT(*)::integer AS "total" FROM "Article_Reference" WHERE "article_id" = $1',
+        [articleId]
+    );
+    return result.rows[0]?.total || 0;
+};
+
+export const getArticleReferences = async (articleId, { limit = 50, offset = 0 } = {}) => {
+    const paging = normalizeLimitOffset(limit, offset, 50);
+    const query = `
+        SELECT
+            "article_id"::text,
+            "reference_key",
+            "openalex_work_id",
+            "semantic_scholar_id",
+            "doi",
+            "title",
+            "publication_year",
+            "source_name",
+            "source_url",
+            "landing_url",
+            "pdf_url",
+            "cited_by_count",
+            "type",
+            COALESCE("authors", '[]'::jsonb) AS "authors"
+        FROM "Article_Reference"
+        WHERE "article_id" = $1
+        ORDER BY "publication_year" DESC NULLS LAST, "title" ASC, "reference_key" ASC
+        LIMIT $2 OFFSET $3;
+    `;
+    const result = await pool.query(query, [articleId, paging.limit, paging.offset]);
+    return result.rows;
 };
 
 /**

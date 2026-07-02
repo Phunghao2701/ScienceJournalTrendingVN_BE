@@ -1,5 +1,5 @@
 import express from 'express';
-import { deleteMe, getMe, updateMe } from '../controllers/user.controller.js';
+import { deleteMe, getMe, updateMe, updateUserById } from '../controllers/user.controller.js';
 import { verifyToken } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
@@ -201,5 +201,60 @@ router.put('/me', verifyToken, updateMe);
  *                   example: Lỗi máy chủ cục bộ
  */
 router.get('/me', verifyToken, getMe);
+
+/**
+ * @swagger
+ * /api/v1/users/{id}:
+ *   put:
+ *     summary: Tự cập nhật hồ sơ cá nhân qua ID (Chỉ chính chủ)
+ *     description: API cho phép người dùng tự sửa đổi các thông tin cá nhân. Bỏ qua các trường như email, password, role hay status nhằm đảm bảo an toàn.
+ *     tags: 
+ *       - Users
+ *     security:
+ *       - bearerAuth: [] 
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID của người dùng cần cập nhật (phải trùng với ID trong token)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               first_name:
+ *                 type: string
+ *               last_name:
+ *                 type: string
+ *               date_of_birth:
+ *                 type: string
+ *                 format: date
+ *                 example: "1999-01-27"
+ *               gender:
+ *                 type: boolean
+ *                 example: true
+ *               url_image:
+ *                 type: string
+ *                 example: "https://example.com/avatar.jpg"
+ *     responses:
+ *       200:
+ *         description: Cập nhật thành công (Trang bị whitelist lọc fields an toàn)
+ *       400:
+ *         description: Dữ liệu gửi lên rỗng hoặc không đúng chuẩn
+ *       401:
+ *         description: Chưa xác thực (Unauthorized)
+ *       403:
+ *         description: Bị chặn (Forbidden) do sửa nhầm ID của người khác
+ *       404:
+ *         description: Không tìm thấy người dùng
+ *       500:
+ *         description: Lỗi từ máy chủ
+ */
+router.put('/:id', verifyToken, updateUserById);
 
 export default router;

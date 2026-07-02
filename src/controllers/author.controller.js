@@ -97,7 +97,7 @@ export const getAuthorArticles = async (req, res) => {
       });
     }
 
-    const articles = await authorServiceRef.getAuthorArticlesService(
+    const result = await authorServiceRef.getAuthorArticlesService(
       authorId,
       safeLimit,
       safePage,
@@ -107,12 +107,8 @@ export const getAuthorArticles = async (req, res) => {
       success: true,
       code: AUTHOR_CODES.AUTHOR_ARTICLES_FETCHED,
       message: "Lấy bài viết của tác giả thành công",
-      pagination: {
-        page: safePage,
-        limit: safeLimit,
-        total: articles.length,
-      },
-      data: [...articles],
+      pagination: result.pagination,
+      data: result.items,
     });
   } catch (error) {
     logger.error("Lỗi lấy bài viết của tác giả:", error);
@@ -152,7 +148,7 @@ export const getAuthorLeaderboard = async (req, res) => {
       });
     }
 
-    const leaderboard = await authorServiceRef.getAuthorLeaderboardService(
+    const result = await authorServiceRef.getAuthorLeaderboardService(
       limit,
       page,
     );
@@ -161,7 +157,8 @@ export const getAuthorLeaderboard = async (req, res) => {
       success: true,
       code: AUTHOR_CODES.AUTHOR_LEADERBOARD_FETCHED,
       message: "Lấy bảng xếp hạng tác giả thành công",
-      data: leaderboard,
+      pagination: result.pagination,
+      data: result.items,
     });
   } catch (error) {
     logger.error("Lỗi lấy bảng xếp hạng tác giả:", error);

@@ -1,5 +1,9 @@
 import pool from "../config/database.js";
 import logger from "../utils/logger.js";
+import {
+  buildArticleFilter,
+  normalizeArticleSort,
+} from "./articleFilter.service.js";
 
 /**
  * Lấy danh sách từ khóa thịnh hành trong một project.
@@ -537,7 +541,7 @@ export const updateKeywordsToArticle = async (articleId, keywordsInput) => {
  */
 export const getKeywordById = async (id) => {
   const { rows } = await pool.query(
-    `SELECT keyword_id, display_name FROM "Keyword"
+    `SELECT keyword_id::text AS keyword_id, display_name FROM "Keyword"
      WHERE keyword_id = $1`,
     [id],
   );
@@ -586,48 +590,95 @@ export const getAllKeywords = async ({ page = 1, limit = 10, search = "" }) => {
  * @param {Object} params - { page, limit, sortBy, sortOrder }
  * @returns {Promise<{data: Array, pagination: Object}>}
  */
-export const getArticlesByKeyword = async (keywordId, { page = 1, limit = 10, sortBy = 'publication_year', sortOrder = 'desc' } = {}) => {
+export const getArticlesByKeyword = async (keywordId, { page = 1, limit = 10, sortBy = 'publication_year', sortOrder = 'desc', scope = 'all' } = {}) => {
   const offset = (page - 1) * limit;
 
   // Chỉ cho phép sort hợp lệ để tránh SQL injection
-  const allowedSortFields = ['publication_year', 'title', 'created_at'];
-  const safeSort = allowedSortFields.includes(sortBy) ? sortBy : 'publication_year';
-  const safeOrder = sortOrder === 'asc' ? 'ASC' : 'DESC';
+  const articleFilter = buildArticleFilter({ scope });
+  const { column, sortOrder: safeOrder } = normalizeArticleSort(sortBy, sortOrder, {
+    allowedColumns: {
+      publication_year: 'a."publication_year"',
+      title: 'a."title"',
+      created_at: 'a."created_at"',
+    },
+    defaultSort: 'publication_year',
+    throwOnInvalid: true,
+  });
+  const values = [...articleFilter.values, keywordId];
+  const keywordIndex = values.length;
 
   const countQuery = `
     SELECT COUNT(DISTINCT a.article_id) AS total
     FROM "Article" a
     JOIN "Keyword_Article" ka ON ka.article_id = a.article_id
-    WHERE ka.keyword_id = $1
+    LEFT JOIN "Issue" i   ON i."issue_id"   = a."issue_id" AND COALESCE(i."is_deleted", false) = false
+    LEFT JOIN "Volume" v  ON v."volume_id"  = i."volume_id" AND COALESCE(v."is_deleted", false) = false
+    LEFT JOIN "Journal" j ON j."journal_id" = v."journal_id" AND COALESCE(j."is_deleted", false) = false
+    WHERE ${articleFilter.whereSql}
+      AND ka.keyword_id = $${keywordIndex}
   `;
 
+  const dataValues = [...values, limit, offset];
+  const limitIndex = dataValues.length - 1;
+  const offsetIndex = dataValues.length;
   const dataQuery = `
     SELECT
-      a.article_id,
-      a.title,
-      a.abstract,
-      a.publication_year,
-      a.doi,
-      j.display_name AS journal_name,
-      0 AS citations_count
+      a."article_id"::text,
+      a."version",
+      a."issue_id"::text,
+      a."title",
+      a."abstract",
+      a."publication_year",
+      a."doi",
+      a."primary_topic"::text,
+      t."display_name" AS "topic_name",
+      a."created_at",
+      j."journal_id"::text,
+      j."display_name" AS "journal_name",
+      j."issn" AS "journal_issn",
+      p."publisher_id"::text AS "publisher_id",
+      p."display_name" AS "publisher_name",
+      v."volume_id"::text AS "volume_id",
+      v."volume_number",
+      i."issue_number",
+      COALESCE(j."is_open_access", false) AS "is_open_access",
+      a."citation_count",
+      a."reference_count",
+      COALESCE(
+        (
+          SELECT json_agg(json_build_object(
+            'author_id', au."author_id"::text,
+            'display_name', au."display_name"
+          ))
+          FROM "Author_Article" aa
+          JOIN "Author" au ON au."author_id" = aa."author_id"
+          WHERE aa."article_id" = a."article_id"
+            AND COALESCE(au."is_deleted", false) = false
+        ),
+        '[]'::json
+      ) AS "authors"
     FROM "Article" a
     JOIN "Keyword_Article" ka ON ka.article_id = a.article_id
-    LEFT JOIN "Issue" i   ON i.issue_id   = a.issue_id
-    LEFT JOIN "Volume" v  ON v.volume_id  = i.volume_id
-    LEFT JOIN "Journal" j ON j.journal_id = v.journal_id
-    WHERE ka.keyword_id = $1
-    ORDER BY a.${safeSort} ${safeOrder} NULLS LAST
-    LIMIT $2 OFFSET $3
+    LEFT JOIN "Issue" i   ON i."issue_id"   = a."issue_id" AND COALESCE(i."is_deleted", false) = false
+    LEFT JOIN "Volume" v  ON v."volume_id"  = i."volume_id" AND COALESCE(v."is_deleted", false) = false
+    LEFT JOIN "Journal" j ON j."journal_id" = v."journal_id" AND COALESCE(j."is_deleted", false) = false
+    LEFT JOIN "Publisher" p ON p."publisher_id" = j."publisher_id"
+    LEFT JOIN "Topic" t   ON t."topic_id"   = a."primary_topic"
+    WHERE ${articleFilter.whereSql}
+      AND ka.keyword_id = $${keywordIndex}
+    ORDER BY ${column} ${safeOrder} NULLS LAST
+    LIMIT $${limitIndex} OFFSET $${offsetIndex}
   `;
 
   const [countResult, dataResult] = await Promise.all([
-    pool.query(countQuery, [keywordId]),
-    pool.query(dataQuery, [keywordId, limit, offset]),
+    pool.query(countQuery, values),
+    pool.query(dataQuery, dataValues),
   ]);
 
   const total = parseInt(countResult.rows[0].total);
   return {
     data: dataResult.rows,
+    scope: articleFilter.scope,
     pagination: { page, limit, total, total_pages: Math.max(1, Math.ceil(total / limit)) },
   };
 };

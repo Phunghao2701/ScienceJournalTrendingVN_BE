@@ -3,16 +3,7 @@ import {
   activateAccount,
 } from "../services/register.service.js";
 import logger from "../utils/logger.js";
-
-/**
- * Kiểm tra định dạng của một chuỗi email có hợp lệ hay không
- * @param {string} email - Chuỗi email cần kiểm tra
- * @returns {boolean} Trả về true nếu định dạng hợp lệ, ngược lại là false
- */
-const isValidEmail = (email) => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
+import { isValidEmail } from "../utils/validation.js";
 
 /**
  * API Đăng ký tài khoản người dùng mới bằng Email và Mật khẩu

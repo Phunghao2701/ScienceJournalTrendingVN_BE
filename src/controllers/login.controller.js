@@ -1,16 +1,8 @@
 import { loginWithEmailPassword, signRefreshToken, signToken } from "../services/login.service.js";
 import logger from "../utils/logger.js";
 import jwt from 'jsonwebtoken';
-
-/**
- * Kiểm tra định dạng của một chuỗi email có hợp lệ hay không
- * @param {string} email - Chuỗi email cần kiểm tra
- * @returns {boolean} Trả về true nếu định dạng hợp lệ, ngược lại là false
- */
-const isValidEmail = (email) => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
+import { createLog } from '../services/log.service.js';
+import { isValidEmail } from '../utils/validation.js';
 
 /**
  * API Đăng nhập cho tài khoản Local bằng Email và Mật khẩu
@@ -65,6 +57,14 @@ export const login = async (req, res) => {
         sameSite: 'none'
       });
     }
+
+    createLog({
+      userId: data.user.user_id,
+      userRole: data.user.role,
+      action: 'LOGIN',
+      message: `Người dùng ${data.user.email} đăng nhập hệ thống thành công`,
+      metadata: { ip: req.ip, userAgent: req.headers['user-agent'] }
+    });
 
     // 3. Trả kết quả JSON về cho Frontend
     return res.status(200).json({
@@ -200,23 +200,40 @@ export const checkAuth = (req, res) => {
 };
 
 /**
- * Đăng xuất người dùng bằng cách xóa toàn bộ cookie xác thực.
- * FE cần gọi endpoint này vì access/refresh token đang được lưu trong
- * HTTP-only cookie, JavaScript phía client không tự xóa trực tiếp được.
+ * API Đăng xuất người dùng.
+ * Hàm này thực hiện xóa các cookie chứa JWT access token và refresh token ở trình duyệt.
+ *
+ * @param {import('express').Request} req - Đối tượng Request của Express.
+ * @param {import('express').Response} res - Đối tượng Response của Express.
+ * @returns {import('express').Response} JSON response xác nhận đăng xuất thành công.
  */
 export const logout = (req, res) => {
-  const cookieOptions = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'none',
-  };
+  try {
+    // Xóa cookie chứa Access Token
+    res.clearCookie('access_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'none',
+    });
 
-  res.clearCookie('access_token', cookieOptions);
-  res.clearCookie('refresh_token', cookieOptions);
+    // Xóa cookie chứa Refresh Token
+    res.clearCookie('refresh_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'none',
+    });
 
-  return res.status(200).json({
-    success: true,
-    code: 'LOGOUT_SUCCESS',
-    message: 'Đăng xuất thành công',
-  });
+    return res.status(200).json({
+      success: true,
+      code: "LOGOUT_SUCCESS",
+      message: "Đăng xuất thành công",
+    });
+  } catch (error) {
+    logger.error("Lỗi hệ thống trong controller đăng xuất:", error);
+    return res.status(500).json({
+      success: false,
+      code: "LOGOUT_FAILED",
+      message: "Có lỗi xảy ra ở server",
+    });
+  }
 };

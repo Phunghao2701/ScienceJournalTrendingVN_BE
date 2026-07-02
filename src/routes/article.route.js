@@ -1,9 +1,14 @@
 import express from 'express';
-import { requireAuth } from '../middlewares/auth.middleware.js';
+import { requireAuth, verifyToken } from '../middlewares/auth.middleware.js';
 import { 
     createArticle, 
     getArticle, 
-    getArticleById, 
+    getArticleById,
+    getArticleAnalysis,
+    getArticleAnalytics,
+    getArticleCitingWorks,
+    getArticleCitingWorksAnalytics,
+    getArticleReferences,
     getArticlesByKeywords, 
     getArticles, 
     updateArticle,
@@ -89,11 +94,14 @@ const router = express.Router();
 router.get('/', async (req, res, next) => {
     if (req.query.keywords !== undefined && req.query.keywords.trim() !== '') {
         // Có keywords -> Bắt buộc kiểm tra token tài khoản
-        return requireAuth(req, res, () => getArticlesByKeywords(req, res));
+        return verifyToken(req, res, () => getArticlesByKeywords(req, res));
     }
     // Không có keywords -> Cho phép đi thẳng mà không cần token
     return getArticles(req, res);
 });
+
+router.get('/analytics', getArticleAnalytics);
+router.get('/analysis', getArticleAnalysis);
 
 /**
  * @swagger
@@ -127,6 +135,99 @@ router.get('/', async (req, res, next) => {
  *       500:
  *         description: Lỗi server
  */
+/*
+ * Article relationship APIs
+ * - citing-works/citing: bài báo khác trích dẫn article hiện tại
+ * - references/refer: bài báo/tài liệu mà article hiện tại tham khảo
+ */
+
+/**
+ * @swagger
+ * /api/v1/articles/{id}/citing-works:
+ *   get:
+ *     summary: Lấy danh sách bài báo trích dẫn article hiện tại
+ *     description: Trả về các bài báo trong bảng Article_Citing_Work, tức các bài khác đang cite bài báo `{id}`.
+ *     tags:
+ *       - Article
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Article ID cần xem citing works
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *           minimum: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *           minimum: 1
+ *           maximum: 100
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           minimum: 0
+ *         description: Nếu truyền offset thì offset được ưu tiên hơn page
+ *     responses:
+ *       200:
+ *         description: Lấy danh sách citing works thành công
+ *       500:
+ *         description: Lỗi hệ thống
+ */
+router.get('/:id/citing-works/analytics', validateId, getArticleCitingWorksAnalytics);
+router.get('/:id/citing-works', validateId, getArticleCitingWorks);
+router.get('/:id/citing', validateId, getArticleCitingWorks);
+
+/**
+ * @swagger
+ * /api/v1/articles/{id}/references:
+ *   get:
+ *     summary: Lấy danh sách bài báo/tài liệu mà article hiện tại tham khảo
+ *     description: Trả về các record trong bảng Article_Reference, tức references của bài báo `{id}`.
+ *     tags:
+ *       - Article
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Article ID cần xem references
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *           minimum: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *           minimum: 1
+ *           maximum: 100
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           minimum: 0
+ *         description: Nếu truyền offset thì offset được ưu tiên hơn page
+ *     responses:
+ *       200:
+ *         description: Lấy danh sách references thành công
+ *       500:
+ *         description: Lỗi hệ thống
+ */
+router.get('/:id/references', validateId, getArticleReferences);
+router.get('/:id/refer', validateId, getArticleReferences);
+
 router.get('/:id', validateId, getArticleById);
 
 /**
@@ -201,7 +302,7 @@ router.get('/:id', validateId, getArticleById);
  *       500:
  *         description: Lỗi server
  */
-router.post('/', requireAuth, validateCreateArticle, createArticle);
+router.post('/', verifyToken, validateCreateArticle, createArticle);
 
 /**
  * @swagger
@@ -278,7 +379,7 @@ router.post('/', requireAuth, validateCreateArticle, createArticle);
  *       500:
  *         description: Lỗi server
  */
-router.put('/:id', requireAuth, validateUpdateArticle, updateArticle);
+router.put('/:id', verifyToken, validateUpdateArticle, updateArticle);
 
 /**
  * @swagger
@@ -318,7 +419,7 @@ router.put('/:id', requireAuth, validateUpdateArticle, updateArticle);
  *       500:
  *         description: Lỗi server
  */
-router.delete('/:id', requireAuth, validateId, deleteArticle);
+router.delete('/:id', verifyToken, validateId, deleteArticle);
 
 /**
  * @swagger
@@ -358,6 +459,6 @@ router.delete('/:id', requireAuth, validateId, deleteArticle);
  *       500:
  *         description: Lỗi server
  */
-router.patch('/:id/restore', requireAuth, validateId, restoreArticle);
+router.patch('/:id/restore', verifyToken, validateId, restoreArticle);
 
 export default router;

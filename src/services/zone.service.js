@@ -9,7 +9,7 @@ import pool from '../config/database.js';
  * @param {number} params.limit - Số lượng bản ghi trên mỗi trang.
  * @returns {Promise<{ countries: Array<Object>, total: number }>} Danh sách các quốc gia cùng tổng số lượng bản ghi.
  */
-export const getCountryStats = async ({ page = 1, limit = 10 }) => {
+export const getCountryStats = async ({ page = 1, limit = 10, year }) => {
   const parsedPage = parseInt(page, 10) || 1;
   const parsedLimit = parseInt(limit, 10) || 10;
   const offset = (parsedPage - 1) * parsedLimit;
@@ -20,6 +20,19 @@ export const getCountryStats = async ({ page = 1, limit = 10 }) => {
   const total = countResult.rows[0]?.total || 0;
 
   // 2. Lấy thống kê chi tiết sản lượng bài báo theo quốc gia
+  // Tạo danh sách giá trị truyền vào query để bảo mật SQL injection
+  const values = [parsedLimit, offset];
+  let yearClause = '';
+  
+  // Nếu tham số lọc 'year' (năm xuất bản) được gửi lên, ta sẽ thêm điều kiện lọc theo năm
+  if (year) {
+    values.push(Number(year));
+    yearClause = `AND a.publication_year = $${values.length}`; // Thêm tham số động vào ON clause để lọc bài báo theo năm
+  }
+
+  // Thực hiện LEFT JOIN các bảng: Zone -> Journal -> Volume -> Issue -> Article
+  // Thêm điều kiện 'is_deleted = false' để loại bỏ các bản ghi đã bị xóa mềm.
+  // Điều kiện lọc yearClause được đặt trong ON clause để tránh biến LEFT JOIN thành INNER JOIN (nhằm giữ lại các quốc gia có 0 sản lượng).
   const statsQuery = `
     SELECT 
       z.zone_id,
@@ -30,16 +43,16 @@ export const getCountryStats = async ({ page = 1, limit = 10 }) => {
       z.created_at,
       COUNT(a.article_id)::integer AS article_count
     FROM "Zone" z
-    LEFT JOIN "Journal" j ON j.country = z.zone_id
-    LEFT JOIN "Volume" v ON v.journal_id = j.journal_id
-    LEFT JOIN "Issue" i ON i.volume_id = v.volume_id
-    LEFT JOIN "Article" a ON a.issue_id = i.issue_id
+    LEFT JOIN "Journal" j ON j.country = z.zone_id AND COALESCE(j.is_deleted, false) = false
+    LEFT JOIN "Volume" v ON v.journal_id = j.journal_id AND COALESCE(v.is_deleted, false) = false
+    LEFT JOIN "Issue" i ON i.volume_id = v.volume_id AND COALESCE(i.is_deleted, false) = false
+    LEFT JOIN "Article" a ON a.issue_id = i.issue_id AND COALESCE(a.is_deleted, false) = false ${yearClause}
     WHERE z.type = 'COUNTRY'
     GROUP BY z.zone_id, z.code, z.name, z.iso_code, z.source, z.created_at
     ORDER BY article_count DESC, z.name ASC
     LIMIT $1 OFFSET $2;
   `;
-  const statsResult = await pool.query(statsQuery, [parsedLimit, offset]);
+  const statsResult = await pool.query(statsQuery, values);
 
   return {
     countries: statsResult.rows,

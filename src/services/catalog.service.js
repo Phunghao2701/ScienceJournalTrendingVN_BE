@@ -74,13 +74,15 @@ export const getJournalRankings = async (journalId, filters = {}) => {
     throw error;
   }
 
+  const rankingSourceSql = `'SCIMAGO'::text`;
+
   // 2. Xây dựng câu truy vấn động lấy rankings
   let query = `
     SELECT 
       jr.journal_ranking_id::text AS journal_ranking_id,
       jr.journal_id::text AS journal_id,
       jr.year,
-      jr.source,
+      ${rankingSourceSql} AS source,
       rm.code AS metric_code,
       rm.display_name AS metric_name,
       rm.metric_type,
@@ -118,7 +120,7 @@ export const getJournalRankings = async (journalId, filters = {}) => {
 
   if (filters.source && filters.source.trim() !== '') {
     paramCount++;
-    query += ` AND UPPER(jr.source::text) = UPPER($${paramCount})`;
+    query += ` AND UPPER(${rankingSourceSql}) = UPPER($${paramCount})`;
     values.push(filters.source.trim());
   }
 

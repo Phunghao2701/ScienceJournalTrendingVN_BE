@@ -39,9 +39,26 @@ export const getCountryStats = async (req, res) => {
       }
     }
 
+    // Lấy thông tin bộ lọc năm từ query parameters (chấp nhận cả 'year' và 'publication_year')
+    let year = req.query.year || req.query.publication_year;
+    if (year !== undefined && year !== '') {
+      // Kiểm tra tính hợp lệ: Năm gửi lên bắt buộc phải là một số
+      if (isNaN(Number(year))) {
+        return res.status(400).json({
+          success: false,
+          code: "YEAR_INVALID",
+          message: "Năm phải là số",
+        });
+      }
+      year = Number(year);
+    } else {
+      year = undefined; // Bỏ qua nếu không chọn năm lọc
+    }
+
     const { countries, total } = await zoneService.getCountryStats({
       page,
       limit,
+      year,
     });
 
     return res.status(200).json({

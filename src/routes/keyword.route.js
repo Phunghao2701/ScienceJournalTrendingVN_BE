@@ -76,7 +76,7 @@ const router = express.Router();
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.get("/:id/keywords/trending", getTrendingKeywords);
+router.get("/:id/keywords/trending", requireAuth, getTrendingKeywords);
 
 /**
  * @swagger
@@ -116,7 +116,7 @@ router.get("/:id/keywords/trending", getTrendingKeywords);
  *       500:
  *         description: Lỗi hệ thống server
  */
-router.get("/:id/keywords/watch/articles", getWatchedKeywordArticles);
+router.get("/:id/keywords/watch/articles", requireAuth, getWatchedKeywordArticles);
 
 /**
  * @swagger
