@@ -16,6 +16,8 @@ import {
     restoreArticle
 } from '../controllers/article.controller.js';
 import { validateCreateArticle, validateId, validateUpdateArticle } from '../middlewares/articleValidation.middleware.js';
+import { getArticleComments, createComment } from '../controllers/comment.controller.js';
+import { validateCreateComment } from '../middlewares/commentValidation.middleware.js';
 
 const router = express.Router();
 
@@ -227,6 +229,95 @@ router.get('/:id/citing', validateId, getArticleCitingWorks);
  */
 router.get('/:id/references', validateId, getArticleReferences);
 router.get('/:id/refer', validateId, getArticleReferences);
+
+/**
+ * @swagger
+ * /api/v1/articles/{id}/comments:
+ *   get:
+ *     summary: Lấy danh sách comment của một bài báo
+ *     tags:
+ *       - Comment
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Article ID cần lấy danh sách comment
+ *     responses:
+ *       200:
+ *         description: Lấy danh sách comment thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Lấy danh sách comment thành công"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       user:
+ *                         type: string
+ *                       avatar:
+ *                         type: string
+ *                       content:
+ *                         type: string
+ *                       created_at:
+ *                         type: string
+ *                         format: date-time
+ *       404:
+ *         description: Không tìm thấy bài báo
+ *       500:
+ *         description: Lỗi hệ thống
+ *   post:
+ *     summary: Thêm comment cho một bài báo
+ *     description: Yêu cầu đăng nhập.
+ *     tags:
+ *       - Comment
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Article ID cần bình luận
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - content
+ *             properties:
+ *               content:
+ *                 type: string
+ *                 example: "Nội dung comment"
+ *     responses:
+ *       201:
+ *         description: Thêm comment thành công
+ *       400:
+ *         description: Nội dung comment không hợp lệ
+ *       401:
+ *         description: Chưa xác thực
+ *       404:
+ *         description: Không tìm thấy bài báo
+ *       500:
+ *         description: Lỗi hệ thống
+ */
+router.get('/:id/comments', validateId, getArticleComments);
+router.post('/:id/comments', requireAuth, validateId, validateCreateComment, createComment);
 
 router.get('/:id', validateId, getArticleById);
 
