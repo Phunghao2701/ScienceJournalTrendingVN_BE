@@ -347,13 +347,28 @@ export const getArticleAnalytics = async (params = {}) => {
             LIMIT 10;
         `;
 
-        const [totals, years, publishers, authors, topics, institutions] = await Promise.all([
+        const keywordQuery = `
+            WITH filtered_articles AS (
+                SELECT DISTINCT a."article_id"
+                ${baseFrom}
+            )
+            SELECT k."keyword_id"::text AS "keyword_id", k."display_name" AS "display_name", COUNT(DISTINCT fa."article_id")::integer AS "article_count"
+            FROM filtered_articles fa
+            JOIN "Keyword_Article" ka ON ka."article_id" = fa."article_id"
+            JOIN "Keyword" k ON k."keyword_id" = ka."keyword_id"
+            GROUP BY k."keyword_id", k."display_name"
+            ORDER BY "article_count" DESC, k."display_name" ASC
+            LIMIT 10;
+        `;
+
+        const [totals, years, publishers, authors, topics, institutions, keywords] = await Promise.all([
             pool.query(totalsQuery, filter.values),
             pool.query(yearQuery, filter.values),
             pool.query(publisherQuery, filter.values),
             pool.query(authorQuery, filter.values),
             pool.query(topicQuery, filter.values),
             pool.query(institutionQuery, filter.values),
+            pool.query(keywordQuery, filter.values),
         ]);
 
         const totalRow = totals.rows[0] || {};
@@ -370,6 +385,7 @@ export const getArticleAnalytics = async (params = {}) => {
             topAuthors: authors.rows,
             topTopics: topics.rows,
             topInstitutions: institutions.rows,
+            topKeywords: keywords.rows,
             accessDistribution: [
                 { key: 'oa', label: 'Open access', count: totalRow.openAccessCount || 0 },
                 { key: 'closed', label: 'Closed access', count: totalRow.closedAccessCount || 0 },

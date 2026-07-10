@@ -318,6 +318,7 @@ test.describe('Article Service - getArticlesByKeywords() Unit Test Suite', () =>
         [{ author_id: '22', display_name: 'Author A', article_count: 3 }],
         [{ topic_id: '33', display_name: 'Topic A', article_count: 2 }],
         [{ institution_id: '44', display_name: 'VN University', article_count: 2 }],
+        [{ keyword_id: '55', display_name: 'Keyword A', article_count: 5 }],
       ];
       let callIndex = 0;
 
@@ -359,6 +360,11 @@ test.describe('Article Service - getArticlesByKeywords() Unit Test Suite', () =>
         display_name: 'VN University',
         article_count: 2,
       });
+      assert.deepStrictEqual(result.topKeywords[0], {
+        keyword_id: '55',
+        display_name: 'Keyword A',
+        article_count: 5,
+      });
       assert.deepStrictEqual(result.accessDistribution, [
         { key: 'oa', label: 'Open access', count: 3 },
         { key: 'closed', label: 'Closed access', count: 4 },
@@ -378,6 +384,8 @@ test.describe('Article Service - getArticlesByKeywords() Unit Test Suite', () =>
       assert.ok(capturedSql[5].includes('"Institution_Author"'));
       assert.ok(capturedSql[5].includes('ia."year" = fa."publication_year"'));
       assert.ok(capturedSql[5].includes('UPPER(TRIM(inst."country_code")) = \'VN\''));
+      assert.ok(capturedSql[6].includes('"Keyword_Article"'));
+      assert.ok(capturedSql[6].includes('JOIN "Keyword" k'));
     });
   });
 

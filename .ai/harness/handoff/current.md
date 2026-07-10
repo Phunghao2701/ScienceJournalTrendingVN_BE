@@ -1,6 +1,6 @@
 # Harness Handoff
 
-> **Generated**: 2026-07-01 20:06:09
+> **Generated**: 2026-07-10 20:31:15
 > **Reason**: session-stop
 
 ## Goal
@@ -15,8 +15,12 @@ No active plan. Continue from the latest user request and filesystem state.
 
 ```
 .ai/harness/handoff/current.md
+src/routes/keyword.route.js
 src/services/article.service.js
+src/services/articleAnalysis.service.js
 src/services/articleFilter.service.js
+src/services/keyword.service.js
+src/tests/unit/service/article.test.js
 src/tests/unit/service/articleAnalysis.test.js
 src/tests/unit/service/articleFilter.test.js
 src/tests/unit/service/paperVnDiscovery.test.js
@@ -24,11 +28,11 @@ src/tests/unit/service/paperVnDiscovery.test.js
 
 ## Commands Run
 
-- {"ts":"2026-07-01T19:49:24+0700","event_type":"PostToolUse","tool_name":"Bash","file_path":"","exit_code":0,"duration_ms":3456,"session_key":"959d47f2-fce8-4d78-a922-35be262b057a","run_id":"run-session-959d47f2-fce8-4d78-a922-35be262b057a","host":"unknown","agent_name":"unknown","session_source":"unknown"}
-- {"ts":"2026-07-01T20:05:19+0700","event_type":"PostToolUse","tool_name":"Bash","file_path":"","exit_code":0,"duration_ms":6206,"session_key":"b98f2744-0b9e-44da-9ad7-6aecf4186e8d","run_id":"run-session-b98f2744-0b9e-44da-9ad7-6aecf4186e8d","host":"unknown","agent_name":"unknown","session_source":"unknown"}
-- {"ts":"2026-07-01T20:05:41+0700","event_type":"PostToolUse","tool_name":"Read","file_path":"e:\\Science_Journal_Trending_VN\\ScienceJournalTrendingVN_FE\\src\\features\\article\\hooks\\useArticleAnalytics.js","exit_code":0,"duration_ms":1,"session_key":"b98f2744-0b9e-44da-9ad7-6aecf4186e8d","run_id":"run-session-b98f2744-0b9e-44da-9ad7-6aecf4186e8d","host":"unknown","agent_name":"unknown","session_source":"unknown"}
-- {"ts":"2026-07-01T20:06:01+0700","event_type":"PostToolUse","tool_name":"Agent","file_path":"","exit_code":0,"duration_ms":2,"session_key":"b98f2744-0b9e-44da-9ad7-6aecf4186e8d","run_id":"run-session-b98f2744-0b9e-44da-9ad7-6aecf4186e8d","host":"unknown","agent_name":"unknown","session_source":"unknown"}
-- {"ts":"2026-07-01T20:06:08+0700","event_type":"PostToolUse","tool_name":"Bash","file_path":"","exit_code":0,"duration_ms":4368,"session_key":"b98f2744-0b9e-44da-9ad7-6aecf4186e8d","run_id":"run-session-b98f2744-0b9e-44da-9ad7-6aecf4186e8d","host":"unknown","agent_name":"unknown","session_source":"unknown"}
+- {"ts":"2026-07-10T20:28:36+0700","event_type":"PostToolUse","tool_name":"Edit","file_path":"e:\\Science_Journal_Trending_VN\\ScienceJournalTrendingVN_FE\\src\\features\\trendingVN\\pages\\TrendingVNPage.jsx","exit_code":0,"duration_ms":27,"session_key":"feaee91c-a46f-4c68-bb15-9f0e7ca1ca5c","run_id":"run-session-feaee91c-a46f-4c68-bb15-9f0e7ca1ca5c","host":"unknown","agent_name":"unknown","session_source":"unknown"}
+- {"ts":"2026-07-10T20:28:44+0700","event_type":"PostToolUse","tool_name":"Read","file_path":"e:\\Science_Journal_Trending_VN\\ScienceJournalTrendingVN_FE\\src\\features\\trendingVN\\pages\\TrendingVNPage.jsx","exit_code":0,"duration_ms":1,"session_key":"feaee91c-a46f-4c68-bb15-9f0e7ca1ca5c","run_id":"run-session-feaee91c-a46f-4c68-bb15-9f0e7ca1ca5c","host":"unknown","agent_name":"unknown","session_source":"unknown"}
+- {"ts":"2026-07-10T20:29:01+0700","event_type":"PostToolUse","tool_name":"Edit","file_path":"e:\\Science_Journal_Trending_VN\\ScienceJournalTrendingVN_FE\\src\\features\\trendingVN\\pages\\TrendingVNPage.jsx","exit_code":0,"duration_ms":17,"session_key":"feaee91c-a46f-4c68-bb15-9f0e7ca1ca5c","run_id":"run-session-feaee91c-a46f-4c68-bb15-9f0e7ca1ca5c","host":"unknown","agent_name":"unknown","session_source":"unknown"}
+- {"ts":"2026-07-10T20:29:11+0700","event_type":"PostToolUse","tool_name":"Grep","file_path":"","exit_code":0,"duration_ms":49,"session_key":"feaee91c-a46f-4c68-bb15-9f0e7ca1ca5c","run_id":"run-session-feaee91c-a46f-4c68-bb15-9f0e7ca1ca5c","host":"unknown","agent_name":"unknown","session_source":"unknown"}
+- {"ts":"2026-07-10T20:30:58+0700","event_type":"PostToolUse","tool_name":"Bash","file_path":"","exit_code":0,"duration_ms":35538,"session_key":"feaee91c-a46f-4c68-bb15-9f0e7ca1ca5c","run_id":"run-session-feaee91c-a46f-4c68-bb15-9f0e7ca1ca5c","host":"unknown","agent_name":"unknown","session_source":"unknown"}
 
 ## Checks
 
@@ -74,16 +78,20 @@ src/tests/unit/service/paperVnDiscovery.test.js
 
 - Next action stage: none
 - Next recommended action: (none)
-- Working tree:  6 files changed, 46 insertions(+), 211 deletions(-)
-- Parent Run ID: run-20260701T200608-34182
+- Working tree:  10 files changed, 264 insertions(+), 75 deletions(-)
+- Parent Run ID: run-20260710T203114-1435
 - Supersedes: (none)
 
 ## Changed Files
 
 ```
 .ai/harness/handoff/current.md
+src/routes/keyword.route.js
 src/services/article.service.js
+src/services/articleAnalysis.service.js
 src/services/articleFilter.service.js
+src/services/keyword.service.js
+src/tests/unit/service/article.test.js
 src/tests/unit/service/articleAnalysis.test.js
 src/tests/unit/service/articleFilter.test.js
 src/tests/unit/service/paperVnDiscovery.test.js
