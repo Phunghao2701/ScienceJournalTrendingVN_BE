@@ -5,6 +5,14 @@ const DEFAULT_WINDOW_YEARS = 2;
 const MIN_ANALYSIS_YEAR = 1800;
 const MAX_ANALYSIS_WINDOW_YEARS = 25;
 
+// Weights combining smoothed rate vs absolute growth into trending_score; tune via env without a code change.
+const parseWeight = (value, fallback) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+const RATE_WEIGHT = parseWeight(process.env.TRENDING_RATE_WEIGHT, 0.5);
+const ABS_WEIGHT = parseWeight(process.env.TRENDING_ABS_WEIGHT, 0.5);
+
 const makeAnalysisError = (message) => {
   const error = new Error(message);
   error.statusCode = 400;
@@ -198,7 +206,7 @@ const entityQuery = (filter, entity, window, limit, ranking = 'top') => {
   const prepared = appendWindowValues(filter.values, window, limit);
   const base = filteredArticlesCte(filter);
   const orderSql = ranking === 'growth'
-    ? 'ORDER BY "absolute_growth" DESC, "current_count" DESC, "display_name" ASC'
+    ? 'ORDER BY "trending_score" DESC NULLS LAST, "absolute_growth" DESC, "display_name" ASC'
     : 'ORDER BY "current_count" DESC, "absolute_growth" DESC, "display_name" ASC';
   const articleCountSql = `
     COUNT(DISTINCT relation."article_id") FILTER (
@@ -287,19 +295,60 @@ const entityQuery = (filter, entity, window, limit, ranking = 'top') => {
         ${articleCountSql}
       FROM relation
       GROUP BY relation."entity_id", relation."display_name"
+    ),
+    filtered_counts AS (
+      SELECT
+        "entity_id",
+        "display_name",
+        "current_count",
+        "previous_count",
+        ("current_count" - "previous_count")::integer AS "absolute_growth"
+      FROM counts
+      WHERE "current_count" > 0 OR "previous_count" > 0
+    ),
+    smoothing_stats AS (
+      SELECT (PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY "previous_count"))::numeric AS "median_previous"
+      FROM filtered_counts
+    ),
+    smoothed AS (
+      SELECT
+        fc.*,
+        CASE
+          WHEN fc."previous_count" = 0 THEN NULL
+          ELSE ROUND((fc."current_count" - fc."previous_count")::numeric / fc."previous_count", 4)::float
+        END AS "growth_rate",
+        ROUND(
+          (fc."current_count" - fc."previous_count")::numeric
+            / NULLIF(fc."previous_count" + (SELECT "median_previous" FROM smoothing_stats), 0),
+          4
+        )::float AS "smoothed_growth_rate"
+      FROM filtered_counts fc
+    ),
+    agg_stats AS (
+      SELECT
+        AVG("smoothed_growth_rate") AS "mean_rate",
+        STDDEV("smoothed_growth_rate") AS "stddev_rate",
+        AVG("absolute_growth") AS "mean_abs",
+        STDDEV("absolute_growth") AS "stddev_abs"
+      FROM smoothed
     )
     SELECT
-      "entity_id",
-      "display_name",
-      "current_count",
-      "previous_count",
-      ("current_count" - "previous_count")::integer AS "absolute_growth",
-      CASE
-        WHEN "previous_count" = 0 THEN NULL
-        ELSE ROUND((("current_count" - "previous_count")::numeric / "previous_count"), 4)::float
-      END AS "growth_rate"
-    FROM counts
-    WHERE "current_count" > 0 OR "previous_count" > 0
+      s."entity_id",
+      s."display_name",
+      s."current_count",
+      s."previous_count",
+      s."absolute_growth",
+      s."growth_rate",
+      s."smoothed_growth_rate",
+      ROUND(
+        (
+          (${RATE_WEIGHT} * ((s."smoothed_growth_rate" - a."mean_rate") / NULLIF(a."stddev_rate", 0)))
+            + (${ABS_WEIGHT} * ((s."absolute_growth" - a."mean_abs") / NULLIF(a."stddev_abs", 0)))
+        )::numeric,
+        4
+      )::float AS "trending_score"
+    FROM smoothed s
+    CROSS JOIN agg_stats a
     ${orderSql}
     LIMIT $${prepared.limitIndex};
   `;
@@ -531,25 +580,71 @@ export const getArticleAnalysis = async (params = {}) => {
         AND history.value ~ '^-?\\d+$'
         AND (history.key)::integer BETWEEN $${trendingPrepared.comparisonFrom} AND $${trendingPrepared.currentTo}
       GROUP BY ha."article_id"
+    ),
+    citation_growth AS (
+      SELECT
+        ha."article_id",
+        ha."title",
+        ha."publication_year",
+        ha."journal_id",
+        ha."journal_name",
+        ha."citation_count",
+        ha."reference_count",
+        COALESCE(ca."current_citations", 0)::integer AS "current_citations",
+        COALESCE(ca."previous_citations", 0)::integer AS "previous_citations",
+        (COALESCE(ca."current_citations", 0) - COALESCE(ca."previous_citations", 0))::integer AS "absolute_growth"
+      FROM history_articles ha
+      JOIN citation_activity ca ON ca."article_id" = ha."article_id"
+    ),
+    citation_smoothing_stats AS (
+      SELECT (PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY "previous_citations"))::numeric AS "median_previous"
+      FROM citation_growth
+    ),
+    citation_smoothed AS (
+      SELECT
+        cg.*,
+        CASE
+          WHEN cg."previous_citations" = 0 THEN NULL
+          ELSE ROUND(cg."absolute_growth"::numeric / cg."previous_citations", 4)::float
+        END AS "growth_rate",
+        ROUND(
+          cg."absolute_growth"::numeric
+            / NULLIF(cg."previous_citations" + (SELECT "median_previous" FROM citation_smoothing_stats), 0),
+          4
+        )::float AS "smoothed_growth_rate"
+      FROM citation_growth cg
+    ),
+    citation_agg_stats AS (
+      SELECT
+        AVG("smoothed_growth_rate") AS "mean_rate",
+        STDDEV("smoothed_growth_rate") AS "stddev_rate",
+        AVG("absolute_growth") AS "mean_abs",
+        STDDEV("absolute_growth") AS "stddev_abs"
+      FROM citation_smoothed
     )
     SELECT
-      ha."article_id"::text AS "article_id",
-      ha."title",
-      ha."publication_year",
-      ha."journal_id"::text AS "journal_id",
-      ha."journal_name",
-      ha."citation_count",
-      ha."reference_count",
-      COALESCE(ca."current_citations", 0)::integer AS "current_citations",
-      COALESCE(ca."previous_citations", 0)::integer AS "previous_citations",
-      (COALESCE(ca."current_citations", 0) - COALESCE(ca."previous_citations", 0))::integer AS "absolute_growth",
-      CASE
-        WHEN COALESCE(ca."previous_citations", 0) = 0 THEN NULL
-        ELSE ROUND(((COALESCE(ca."current_citations", 0) - COALESCE(ca."previous_citations", 0))::numeric / ca."previous_citations"), 4)::float
-      END AS "growth_rate"
-    FROM history_articles ha
-    JOIN citation_activity ca ON ca."article_id" = ha."article_id"
-    ORDER BY "absolute_growth" DESC, "current_citations" DESC, ha."citation_count" DESC NULLS LAST, ha."publication_year" DESC NULLS LAST, ha."title" ASC
+      cs."article_id"::text AS "article_id",
+      cs."title",
+      cs."publication_year",
+      cs."journal_id"::text AS "journal_id",
+      cs."journal_name",
+      cs."citation_count",
+      cs."reference_count",
+      cs."current_citations",
+      cs."previous_citations",
+      cs."absolute_growth",
+      cs."growth_rate",
+      cs."smoothed_growth_rate",
+      ROUND(
+        (
+          (${RATE_WEIGHT} * ((cs."smoothed_growth_rate" - a."mean_rate") / NULLIF(a."stddev_rate", 0)))
+            + (${ABS_WEIGHT} * ((cs."absolute_growth" - a."mean_abs") / NULLIF(a."stddev_abs", 0)))
+        )::numeric,
+        4
+      )::float AS "trending_score"
+    FROM citation_smoothed cs
+    CROSS JOIN citation_agg_stats a
+    ORDER BY "trending_score" DESC NULLS LAST, cs."absolute_growth" DESC, cs."citation_count" DESC NULLS LAST, cs."publication_year" DESC NULLS LAST, cs."title" ASC
     LIMIT $${trendingPrepared.limitIndex};
   `;
 

@@ -21,6 +21,8 @@ import adminRouter from "./admin.route.js";
 import publisherRouter from "./publisher.route.js"
 import trendingVnRouter from "./trendingVn.route.js";
 import institutionRouter from "./institution.route.js";
+import commentRouter from "./comment.route.js";
+import bookmarkRouter from "./bookmark.route.js";
 
 
 const router = express.Router();
@@ -53,5 +55,7 @@ router.use("/admin", adminRouter);
 router.use("/publishers", publisherRouter);
 router.use("/trending-vn", trendingVnRouter);
 router.use("/institution", institutionRouter);
+router.use("/comments", commentRouter);
+router.use("/bookmarks", bookmarkRouter);
 
 export default router;

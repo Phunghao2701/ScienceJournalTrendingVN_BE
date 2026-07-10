@@ -8,10 +8,16 @@ import {
 /**
  * Lấy danh sách từ khóa thịnh hành trong một project.
  *
+ * Lưu ý: `sort_by=score` sắp xếp theo `avg_score` (điểm relevance trung bình của
+ * `Keyword_Article.score`, tĩnh theo thời gian) — đây KHÔNG phải trending_score
+ * (không có current/previous window, không có smoothing/z-score như
+ * `entityQuery` trong `articleAnalysis.service.js`). Trường `avg_score` chỉ nên
+ * hiểu là "độ liên quan", không phải "đang tăng trưởng".
+ *
  * @param {number|string} projectId - ID của project cần truy vấn
  * @param {Object} queryParams - Tham số lọc/phan trang
  * @param {number|string} [queryParams.limit=20] - Số kết quả tối đa
- * @param {string} [queryParams.sort_by='count'] - `count` hoặc `score`
+ * @param {string} [queryParams.sort_by='count'] - `count` hoặc `score` (`score` = relevance, không phải trending)
  * @returns {Promise<Object>} Kết quả gồm tổng `total`, `sort_by` và mảng `keywords`
  */
 export const getTrendingKeywords = async (projectId, queryParams) => {
