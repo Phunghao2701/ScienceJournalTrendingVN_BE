@@ -65,7 +65,10 @@ const router = express.Router();
  *           type: string
  *           enum: [count, score]
  *           default: count
- *         description: Sắp xếp theo tần suất (count) hoặc điểm (score)
+ *         description: >
+ *           Sắp xếp theo tần suất (count) hoặc điểm relevance trung bình (score).
+ *           Lưu ý: score là avg_score tĩnh (không theo window thời gian), không
+ *           phải trending_score có smoothing/z-score như /articles/analysis.
  *     responses:
  *       200:
  *         description: Thành công

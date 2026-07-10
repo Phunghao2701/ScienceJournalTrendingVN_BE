@@ -1,6 +1,6 @@
 # Harness Handoff
 
-> **Generated**: 2026-07-09 12:11:15
+> **Generated**: 2026-07-10 20:31:15
 > **Reason**: session-stop
 
 ## Goal
@@ -14,29 +14,25 @@ No active plan. Continue from the latest user request and filesystem state.
 ## Files Touched
 
 ```
-deploy/sql/0001_create_comment_bookmark_tables.sql
-scripts/setup_comment_bookmark_db.js
-src/controllers/bookmark.controller.js
-src/controllers/comment.controller.js
-src/middlewares/bookmarkValidation.middleware.js
-src/middlewares/commentValidation.middleware.js
-src/routes/article.route.js
-src/routes/bookmark.route.js
-src/routes/comment.route.js
-src/routes/index.js
-src/services/bookmark.service.js
-src/services/comment.service.js
-src/tests/unit/service/bookmark.test.js
-src/tests/unit/service/comment.test.js
+.ai/harness/handoff/current.md
+src/routes/keyword.route.js
+src/services/article.service.js
+src/services/articleAnalysis.service.js
+src/services/articleFilter.service.js
+src/services/keyword.service.js
+src/tests/unit/service/article.test.js
+src/tests/unit/service/articleAnalysis.test.js
+src/tests/unit/service/articleFilter.test.js
+src/tests/unit/service/paperVnDiscovery.test.js
 ```
 
 ## Commands Run
 
-- {"ts":"2026-07-09T12:10:06+0700","event_type":"PostToolUse","tool_name":"Bash","file_path":"","exit_code":0,"duration_ms":7518,"session_key":"709ec2e2-5803-46df-b92f-c273bb8dea6c","run_id":"run-session-709ec2e2-5803-46df-b92f-c273bb8dea6c","host":"unknown","agent_name":"unknown","session_source":"unknown"}
-- {"ts":"2026-07-09T12:10:23+0700","event_type":"PostToolUse","tool_name":"Bash","file_path":"","exit_code":0,"duration_ms":4882,"session_key":"709ec2e2-5803-46df-b92f-c273bb8dea6c","run_id":"run-session-709ec2e2-5803-46df-b92f-c273bb8dea6c","host":"unknown","agent_name":"unknown","session_source":"unknown"}
-- {"ts":"2026-07-09T12:10:37+0700","event_type":"PostToolUse","tool_name":"Bash","file_path":"","exit_code":0,"duration_ms":4474,"session_key":"709ec2e2-5803-46df-b92f-c273bb8dea6c","run_id":"run-session-709ec2e2-5803-46df-b92f-c273bb8dea6c","host":"unknown","agent_name":"unknown","session_source":"unknown"}
-- {"ts":"2026-07-09T12:10:53+0700","event_type":"PostToolUse","tool_name":"Bash","file_path":"","exit_code":0,"duration_ms":3471,"session_key":"709ec2e2-5803-46df-b92f-c273bb8dea6c","run_id":"run-session-709ec2e2-5803-46df-b92f-c273bb8dea6c","host":"unknown","agent_name":"unknown","session_source":"unknown"}
-- {"ts":"2026-07-09T12:11:03+0700","event_type":"PostToolUse","tool_name":"Bash","file_path":"","exit_code":0,"duration_ms":3510,"session_key":"709ec2e2-5803-46df-b92f-c273bb8dea6c","run_id":"run-session-709ec2e2-5803-46df-b92f-c273bb8dea6c","host":"unknown","agent_name":"unknown","session_source":"unknown"}
+- {"ts":"2026-07-10T20:28:36+0700","event_type":"PostToolUse","tool_name":"Edit","file_path":"e:\\Science_Journal_Trending_VN\\ScienceJournalTrendingVN_FE\\src\\features\\trendingVN\\pages\\TrendingVNPage.jsx","exit_code":0,"duration_ms":27,"session_key":"feaee91c-a46f-4c68-bb15-9f0e7ca1ca5c","run_id":"run-session-feaee91c-a46f-4c68-bb15-9f0e7ca1ca5c","host":"unknown","agent_name":"unknown","session_source":"unknown"}
+- {"ts":"2026-07-10T20:28:44+0700","event_type":"PostToolUse","tool_name":"Read","file_path":"e:\\Science_Journal_Trending_VN\\ScienceJournalTrendingVN_FE\\src\\features\\trendingVN\\pages\\TrendingVNPage.jsx","exit_code":0,"duration_ms":1,"session_key":"feaee91c-a46f-4c68-bb15-9f0e7ca1ca5c","run_id":"run-session-feaee91c-a46f-4c68-bb15-9f0e7ca1ca5c","host":"unknown","agent_name":"unknown","session_source":"unknown"}
+- {"ts":"2026-07-10T20:29:01+0700","event_type":"PostToolUse","tool_name":"Edit","file_path":"e:\\Science_Journal_Trending_VN\\ScienceJournalTrendingVN_FE\\src\\features\\trendingVN\\pages\\TrendingVNPage.jsx","exit_code":0,"duration_ms":17,"session_key":"feaee91c-a46f-4c68-bb15-9f0e7ca1ca5c","run_id":"run-session-feaee91c-a46f-4c68-bb15-9f0e7ca1ca5c","host":"unknown","agent_name":"unknown","session_source":"unknown"}
+- {"ts":"2026-07-10T20:29:11+0700","event_type":"PostToolUse","tool_name":"Grep","file_path":"","exit_code":0,"duration_ms":49,"session_key":"feaee91c-a46f-4c68-bb15-9f0e7ca1ca5c","run_id":"run-session-feaee91c-a46f-4c68-bb15-9f0e7ca1ca5c","host":"unknown","agent_name":"unknown","session_source":"unknown"}
+- {"ts":"2026-07-10T20:30:58+0700","event_type":"PostToolUse","tool_name":"Bash","file_path":"","exit_code":0,"duration_ms":35538,"session_key":"feaee91c-a46f-4c68-bb15-9f0e7ca1ca5c","run_id":"run-session-feaee91c-a46f-4c68-bb15-9f0e7ca1ca5c","host":"unknown","agent_name":"unknown","session_source":"unknown"}
 
 ## Checks
 
@@ -82,27 +78,23 @@ src/tests/unit/service/comment.test.js
 
 - Next action stage: none
 - Next recommended action: (none)
-- Working tree:  2 files changed, 95 insertions(+); 12 untracked files
-- Parent Run ID: run-20260709T121114-5054
+- Working tree:  10 files changed, 264 insertions(+), 75 deletions(-)
+- Parent Run ID: run-20260710T203114-1435
 - Supersedes: (none)
 
 ## Changed Files
 
 ```
-deploy/sql/0001_create_comment_bookmark_tables.sql
-scripts/setup_comment_bookmark_db.js
-src/controllers/bookmark.controller.js
-src/controllers/comment.controller.js
-src/middlewares/bookmarkValidation.middleware.js
-src/middlewares/commentValidation.middleware.js
-src/routes/article.route.js
-src/routes/bookmark.route.js
-src/routes/comment.route.js
-src/routes/index.js
-src/services/bookmark.service.js
-src/services/comment.service.js
-src/tests/unit/service/bookmark.test.js
-src/tests/unit/service/comment.test.js
+.ai/harness/handoff/current.md
+src/routes/keyword.route.js
+src/services/article.service.js
+src/services/articleAnalysis.service.js
+src/services/articleFilter.service.js
+src/services/keyword.service.js
+src/tests/unit/service/article.test.js
+src/tests/unit/service/articleAnalysis.test.js
+src/tests/unit/service/articleFilter.test.js
+src/tests/unit/service/paperVnDiscovery.test.js
 ```
 
 <!-- repo-harness:minimal-change-review begin -->

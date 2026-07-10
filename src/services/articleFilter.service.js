@@ -284,6 +284,18 @@ export const buildArticleFilter = ({
 
   if (resolvedScope === ARTICLE_SCOPES.VN_UNIVERSITIES) {
     where.push(`${articleAlias}."is_vn_journal" IS TRUE`);
+    where.push(`EXISTS (
+      SELECT 1
+      FROM "Author_Article" scope_aa
+      JOIN "Author" scope_author ON scope_author."author_id" = scope_aa."author_id"
+        AND COALESCE(scope_author."is_deleted", false) = false
+      JOIN "Institution_Author" scope_ia ON scope_ia."author_id" = scope_aa."author_id"
+      JOIN "Institution" scope_inst ON scope_inst."institution_id" = scope_ia."institution_id"
+        AND COALESCE(scope_inst."is_deleted", false) = false
+      WHERE scope_aa."article_id" = ${articleAlias}."article_id"
+        AND scope_ia."year" = ${articleAlias}."publication_year"
+        AND UPPER(TRIM(scope_inst."country_code")) = 'VN'
+    )`);
   }
 
   return {

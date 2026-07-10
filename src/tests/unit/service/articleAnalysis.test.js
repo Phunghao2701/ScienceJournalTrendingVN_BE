@@ -115,7 +115,7 @@ test.describe('resolveAnalysisWindows()', () => {
     assert.deepStrictEqual(window.comparison, { from_year: 2022, to_year: 2023 });
     assert.strictEqual(window.mode, 'default_latest');
     assert.ok(calls[0].sql.includes('MAX(a."publication_year")::integer AS "to_year"'));
-    assert.ok(calls[0].sql.includes('a."is_vn_journal" IS TRUE'));
+    assert.ok(calls[0].sql.includes("UPPER(TRIM(scope_inst.\"country_code\")) = 'VN'"));
     assert.deepStrictEqual(calls[0].params, ['%AI%']);
   });
 });
@@ -278,7 +278,66 @@ test.describe('getArticleAnalysis()', () => {
     assert.strictEqual(result.top.institutions[0].entity_id, 'top');
     assert.strictEqual(result.growth.institutions[0].entity_id, 'growth');
     assert.ok(calls[3].includes('ORDER BY "current_count" DESC, "absolute_growth" DESC, "display_name" ASC'));
-    assert.ok(calls[8].includes('ORDER BY "absolute_growth" DESC, "current_count" DESC, "display_name" ASC'));
+    assert.ok(calls[8].includes('ORDER BY "trending_score" DESC NULLS LAST, "absolute_growth" DESC, "display_name" ASC'));
+  });
+
+  test('growth entity SQL smooths growth_rate with a median-previous_count constant and ranks by z-score trending_score', async () => {
+    const calls = [];
+    const rowsByCall = [
+      [emptySummaryRow()],
+      [],
+      [],
+      [], [], [], [], [],
+      [], [], [], [], [],
+      [],
+      [{ eligible_articles: 0, total_articles: 0 }],
+    ];
+    let callIndex = 0;
+
+    mock.method(pool, 'query', async (sql) => {
+      calls.push(sql);
+      return { rows: rowsByCall[callIndex++] || [] };
+    });
+
+    await getArticleAnalysis({ fromYear: '2023', toYear: '2024' });
+
+    const growthSql = calls[8];
+    const trendingArticlesSql = calls[13];
+    assert.ok(growthSql.includes('PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY "previous_count")'), 'growth query should compute a median-previous_count smoothing constant');
+    assert.match(growthSql, /PERCENTILE_CONT\(0\.5\) WITHIN GROUP \(ORDER BY "previous_count"\)\)::numeric AS "median_previous"/, 'median previous_count must be numeric so ROUND(..., 4) does not receive double precision');
+    assert.match(trendingArticlesSql, /PERCENTILE_CONT\(0\.5\) WITHIN GROUP \(ORDER BY "previous_citations"\)\)::numeric AS "median_previous"/, 'median previous_citations must be numeric so ROUND(..., 4) does not receive double precision');
+    assert.ok(growthSql.includes('"smoothed_growth_rate"'), 'growth query should expose smoothed_growth_rate');
+    assert.ok(growthSql.includes('"trending_score"'), 'growth query should expose trending_score');
+    assert.ok(growthSql.includes('NULLIF(a."stddev_rate", 0)'), 'trending_score must guard against division by zero stddev');
+    assert.match(growthSql, /\)::numeric,\s*4\s*\)::float AS "trending_score"/, 'entity trending_score must cast the z-score expression to numeric before ROUND(..., 4)');
+    assert.match(trendingArticlesSql, /\)::numeric,\s*4\s*\)::float AS "trending_score"/, 'article trending_score must cast the z-score expression to numeric before ROUND(..., 4)');
+    assert.ok(growthSql.includes('"growth_rate"'), 'growth query must keep the legacy growth_rate field for backward compatibility');
+  });
+
+  test('growth ranking favors real absolute growth over a small-sample inflated growth_rate', async () => {
+    const rowsByCall = [
+      [emptySummaryRow()],
+      [],
+      [],
+      [], [], [], [], [],
+      [
+        { entity_id: 'real-grower', display_name: 'Real Grower', current_count: 70, previous_count: 50, absolute_growth: 20, growth_rate: 0.4, smoothed_growth_rate: 0.35, trending_score: 1.8 },
+        { entity_id: 'small-sample', display_name: 'Small Sample', current_count: 2, previous_count: 1, absolute_growth: 1, growth_rate: 1, smoothed_growth_rate: 0.1, trending_score: 0.05 },
+      ],
+      [], [], [], [],
+      [],
+      [{ eligible_articles: 0, total_articles: 0 }],
+    ];
+    let callIndex = 0;
+
+    mock.method(pool, 'query', async () => ({ rows: rowsByCall[callIndex++] || [] }));
+
+    const result = await getArticleAnalysis({ fromYear: '2023', toYear: '2024' });
+
+    assert.strictEqual(result.growth.institutions[0].entity_id, 'real-grower');
+    assert.strictEqual(result.growth.institutions[1].entity_id, 'small-sample');
+    assert.strictEqual(result.growth.institutions[0].smoothed_growth_rate, 0.35);
+    assert.strictEqual(result.growth.institutions[0].trending_score, 1.8);
   });
 
   test('keeps citation coverage denominator stable for zero-filled years', async () => {

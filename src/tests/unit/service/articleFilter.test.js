@@ -46,12 +46,14 @@ test.describe('Article filter scope contract', () => {
     });
   });
 
-  test('builds vn_universities scope predicate from the precomputed is_vn_journal flag', () => {
+  test('builds vn_universities scope predicate from imported VN journal flag AND author institution country', () => {
     const filter = buildArticleFilter({ scope: 'vn_universities', publicationYear: 2024 });
 
     assert.strictEqual(filter.scope, 'vn_universities');
     assert.ok(filter.whereSql.includes('a."is_vn_journal" IS TRUE'));
-    assert.ok(!filter.whereSql.includes('Institution_Author'));
+    assert.ok(filter.whereSql.includes('"Institution_Author"'));
+    assert.ok(filter.whereSql.includes("UPPER(TRIM(scope_inst.\"country_code\")) = 'VN'"));
+    assert.ok(!filter.whereSql.includes('scope_inst."type"'), 'institution type should no longer gate the scope predicate');
     assert.deepStrictEqual(filter.values, [2024]);
   });
 
@@ -129,7 +131,7 @@ test.describe('Article filter scope contract', () => {
   test('institution filter can coexist with vn_universities scope', () => {
     const filter = buildArticleFilter({ institutionId: '7', scope: 'vn_universities', publicationYear: 2024 });
 
-    assert.ok(filter.whereSql.includes('a."is_vn_journal" IS TRUE'), 'expects scope predicate still present');
+    assert.ok(filter.whereSql.includes("UPPER(TRIM(scope_inst.\"country_code\")) = 'VN'"), 'expects scope predicate still present');
     assert.ok(filter.values.includes(7));
     assert.ok(filter.values.includes(2024));
   });
