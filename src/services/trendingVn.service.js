@@ -1,4 +1,5 @@
 import pool from "../config/database.js";
+import { getOrSetCache, buildCacheKey } from "../utils/cache.js";
 
 const clampInt = (value, fallback, min, max) => {
   const parsed = parseInt(value, 10);
@@ -23,7 +24,7 @@ const groupRowsByJournal = (rows) => {
  * - Rank journals by total citation count of those recent articles.
  * - Attach top keywords and topics that appear most frequently in that same window.
  */
-export const getTopJournals = async ({ years = 2, limit = 10 } = {}) => {
+const _getTopJournals = async ({ years = 2, limit = 10 } = {}) => {
   const yearsWindow = clampInt(years, 2, 1, 10);
   const limitNum = clampInt(limit, 10, 1, 50);
 
@@ -227,6 +228,9 @@ export const getTopJournals = async ({ years = 2, limit = 10 } = {}) => {
   };
 };
 
+export const getTopJournals = (params = {}) =>
+  getOrSetCache(buildCacheKey("top-journals", params), () => _getTopJournals(params));
+
 const groupRowsByInstitution = (rows, fieldName = "institution_name") => {
   return rows.reduce((acc, row) => {
     const key = row.institution_id || row[fieldName];
@@ -237,7 +241,7 @@ const groupRowsByInstitution = (rows, fieldName = "institution_name") => {
   }, {});
 };
 
-export const getTopUniversities = async ({ years = 2, limit = 10, hot_limit = 10 } = {}) => {
+const _getTopUniversities = async ({ years = 2, limit = 10, hot_limit = 10 } = {}) => {
   const yearsWindow = clampInt(years, 2, 1, 10);
   const limitNum = clampInt(limit, 10, 1, 50);
   const hotLimitNum = clampInt(hot_limit, 10, 1, 50);
@@ -610,10 +614,13 @@ export const getTopUniversities = async ({ years = 2, limit = 10, hot_limit = 10
   };
 };
 
+export const getTopUniversities = (params = {}) =>
+  getOrSetCache(buildCacheKey("top-universities", params), () => _getTopUniversities(params));
+
 export const getTrendingJournals = getTopJournals;
 export const getTrendingUniversities = getTopUniversities;
 
-export const getJournalRankings = async ({ limit = 10 } = {}) => {
+const _getJournalRankings = async ({ limit = 10 } = {}) => {
   const limitNum = clampInt(limit, 10, 1, 50);
   const result = await pool.query(
     `
@@ -646,7 +653,10 @@ export const getJournalRankings = async ({ limit = 10 } = {}) => {
   };
 };
 
-export const getUniversityRankings = async ({ limit = 10 } = {}) => {
+export const getJournalRankings = (params = {}) =>
+  getOrSetCache(buildCacheKey("journal-rankings", params), () => _getJournalRankings(params));
+
+const _getUniversityRankings = async ({ limit = 10 } = {}) => {
   const limitNum = clampInt(limit, 10, 1, 50);
   const result = await pool.query(
     `
@@ -690,7 +700,10 @@ export const getUniversityRankings = async ({ limit = 10 } = {}) => {
   };
 };
 
-export const getAuthorRankings = async ({ limit = 10 } = {}) => {
+export const getUniversityRankings = (params = {}) =>
+  getOrSetCache(buildCacheKey("university-rankings", params), () => _getUniversityRankings(params));
+
+const _getAuthorRankings = async ({ limit = 10 } = {}) => {
   const limitNum = clampInt(limit, 10, 1, 50);
   const result = await pool.query(
     `
@@ -726,7 +739,10 @@ export const getAuthorRankings = async ({ limit = 10 } = {}) => {
   };
 };
 
-export const getTrendingAuthors = async ({ years = 2, limit = 10, hot_limit = 10 } = {}) => {
+export const getAuthorRankings = (params = {}) =>
+  getOrSetCache(buildCacheKey("author-rankings", params), () => _getAuthorRankings(params));
+
+const _getTrendingAuthors = async ({ years = 2, limit = 10, hot_limit = 10 } = {}) => {
   const yearsWindow = clampInt(years, 2, 1, 10);
   const limitNum = clampInt(limit, 10, 1, 50);
   const hotLimitNum = clampInt(hot_limit, 10, 1, 50);
@@ -851,7 +867,10 @@ export const getTrendingAuthors = async ({ years = 2, limit = 10, hot_limit = 10
   };
 };
 
-export const getTrendingArticles = async ({ years = 2, limit = 10, hot_limit = 10 } = {}) => {
+export const getTrendingAuthors = (params = {}) =>
+  getOrSetCache(buildCacheKey("trending-authors", params), () => _getTrendingAuthors(params));
+
+const _getTrendingArticles = async ({ years = 2, limit = 10, hot_limit = 10 } = {}) => {
   const yearsWindow = clampInt(years, 2, 1, 10);
   const limitNum = clampInt(limit, 10, 1, 50);
   const hotLimitNum = clampInt(hot_limit, 10, 1, 50);
@@ -1070,7 +1089,10 @@ export const getTrendingArticles = async ({ years = 2, limit = 10, hot_limit = 1
   };
 };
 
-export const getTrendingKeywords = async ({ limit = 10, hot_limit = 10 } = {}) => {
+export const getTrendingArticles = (params = {}) =>
+  getOrSetCache(buildCacheKey("trending-articles", params), () => _getTrendingArticles(params));
+
+const _getTrendingKeywords = async ({ limit = 10, hot_limit = 10 } = {}) => {
   const limitNum = clampInt(limit, 10, 1, 50);
   const hotLimitNum = clampInt(hot_limit, 10, 1, 50);
 
@@ -1183,3 +1205,6 @@ export const getTrendingKeywords = async ({ limit = 10, hot_limit = 10 } = {}) =
     items: keywordsResult.rows.map((row, index) => ({ rank: index + 1, ...row })),
   };
 };
+
+export const getTrendingKeywords = (params = {}) =>
+  getOrSetCache(buildCacheKey("trending-keywords", params), () => _getTrendingKeywords(params));
