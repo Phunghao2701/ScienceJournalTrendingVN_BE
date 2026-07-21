@@ -93,7 +93,9 @@ load-test.js
 # Thư mục kiểm thử (Nếu bạn tự tạo file test cá nhân)
 .coverage/
 coverage/
-*.lcov# Project-specific
+*.lcov
+
+# Project-specific
 artifacts/
 *.tar.gz
 *.tgz
@@ -104,6 +106,7 @@ _ref/
 _ops/
 # Environment
 .env.*
+!.env.example
 # OS metadata
 
 # BEGIN: claude-runtime-temp (managed by repo-harness)

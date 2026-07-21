@@ -2,6 +2,7 @@ import * as topicService from '../services/topic.service.js';
 import * as subjectAreaService from '../services/subjectArea.service.js';
 import * as subjectCategoryService from '../services/subjectCategory.service.js';
 import logger from '../utils/logger.js';
+import { getTopicsData } from '../services/discoveryLookupCache.service.js';
 
 export const topicServiceRef = { ...topicService };
 export const subjectAreaServiceRef = { ...subjectAreaService };
@@ -62,7 +63,7 @@ export const getTopics = async (req, res) => {
             }
         }
 
-        const result = await topicServiceRef.getTopics({
+        const topicParams = {
             page,
             limit,
             search,
@@ -70,7 +71,11 @@ export const getTopics = async (req, res) => {
             subject_category_id,
             sort_by,
             sort_order
-        });
+        };
+        const result = await getTopicsData(
+            topicParams,
+            () => topicServiceRef.getTopics(topicParams)
+        );
 
         return res.status(200).json({
             success: true,
