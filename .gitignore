@@ -115,6 +115,10 @@ _ops/
 /docs/
 /AGENTS.md
 /CLAUDE.md
+.ai
+.claude
+.deploy
+.plans
 /.agents/skills/repo-harness-chatgpt-bridge/
 
 # BEGIN: claude-runtime-temp (managed by repo-harness)
