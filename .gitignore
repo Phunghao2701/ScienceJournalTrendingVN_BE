@@ -113,6 +113,8 @@ _ops/
 /scripts/
 /tasks/
 /docs/
+/deploy/
+/plans/
 /AGENTS.md
 /CLAUDE.md
 .ai
