@@ -109,6 +109,14 @@ _ops/
 !.env.example
 # OS metadata
 
+# Local agent/workflow material (kept on developer machines only)
+/scripts/
+/tasks/
+/docs/
+/AGENTS.md
+/CLAUDE.md
+/.agents/skills/repo-harness-chatgpt-bridge/
+
 # BEGIN: claude-runtime-temp (managed by repo-harness)
 .claude/settings.local.json
 .claude/.atomic_pending
