@@ -17,6 +17,11 @@ import {
 } from "../services/keyword.service.js";
 import logger from "../utils/logger.js";
 
+export const keywordServiceRef = {
+  getTrendingKeywords: getTrendingKeywordsService,
+  checkProjectOwnership,
+};
+
 /**
  * Validate display_name cho keyword
  * @param {string} display_name
@@ -48,7 +53,18 @@ export const getTrendingKeywords = async (req, res) => {
       });
     }
 
-    const result = await getTrendingKeywordsService(projectId, req.query);
+    const userId = req.user.user_id;
+    const isOwner = await keywordServiceRef.checkProjectOwnership(projectId, userId);
+    if (!isOwner) {
+      return res.status(404).json({
+        success: false,
+        code: "PROJECT_NOT_FOUND",
+        message:
+          "Không tìm thấy dự án hoặc bạn không có quyền truy cập dự án này",
+      });
+    }
+
+    const result = await keywordServiceRef.getTrendingKeywords(projectId, req.query);
 
     return res.status(200).json({
       success: true,
@@ -92,11 +108,13 @@ export const getWatchedKeywordArticles = async (req, res) => {
       pagination: {
         page: result.page,
         limit: result.limit,
+        total: result.total,
+        total_pages: result.total_pages,
       },
     });
   } catch (error) {
-    if (error.statusCode === 400) {
-      return res.status(400).json({
+    if ([400, 404].includes(error.statusCode)) {
+      return res.status(error.statusCode).json({
         success: false,
         message: error.message,
       });

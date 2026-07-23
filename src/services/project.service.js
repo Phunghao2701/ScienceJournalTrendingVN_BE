@@ -8,10 +8,24 @@ import logger from '../utils/logger.js';
  */
 export const getUserProjects = async (userId) => {
   const result = await pool.query(
-    `SELECT project_id, title, subject_area, created_at 
-     FROM "Project" 
-     WHERE user_id = $1 
-     ORDER BY created_at DESC`,
+    `SELECT
+       p.project_id,
+       p.title,
+       p.subject_area,
+       sa.display_name AS subject_area_name,
+       COUNT(DISTINCT pj.journal_id)::integer AS journals_count,
+       p.created_at
+     FROM "Project" p
+     LEFT JOIN "Subject_Area" sa ON p.subject_area = sa.subject_area_id
+     LEFT JOIN "Project_Journal" pj ON p.project_id = pj.project_id
+     WHERE p.user_id = $1
+     GROUP BY
+       p.project_id,
+       p.title,
+       p.subject_area,
+       sa.display_name,
+       p.created_at
+     ORDER BY p.created_at DESC`,
     [userId]
   );
   return result.rows;
@@ -58,6 +72,16 @@ export const getProjectById = async (projectId, userId) => {
     [projectId]
   );
 
+  // 4. Lấy danh sách keyword mà project đang theo dõi
+  const keywordsResult = await pool.query(
+    `SELECT k.keyword_id, k.display_name
+     FROM "Project_Keyword" pk
+     JOIN "Keyword" k ON pk.keyword_id = k.keyword_id
+     WHERE pk.project_id = $1
+     ORDER BY k.display_name ASC`,
+    [projectId]
+  );
+
   return {
     project_id: project.project_id,
     title: project.title,
@@ -69,7 +93,8 @@ export const getProjectById = async (projectId, userId) => {
       description: project.subject_area_description
     } : null,
     subject_categories: categoriesResult.rows,
-    journals: journalsResult.rows
+    journals: journalsResult.rows,
+    watched_keywords: keywordsResult.rows
   };
 };
 
@@ -237,11 +262,11 @@ export const updateProject = async (projectId, userId, { title, subject_area, su
 
     // Cập nhật thông tin cơ bản của project
     await client.query(
-      `UPDATE "Project" 
-       SET title = COALESCE($1, title), 
-           subject_area = $2
+      `UPDATE "Project"
+       SET title = COALESCE($1, title),
+           subject_area = COALESCE($2, subject_area)
        WHERE project_id = $3 AND user_id = $4`,
-      [title, subject_area || null, projectId, userId]
+      [title, subject_area ?? null, projectId, userId]
     );
 
     // Cập nhật quan hệ Subject Category nếu mảng được truyền vào
@@ -279,7 +304,7 @@ export const updateProject = async (projectId, userId, { title, subject_area, su
     }
 
     await client.query('COMMIT');
-    return true;
+    return getProjectById(projectId, userId);
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -373,11 +398,9 @@ export const getJournalIdsByProjectId = async (projectId) => {
 export const getCategoryIdsByProjectId = async (projectId) => {
     try {
         const queryText = `
-            SELECT DISTINCT jsc.subject_category_id
-            FROM "Project_Journal" pj
-            JOIN "Journal_Subject_Category" jsc 
-                ON pj.journal_id = jsc.journal_id
-            WHERE pj.project_id = $1;
+            SELECT DISTINCT scp.subject_category_id
+            FROM "Subject_Category_Project" scp
+            WHERE scp.project_id = $1;
         `;
 
         const res = await pool.query(queryText, [Number(projectId)]);
