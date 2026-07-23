@@ -1,5 +1,6 @@
 import logger from "../utils/logger.js";
 import * as journalService from "../services/journal.service.js";
+import { getJournalsData } from "../services/discoveryLookupCache.service.js";
 import { createLog } from '../services/log.service.js';
 
 /**
@@ -49,7 +50,7 @@ export const getJournals = async (req, res) => {
       });
     }
 
-    const result = await journalService.getJournals({
+    const result = await getJournalsData({
       search,
       page: pageNum,
       limit: limitNum,
