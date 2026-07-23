@@ -214,3 +214,4 @@ scripts/prepare-codex-handoff.sh
 scripts/codex-handoff-resume.sh
 scripts/repo-harness/
 # END: claude-runtime-temp
+src/tests/

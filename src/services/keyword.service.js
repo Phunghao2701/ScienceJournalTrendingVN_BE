@@ -94,7 +94,7 @@ export const getWatchedKeywordArticles = async (
     const error = new Error(
       "Project không tồn tại hoặc không thuộc quyền sở hữu",
     );
-    error.statusCode = 400;
+    error.statusCode = 404;
     throw error;
   }
   const countQuery = `
@@ -112,8 +112,25 @@ export const getWatchedKeywordArticles = async (
     SELECT 
       a.article_id,
       a.title,
+      a.abstract,
       a.publication_year,
       a.doi,
+      COALESCE(
+        (
+          SELECT JSON_AGG(
+            JSON_BUILD_OBJECT(
+              'author_id', au.author_id,
+              'name', au.display_name
+            )
+            ORDER BY au.display_name
+          )
+          FROM "Author_Article" aa
+          JOIN "Author" au ON au.author_id = aa.author_id
+          WHERE aa.article_id = a.article_id
+            AND COALESCE(au.is_deleted, false) = false
+        ),
+        '[]'::json
+      ) AS authors,
       ARRAY_AGG(DISTINCT k.display_name) AS matched_keywords
     FROM "Project_Keyword" pk
     JOIN "Project" p          ON p.project_id  = pk.project_id
@@ -122,7 +139,7 @@ export const getWatchedKeywordArticles = async (
     JOIN "Article" a          ON a.article_id  = ka.article_id
     WHERE pk.project_id = $1
       AND p.user_id     = $2
-    GROUP BY a.article_id, a.title, a.publication_year, a.doi, a.created_at
+    GROUP BY a.article_id, a.title, a.abstract, a.publication_year, a.doi, a.created_at
     ORDER BY a.publication_year DESC, a.created_at DESC
     LIMIT $3 OFFSET $4
   `;
@@ -142,8 +159,10 @@ export const getWatchedKeywordArticles = async (
     data: dataResult.rows.map((a) => ({
       article_id: a.article_id,
       title: a.title || null,
+      abstract: a.abstract || null,
       publication_year: a.publication_year || null,
       doi: a.doi || null,
+      authors: Array.isArray(a.authors) ? a.authors : [],
       matched_keywords: a.matched_keywords || [],
     })),
   };

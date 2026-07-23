@@ -3,6 +3,7 @@ import logger from "../utils/logger.js";
 import { createLog } from '../services/log.service.js';
 
 export const projectServiceRef = { ...projectService };
+export const projectAuditRef = { createLog };
 
 /**
  * API Lấy danh sách dự án của người dùng hiện tại
@@ -111,7 +112,7 @@ export const createProject = async (req, res) => {
       journal_ids,
     });
 
-    createLog({
+    projectAuditRef.createLog({
       userId: userId,
       userRole: req.user.role,
       action: 'CREATE',
@@ -182,14 +183,14 @@ export const updateProject = async (req, res) => {
     const finalSubjectArea =
       subject_area !== undefined ? subject_area : subject_area_id;
 
-    const updated = await projectServiceRef.updateProject(projectId, userId, {
+    const updatedProject = await projectServiceRef.updateProject(projectId, userId, {
       title: title ? title.trim() : undefined,
       subject_area: finalSubjectArea,
       subject_category_ids,
       journal_ids,
     });
 
-    if (!updated) {
+    if (!updatedProject) {
       return res.status(404).json({
         success: false,
         code: "PROJECT_NOT_FOUND_OR_ACCESS_DENIED",
@@ -198,7 +199,7 @@ export const updateProject = async (req, res) => {
       });
     }
 
-    createLog({
+    projectAuditRef.createLog({
       userId: userId,
       userRole: req.user.role,
       action: 'UPDATE',
@@ -212,6 +213,7 @@ export const updateProject = async (req, res) => {
       success: true,
       code: "SUCCESS_UPDATE_PROJECT",
       message: "Cập nhật dự án thành công",
+      data: updatedProject,
     });
   } catch (error) {
     if (
@@ -259,7 +261,7 @@ export const deleteProject = async (req, res) => {
       });
     }
 
-    createLog({
+    projectAuditRef.createLog({
       userId: userId,
       userRole: req.user.role,
       action: 'DELETE',
@@ -305,7 +307,34 @@ export const deleteProject = async (req, res) => {
 export const getRelatedArticles = async (req, res) => {
   try {
     const projectId = Number(req.params.id);
-    let limit = Number(req.query.limit);
+    const limit =
+      req.query.limit === undefined ? 5 : Number(req.query.limit);
+
+    if (!Number.isInteger(projectId) || projectId <= 0) {
+      return res.status(400).json({
+        success: false,
+        code: "INVALID_PROJECT_ID",
+        message: "ID dự án không hợp lệ",
+      });
+    }
+    if (!Number.isInteger(limit) || limit <= 0) {
+      return res.status(400).json({
+        success: false,
+        code: "INVALID_LIMIT",
+        message: "Giá trị limit không hợp lệ",
+      });
+    }
+
+    const userId = req.user.user_id;
+    const project = await projectServiceRef.getProjectById(projectId, userId);
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        code: "PROJECT_NOT_FOUND_OR_ACCESS_DENIED",
+        message:
+          "Không tìm thấy dự án hoặc bạn không có quyền truy cập dự án này",
+      });
+    }
 
     const journalIds =
       await projectServiceRef.getJournalIdsByProjectId(projectId);
@@ -350,6 +379,14 @@ export const getProjectAnalytics = async (req, res) => {
   try {
     const projectId = req.params.id;
     const userId = req.user.user_id;
+
+    if (!/^\d+$/.test(projectId) || Number(projectId) <= 0) {
+      return res.status(400).json({
+        success: false,
+        code: "INVALID_PROJECT_ID",
+        message: "ID dự án không hợp lệ",
+      });
+    }
 
     const analyticsData = await projectServiceRef.getProjectAnalytics(
       projectId,
