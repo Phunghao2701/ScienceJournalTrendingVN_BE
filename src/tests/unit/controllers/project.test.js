@@ -56,12 +56,13 @@ describe('Project Controller - getRelatedArticles() Unit Test Suite', () => {
             journal_id: '7'
         }];
 
+        const mockGetProject = mock.method(projectServiceRef, 'getProjectById', async () => ({ project_id: '2' }));
         const mockGetJournalIds = mock.method(projectServiceRef, 'getJournalIdsByProjectId', async () => mockJournalIds);
         const mockGetCategoryIds = mock.method(projectServiceRef, 'getCategoryIdsByProjectId', async () => mockCategoryIds);
         const mockGetRelatedArticles = mock.method(projectServiceRef, 'getRelatedArticles', async () => mockArticles);
         mock.method(logger, 'error', () => {});
 
-        const req = { params: { id: '2' }, query: {} };
+        const req = { params: { id: '2' }, query: {}, user: { user_id: 'user-1' } };
         const res = createMockResponse();
 
         await getRelatedArticles(req, res);
@@ -70,6 +71,7 @@ describe('Project Controller - getRelatedArticles() Unit Test Suite', () => {
         assert.strictEqual(res.body.success, true);
         assert.deepStrictEqual(res.body.data, mockArticles);
 
+        assert.deepStrictEqual(mockGetProject.mock.calls[0].arguments, [2, 'user-1']);
         assert.deepStrictEqual(mockGetJournalIds.mock.calls[0].arguments, [2]);
         assert.deepStrictEqual(mockGetCategoryIds.mock.calls[0].arguments, [2]);
         assert.deepStrictEqual(mockGetRelatedArticles.mock.calls[0].arguments, [mockJournalIds, mockCategoryIds, { limit: 5 }]);
@@ -87,12 +89,13 @@ describe('Project Controller - getRelatedArticles() Unit Test Suite', () => {
             journal_id: '9'
         }];
 
+        const mockGetProject = mock.method(projectServiceRef, 'getProjectById', async () => ({ project_id: '12' }));
         const mockGetJournalIds = mock.method(projectServiceRef, 'getJournalIdsByProjectId', async () => mockJournalIds);
         const mockGetCategoryIds = mock.method(projectServiceRef, 'getCategoryIdsByProjectId', async () => mockCategoryIds);
         const mockGetRelatedArticles = mock.method(projectServiceRef, 'getRelatedArticles', async () => mockArticles);
         mock.method(logger, 'error', () => {});
 
-        const req = { params: { id: '12' }, query: { limit: '10' } };
+        const req = { params: { id: '12' }, query: { limit: '10' }, user: { user_id: 'user-1' } };
         const res = createMockResponse();
 
         await getRelatedArticles(req, res);
@@ -101,9 +104,22 @@ describe('Project Controller - getRelatedArticles() Unit Test Suite', () => {
         assert.strictEqual(res.body.success, true);
         assert.deepStrictEqual(res.body.data, mockArticles);
 
+        assert.deepStrictEqual(mockGetProject.mock.calls[0].arguments, [12, 'user-1']);
         assert.deepStrictEqual(mockGetJournalIds.mock.calls[0].arguments, [12]);
         assert.deepStrictEqual(mockGetCategoryIds.mock.calls[0].arguments, [12]);
         assert.deepStrictEqual(mockGetRelatedArticles.mock.calls[0].arguments, [mockJournalIds, mockCategoryIds, { limit: 10 }]);
+    });
+
+    test('Thất bại: Trả về 404 khi dự án không thuộc người dùng', async () => {
+        mock.method(projectServiceRef, 'getProjectById', async () => null);
+
+        const req = { params: { id: '12' }, query: {}, user: { user_id: 'user-2' } };
+        const res = createMockResponse();
+
+        await getRelatedArticles(req, res);
+
+        assert.strictEqual(res.statusCode, 404);
+        assert.strictEqual(res.body.code, 'PROJECT_NOT_FOUND_OR_ACCESS_DENIED');
     });
 });
 
@@ -169,4 +185,4 @@ describe('Project Controller - getProjectAnalytics() Unit Test Suite', () => {
         assert.deepStrictEqual(res.body.data, mockAnalytics);
         assert.deepStrictEqual(mockGetAnalytics.mock.calls[0].arguments, ['12', 'user-1']);
     });
-});
+});
