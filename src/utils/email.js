@@ -1,30 +1,43 @@
 import { google } from 'googleapis';
 import logger from './logger.js';
 
-const OAuth2 = google.auth.OAuth2;
+const REQUIRED_GMAIL_ENV = [
+  'EMAIL_USER',
+  'CLIENT_ID',
+  'CLIENT_SECRET',
+  'REFRESH_TOKEN'
+];
 
-// ======================================================
-// GOOGLE OAUTH2 CLIENT
-// ======================================================
+/**
+ * Tạo Gmail client tại thời điểm gửi để chắc chắn biến môi trường đã được nạp.
+ * Đồng thời báo lỗi cấu hình rõ ràng thay vì gọi OAuth với giá trị rỗng.
+ */
+const getGmailClient = () => {
+  const missingEnv = REQUIRED_GMAIL_ENV.filter((name) => !process.env[name]);
 
-const oauth2Client = new OAuth2(
-  process.env.CLIENT_ID,
-  process.env.CLIENT_SECRET,
-  'https://developers.google.com/oauthplayground'
-);
+  if (missingEnv.length > 0) {
+    const error = new Error(
+      `Thiếu cấu hình gửi email: ${missingEnv.join(', ')}`
+    );
+    error.code = 'EMAIL_CONFIG_MISSING';
+    throw error;
+  }
 
-oauth2Client.setCredentials({
-  refresh_token: process.env.REFRESH_TOKEN
-});
+  const oauth2Client = new google.auth.OAuth2(
+    process.env.CLIENT_ID,
+    process.env.CLIENT_SECRET,
+    'https://developers.google.com/oauthplayground'
+  );
 
-// ======================================================
-// GMAIL API CLIENT
-// ======================================================
+  oauth2Client.setCredentials({
+    refresh_token: process.env.REFRESH_TOKEN
+  });
 
-const gmail = google.gmail({
-  version: 'v1',
-  auth: oauth2Client
-});
+  return google.gmail({
+    version: 'v1',
+    auth: oauth2Client
+  });
+};
 
 // ======================================================
 // CREATE RAW EMAIL
@@ -132,21 +145,6 @@ const activationTemplate = ({
             </div>
 
             <p>
-              If the button above does not work, please copy and paste the following link into your browser:
-            </p>
-
-            <p
-              style="
-                word-break: break-all;
-                background: #f3f4f6;
-                padding: 12px;
-                border-radius: 6px;
-              "
-            >
-              ${activationUrl}
-            </p>
-
-            <p>
               This activation link will expire in 24 hours.
             </p>
           </div>
@@ -180,9 +178,10 @@ export const emailHelper = {
     token
   ) => {
     try {
+      const gmail = getGmailClient();
       const baseUrl =
         process.env.BASE_URL_ACTIVATION ||
-        'http://localhost:8000';
+        'http://localhost:5173/verify-email';
 
       const activationUrl =
         `${baseUrl}?token=${token}`;
@@ -227,9 +226,13 @@ export const emailHelper = {
         error
       );
 
-      throw new Error(
+      const deliveryError = new Error(
         'Không thể gửi email kích hoạt tài khoản'
       );
+      deliveryError.code = 'EMAIL_DELIVERY_FAILED';
+      deliveryError.statusCode = 502;
+      deliveryError.cause = error;
+      throw deliveryError;
     }
   },
 
@@ -245,12 +248,14 @@ export const emailHelper = {
     token
   ) => {
     try {
+      const gmail = getGmailClient();
       const baseUrl =
         process.env.BASE_URL_RESET_PASSWORD ||
-        'http://localhost:8000';
+        process.env.FRONTEND_URL ||
+        'http://localhost:5173';
 
       const resetUrl =
-        `${baseUrl}/reset-password?token=${token}`;
+        `${baseUrl.replace(/\/+$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
 
       // English HTML template
       const html = `
@@ -338,10 +343,6 @@ export const emailHelper = {
               <div class="btn-wrapper">
                 <a href="${resetUrl}" class="btn" target="_blank">Reset Password</a>
               </div>
-              <p>If the button above does not work, please copy and paste the following link into your web browser:</p>
-              <p style="word-break: break-all; font-size: 14px; color: #4b5563; background-color: #f3f4f6; padding: 12px; border-radius: 6px;">
-                ${resetUrl}
-              </p>
               <p>This link is valid for <strong>15 minutes</strong>. If you did not request a password reset, no further action is required and you can safely ignore this email.</p>
             </div>
             <div class="footer">
@@ -381,9 +382,13 @@ export const emailHelper = {
         error
       );
 
-      throw new Error(
-        'Unable to send password reset email'
+      const deliveryError = new Error(
+        'Không thể gửi email đặt lại mật khẩu'
       );
+      deliveryError.code = 'EMAIL_DELIVERY_FAILED';
+      deliveryError.statusCode = 502;
+      deliveryError.cause = error;
+      throw deliveryError;
     }
   }
 };

@@ -1,6 +1,7 @@
 import {
   registerWithEmailPassword,
   activateAccount,
+  resendActivationEmail,
 } from "../services/register.service.js";
 import logger from "../utils/logger.js";
 import { isValidEmail } from "../utils/validation.js";
@@ -90,9 +91,12 @@ export const register = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      code: "REGISTER_SUCCESS",
-      message:
-        "Đăng ký tài khoản thành công. Vui lòng kiểm tra email để kích hoạt tài khoản.",
+      code: data.activation_email_sent
+        ? "REGISTER_SUCCESS"
+        : "REGISTER_SUCCESS_EMAIL_PENDING",
+      message: data.activation_email_sent
+        ? "Đăng ký tài khoản thành công. Vui lòng kiểm tra email để kích hoạt tài khoản."
+        : "Tài khoản đã được tạo nhưng email kích hoạt chưa gửi được. Vui lòng thử gửi lại.",
       data,
     });
   } catch (error) {
@@ -102,6 +106,50 @@ export const register = async (req, res) => {
     return res.status(error.statusCode || 500).json({
       success: false,
       message: error.statusCode ? error.message : "Có lỗi xảy ra ở server",
+    });
+  }
+};
+
+/**
+ * API gửi lại email kích hoạt cho tài khoản chưa được kích hoạt.
+ */
+export const resendActivation = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email || !email.trim()) {
+      return res.status(400).json({
+        success: false,
+        code: "EMAIL_REQUIRED",
+        message: "Email không được để trống",
+      });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        code: "EMAIL_INVALID",
+        message: "Email không đúng định dạng",
+      });
+    }
+
+    const data = await resendActivationEmail(email);
+
+    return res.status(200).json({
+      success: true,
+      code: "ACTIVATION_EMAIL_RESENT",
+      message: "Email kích hoạt đã được gửi lại. Vui lòng kiểm tra hộp thư hoặc thư rác.",
+      data,
+    });
+  } catch (error) {
+    logger.error("Lỗi gửi lại email kích hoạt:", error);
+
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      code: error.code || "SERVER_ERROR",
+      message: error.statusCode
+        ? error.message
+        : "Có lỗi xảy ra ở server",
     });
   }
 };
