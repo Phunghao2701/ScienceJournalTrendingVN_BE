@@ -1,5 +1,9 @@
 import express from 'express';
-import { register, verify } from '../controllers/register.controller.js';
+import {
+  register,
+  resendActivation,
+  verify
+} from '../controllers/register.controller.js';
 
 const router = express.Router();
 
@@ -113,6 +117,12 @@ const router = express.Router();
  * Đăng ký tài khoản người dùng mới (Trạng thái mặc định INACTIVE và gửi email kích hoạt)
  */
 router.post('/register', register);
+
+/**
+ * Route POST /api/v1/auth/resend-activation
+ * Gửi lại email kích hoạt cho tài khoản LOCAL đang ở trạng thái INACTIVE.
+ */
+router.post('/resend-activation', resendActivation);
 
 /**
  * @swagger
