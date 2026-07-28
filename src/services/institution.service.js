@@ -1,6 +1,29 @@
 import pool from "../config/database.js";
 import logger from "../utils/logger.js";
 
+export const getInstitutionById = async (institutionId) => {
+  try {
+    const query = `
+      SELECT
+        institution_id::text,
+        openalex_id,
+        display_name,
+        country_code,
+        type,
+        created_at
+      FROM "Institution"
+      WHERE institution_id = $1
+        AND COALESCE(is_deleted, false) = false
+      LIMIT 1;
+    `;
+    const result = await pool.query(query, [institutionId]);
+    return result.rows[0] || null;
+  } catch (error) {
+    logger.error("[Service Error] Lỗi khi lấy chi tiết institution:", error);
+    throw error;
+  }
+};
+
 /**
  * Lấy danh sách cơ sở giáo dục Việt Nam (Institution), hỗ trợ tìm kiếm và phân trang.
  * Scope cố định: country_code='VN' và type='education', khớp đúng quy tắc
