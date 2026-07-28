@@ -1,4 +1,5 @@
 import { getInstitutionsData } from "../services/discoveryLookupCache.service.js";
+import * as institutionService from "../services/institution.service.js";
 
 export const getInstitutionById = async (req, res) => {
   try {
