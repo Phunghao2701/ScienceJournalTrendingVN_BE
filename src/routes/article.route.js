@@ -9,6 +9,7 @@ import {
     getArticleCitingWorks,
     getArticleCitingWorksAnalytics,
     getArticleReferences,
+    hydrateArticleReferences,
     getArticlesByKeywords, 
     getArticles, 
     updateArticle,
@@ -229,6 +230,42 @@ router.get('/:id/citing', validateId, getArticleCitingWorks);
  */
 router.get('/:id/references', validateId, getArticleReferences);
 router.get('/:id/refer', validateId, getArticleReferences);
+
+/**
+ * @swagger
+ * /api/v1/articles/{id}/references/hydrate:
+ *   post:
+ *     summary: Hydrate metadata references của một article từ DB và OpenAlex
+ *     description: >
+ *       Yêu cầu đăng nhập. Ưu tiên Article cục bộ theo OpenAlex ID, chỉ gọi
+ *       OpenAlex theo batch cho reference còn thiếu metadata. GET references
+ *       vẫn public/read-only; FE gọi lại GET sau khi POST hoàn tất.
+ *     tags:
+ *       - Article
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Hydrate hoàn tất, có thể thành công một phần
+ *       401:
+ *         description: Chưa đăng nhập
+ *       404:
+ *         description: Article không tồn tại hoặc đã bị xóa mềm
+ *       502:
+ *         description: OpenAlex thất bại hoàn toàn và không resolve được reference nào
+ */
+router.post(
+    '/:id/references/hydrate',
+    requireAuth,
+    validateId,
+    hydrateArticleReferences
+);
 
 /**
  * @swagger

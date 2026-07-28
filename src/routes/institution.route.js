@@ -1,5 +1,8 @@
 import express from "express";
-import { getInstitutions } from "../controllers/institution.controller.js";
+import {
+  getInstitutionById,
+  getInstitutions,
+} from "../controllers/institution.controller.js";
 
 const router = express.Router();
 
@@ -36,5 +39,6 @@ const router = express.Router();
  *         description: Lỗi hệ thống
  */
 router.get("/", getInstitutions);
+router.get("/:id", getInstitutionById);
 
 export default router;

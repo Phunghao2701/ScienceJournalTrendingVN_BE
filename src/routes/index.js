@@ -23,6 +23,7 @@ import trendingVnRouter from "./trendingVn.route.js";
 import institutionRouter from "./institution.route.js";
 import commentRouter from "./comment.route.js";
 import bookmarkRouter from "./bookmark.route.js";
+import orcidRouter from "./orcid.route.js";
 
 
 const router = express.Router();
@@ -41,6 +42,7 @@ router.use("/articles", articleRouter);
 router.use("/projects", keywordRouter);
 
 router.use("/author", authorRouter);
+router.use("/orcid", orcidRouter);
 router.use("/topics", topicRouter);
 
 router.use("/keywords", keywordRouter);

@@ -1,9 +1,6 @@
 import * as articleService from "../services/article.service.js";
-import {
-  getArticleAnalysisData,
-  getArticleAnalyticsData,
-  getArticleListData,
-} from "../services/articleDiscoveryCache.service.js";
+import { hydrateArticleReferences as hydrateReferencesService } from "../services/articleReferenceHydration.service.js";
+import { getArticleAnalysis as getArticleAnalysisService } from "../services/articleAnalysis.service.js";
 import {
   createAuthorArticleRelationships,
   updateAuthorArticleRelationships,
@@ -124,7 +121,19 @@ export const getArticles = async (req, res) => {
       countryId: req.query.country_id || req.query.country,
     };
 
-    const { articles, total, stats } = await getArticleListData(serviceParams);
+    const [articles, total] = await Promise.all([
+      articleService.getAllArticles(serviceParams),
+      articleService.countAllArticles(serviceParams),
+    ]);
+
+    // 2. Sau khi đã có danh sách và giải phóng kết nối trên, mới chạy hàm thống kê nặng một cách tuần tự
+    let stats = { totalArticles: 0, openAccessCount: 0, authorsCount: 0, topicsCount: 0 };
+    try {
+      stats = await articleService.getArticleListStats(serviceParams);
+    } catch (statsError) {
+      logger.error("Lỗi riêng lẻ khi lấy stats (không làm sập API chính):", statsError);
+      // Giữ cho API không bị sập hoàn toàn nếu chỉ lỗi mỗi phần thống kê
+    }
 
     return res.status(200).json({
       success: true,
@@ -172,7 +181,7 @@ export const getArticleAnalytics = async (req, res) => {
       countryId: req.query.country_id || req.query.country,
     };
 
-    const analytics = await getArticleAnalyticsData(params);
+    const analytics = await articleService.getArticleAnalytics(params);
     return res.status(200).json({
       success: true,
       code: "ARTICLE_ANALYTICS_SUCCESS",
@@ -211,7 +220,7 @@ export const getArticleAnalysis = async (req, res) => {
       limit: req.query.limit,
     };
 
-    const analysis = await getArticleAnalysisData(params);
+    const analysis = await getArticleAnalysisService(params);
     return res.status(200).json({
       success: true,
       code: "ARTICLE_ANALYSIS_SUCCESS",
@@ -380,6 +389,45 @@ export const getArticleReferences = async (req, res) => {
       success: false,
       code: "INTERNAL_SERVER_ERROR",
       message: "Có lỗi xảy ra ở Server!",
+    });
+  }
+};
+
+export const articleReferenceHydrationServiceRef = {
+  hydrateArticleReferences: hydrateReferencesService,
+};
+
+export const hydrateArticleReferences = async (req, res) => {
+  try {
+    const result =
+      await articleReferenceHydrationServiceRef.hydrateArticleReferences(
+        req.params.id,
+      );
+    const code = result.noReferences
+      ? "ARTICLE_REFERENCES_NO_SOURCE"
+      : result.partial
+        ? "ARTICLE_REFERENCES_HYDRATED_PARTIAL"
+        : "ARTICLE_REFERENCES_HYDRATED";
+    return res.status(200).json({
+      success: true,
+      code,
+      message: result.noReferences
+        ? "Bài báo không có OpenAlex reference ID để hydrate"
+        : result.partial
+          ? "Hydrate references hoàn tất một phần"
+          : "Hydrate references thành công",
+      data: { summary: result.summary },
+    });
+  } catch (error) {
+    logger.error("Lỗi hydrate references của bài báo:", error);
+    const status = error.statusCode || 500;
+    return res.status(status).json({
+      success: false,
+      code: error.code || "INTERNAL_SERVER_ERROR",
+      message:
+        status === 500
+          ? "Có lỗi xảy ra ở Server!"
+          : error.message,
     });
   }
 };
