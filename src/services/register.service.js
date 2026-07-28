@@ -91,15 +91,78 @@ export const registerWithEmailPassword = async ({
     { expiresIn: '24h' }
   );
 
-  // 5. Gửi email kích hoạt (không block luồng đăng ký chính nếu gửi lỗi/thành công)
+  // 5. Gửi email kích hoạt và trả đúng trạng thái giao nhận cho controller/frontend.
+  let activationEmailSent = true;
   try {
     await emailHelper.sendActivationEmail(newUser.email, newUser.first_name || 'User', activationToken);
   } catch (emailError) {
-    // Không ném lỗi ra ngoài làm hỏng luồng đăng ký, chỉ ghi log để tránh ngắt quãng luồng
+    activationEmailSent = false;
     logger.error('Lỗi gửi email kích hoạt trong register service:', emailError);
   }
 
-  return newUser;
+  return {
+    ...newUser,
+    activation_email_sent: activationEmailSent
+  };
+};
+
+/**
+ * Gửi lại email kích hoạt cho tài khoản LOCAL đang ở trạng thái INACTIVE.
+ * @param {string} email - Email tài khoản cần nhận lại liên kết kích hoạt.
+ * @returns {Promise<Object>} Email đã gửi thành công.
+ */
+export const resendActivationEmail = async (email) => {
+  const normalizedEmail = email.trim().toLowerCase();
+  const userQuery = `
+    SELECT "user_id", "email", "first_name", "status", "type"
+    FROM "user"
+    WHERE LOWER("email") = $1
+    LIMIT 1
+  `;
+  const userResult = await pool.query(userQuery, [normalizedEmail]);
+  const user = userResult.rows[0];
+
+  if (!user) {
+    const error = new Error('Không tìm thấy tài khoản với email này');
+    error.statusCode = 404;
+    error.code = 'ACCOUNT_NOT_FOUND';
+    throw error;
+  }
+
+  if (user.type !== 'LOCAL') {
+    const error = new Error('Tài khoản này không sử dụng xác thực email');
+    error.statusCode = 400;
+    error.code = 'ACTIVATION_NOT_SUPPORTED';
+    throw error;
+  }
+
+  if (user.status === 'ACTIVE') {
+    const error = new Error('Tài khoản đã được kích hoạt');
+    error.statusCode = 409;
+    error.code = 'ACCOUNT_ALREADY_ACTIVE';
+    throw error;
+  }
+
+  if (user.status === 'BANNED') {
+    const error = new Error('Tài khoản đã bị khóa, không thể kích hoạt');
+    error.statusCode = 403;
+    error.code = 'ACCOUNT_BANNED';
+    throw error;
+  }
+
+  const activationToken = jwt.sign(
+    { user_id: user.user_id, email: user.email },
+    process.env.JWT_SECRET || 'scientific_journal_secret_key',
+    { expiresIn: '24h' }
+  );
+
+  await emailHelper.sendActivationEmail(
+    user.email,
+    user.first_name || 'User',
+    activationToken
+  );
+
+  return { email: user.email };
 };
 
 /**

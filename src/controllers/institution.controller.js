@@ -1,4 +1,4 @@
-import * as institutionService from "../services/institution.service.js";
+import { getInstitutionsData } from "../services/discoveryLookupCache.service.js";
 
 export const getInstitutionById = async (req, res) => {
   try {
@@ -38,7 +38,7 @@ export const getInstitutionById = async (req, res) => {
 export const getInstitutions = async (req, res) => {
   try {
     const { page = 1, limit = 50, search = "" } = req.query;
-    const result = await institutionService.getInstitutions({ page, limit, search });
+    const result = await getInstitutionsData({ page, limit, search });
 
     return res.status(200).json({
       success: true,

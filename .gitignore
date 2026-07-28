@@ -93,7 +93,9 @@ load-test.js
 # Thư mục kiểm thử (Nếu bạn tự tạo file test cá nhân)
 .coverage/
 coverage/
-*.lcov# Project-specific
+*.lcov
+
+# Project-specific
 artifacts/
 *.tar.gz
 *.tgz
@@ -104,7 +106,22 @@ _ref/
 _ops/
 # Environment
 .env.*
+!.env.example
 # OS metadata
+
+# Local agent/workflow material (kept on developer machines only)
+/scripts/
+/tasks/
+/docs/
+/deploy/
+/plans/
+/AGENTS.md
+/CLAUDE.md
+.ai
+.claude
+.deploy
+.plans
+/.agents/skills/repo-harness-chatgpt-bridge/
 
 # BEGIN: claude-runtime-temp (managed by repo-harness)
 .claude/settings.local.json
@@ -197,3 +214,30 @@ scripts/prepare-codex-handoff.sh
 scripts/codex-handoff-resume.sh
 scripts/repo-harness/
 # END: claude-runtime-temp
+src/tests/
+
+# ORCID scan deliverables: keep only the feature migration and tests trackable.
+!/deploy/
+/deploy/*
+!/deploy/sql/
+/deploy/sql/*
+!/deploy/sql/0003_add_orcid_scan_unique_indexes.sql
+!/deploy/sql/0004_add_orcid_scan_journal_identity.sql
+
+!/src/tests/
+/src/tests/*
+!/src/tests/unit/
+/src/tests/unit/*
+!/src/tests/unit/utils/
+/src/tests/unit/utils/*
+!/src/tests/unit/utils/orcid.test.js
+!/src/tests/unit/services/
+/src/tests/unit/services/*
+!/src/tests/unit/services/orcidSources.test.js
+!/src/tests/unit/services/orcidScan.test.js
+!/src/tests/unit/services/orcidScanRepository.test.js
+!/src/tests/unit/services/articleReferenceHydration.test.js
+!/src/tests/integration/
+/src/tests/integration/*
+!/src/tests/integration/orcidScan.route.test.js
+!/src/tests/integration/articleReferenceHydration.route.test.js

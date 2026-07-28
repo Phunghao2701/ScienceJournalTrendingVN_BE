@@ -249,6 +249,18 @@ router.get("/:id/areas-breakdown", validateAuthorId, getAuthorAreasBreakdown);
  *                         type: string
  *                         format: date-time
  *                         example: "2026-05-27T11:19:56.643Z"
+ *                       journal_id:
+ *                         type: string
+ *                         nullable: true
+ *                         example: "42"
+ *                       journal_name:
+ *                         type: string
+ *                         nullable: true
+ *                         example: "Journal of Examples"
+ *                       journal_issn:
+ *                         type: string
+ *                         nullable: true
+ *                         example: "1234567X"
  *       400:
  *         description: Dữ liệu đầu vào không hợp lệ (ID tác giả, limit, hoặc page không hợp lệ)
  *       401:
