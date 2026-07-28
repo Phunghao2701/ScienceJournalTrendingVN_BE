@@ -2,11 +2,38 @@ import { test, describe, mock, afterEach } from 'node:test';
 import assert from 'node:assert';
 
 import pool from '../../../config/database.js';
-import { getInstitutions } from '../../../services/institution.service.js';
+import {
+  getInstitutionById,
+  getInstitutions,
+} from '../../../services/institution.service.js';
 
 describe('Institution Service Unit Test Suite', () => {
   afterEach(() => {
     mock.restoreAll();
+  });
+
+  test('getInstitutionById() trả country_code của đúng institution', async () => {
+    const institution = {
+      institution_id: '63',
+      display_name: "Queen's University Belfast",
+      country_code: 'GB',
+      type: 'education',
+    };
+    const queryMock = mock.method(pool, 'query', async () => ({ rows: [institution] }));
+
+    const result = await getInstitutionById(63);
+
+    assert.deepStrictEqual(result, institution);
+    assert.deepStrictEqual(queryMock.mock.calls[0].arguments[1], [63]);
+    assert.match(queryMock.mock.calls[0].arguments[0], /country_code/);
+  });
+
+  test('getInstitutionById() trả null khi institution không tồn tại', async () => {
+    mock.method(pool, 'query', async () => ({ rows: [] }));
+
+    const result = await getInstitutionById(999999);
+
+    assert.strictEqual(result, null);
   });
 
   test('getInstitutions() trả về danh sách và pagination khi có kết quả', async () => {
