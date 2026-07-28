@@ -107,6 +107,7 @@ export const getAuthorArticlesService = async (authorId, limit, page) => {
       FROM "Article" a
       JOIN "Author_Article" aa ON a.article_id = aa.article_id
       WHERE aa.author_id = $1
+        AND COALESCE(a.is_deleted, false) = false
     `;
 
     const dataQuery = `
@@ -119,10 +120,23 @@ export const getAuthorArticlesService = async (authorId, limit, page) => {
         COALESCE(a."citation_count", 0) AS cited_by_count,
         COALESCE(a."citation_count", 0) AS citation_count,
         a.primary_topic,
-        a.created_at
+        a.created_at,
+        j.journal_id::text AS journal_id,
+        j.display_name AS journal_name,
+        j.issn AS journal_issn
       FROM "Article" a
       JOIN "Author_Article" aa ON a.article_id = aa.article_id
+      LEFT JOIN "Issue" i
+        ON i.issue_id = a.issue_id
+       AND COALESCE(i.is_deleted, false) = false
+      LEFT JOIN "Volume" v
+        ON v.volume_id = i.volume_id
+       AND COALESCE(v.is_deleted, false) = false
+      LEFT JOIN "Journal" j
+        ON j.journal_id = v.journal_id
+       AND COALESCE(j.is_deleted, false) = false
       WHERE aa.author_id = $1
+        AND COALESCE(a.is_deleted, false) = false
       ORDER BY a.publication_year DESC, a.article_id DESC
       LIMIT $2 OFFSET $3
     `;

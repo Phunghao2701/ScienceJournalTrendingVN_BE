@@ -1,4 +1,5 @@
 import * as articleService from "../services/article.service.js";
+import { hydrateArticleReferences as hydrateReferencesService } from "../services/articleReferenceHydration.service.js";
 import { getArticleAnalysis as getArticleAnalysisService } from "../services/articleAnalysis.service.js";
 import {
   createAuthorArticleRelationships,
@@ -388,6 +389,45 @@ export const getArticleReferences = async (req, res) => {
       success: false,
       code: "INTERNAL_SERVER_ERROR",
       message: "Có lỗi xảy ra ở Server!",
+    });
+  }
+};
+
+export const articleReferenceHydrationServiceRef = {
+  hydrateArticleReferences: hydrateReferencesService,
+};
+
+export const hydrateArticleReferences = async (req, res) => {
+  try {
+    const result =
+      await articleReferenceHydrationServiceRef.hydrateArticleReferences(
+        req.params.id,
+      );
+    const code = result.noReferences
+      ? "ARTICLE_REFERENCES_NO_SOURCE"
+      : result.partial
+        ? "ARTICLE_REFERENCES_HYDRATED_PARTIAL"
+        : "ARTICLE_REFERENCES_HYDRATED";
+    return res.status(200).json({
+      success: true,
+      code,
+      message: result.noReferences
+        ? "Bài báo không có OpenAlex reference ID để hydrate"
+        : result.partial
+          ? "Hydrate references hoàn tất một phần"
+          : "Hydrate references thành công",
+      data: { summary: result.summary },
+    });
+  } catch (error) {
+    logger.error("Lỗi hydrate references của bài báo:", error);
+    const status = error.statusCode || 500;
+    return res.status(status).json({
+      success: false,
+      code: error.code || "INTERNAL_SERVER_ERROR",
+      message:
+        status === 500
+          ? "Có lỗi xảy ra ở Server!"
+          : error.message,
     });
   }
 };
