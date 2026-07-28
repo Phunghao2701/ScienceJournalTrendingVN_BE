@@ -3,9 +3,11 @@ import dotenv from "dotenv";
 import swaggerUi from "swagger-ui-express";
 import swaggerJsdoc from "swagger-jsdoc";
 import cors from 'cors';
-import { warmArticleDiscoveryCache } from "./src/services/articleDiscoveryCache.service.js";
-import { warmDiscoveryLookupCache } from "./src/services/discoveryLookupCache.service.js";
-import logger from "./src/utils/logger.js";
+import {
+  closeOrcidScanWorker,
+  startOrcidScanWorker,
+} from "./src/services/orcidScanWorker.service.js";
+import { closeOrcidScanQueue } from "./src/services/orcidScanQueue.service.js";
 
 dotenv.config();
 const PORT = process.env.PORT || 5000;
@@ -42,32 +44,18 @@ const swaggerDocs = swaggerJsdoc(swaggerOptions);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
-const startServer = async () => {
-  try {
-    const warmup = await Promise.race([
-      (async () => {
-        const articleWarmup = await warmArticleDiscoveryCache();
-        const lookupWarmup = await warmDiscoveryLookupCache();
-        return {
-          skipped: articleWarmup.skipped && lookupWarmup.skipped,
-          durationMs: articleWarmup.durationMs + lookupWarmup.durationMs,
-        };
-      })(),
-      new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Cache warm-up timeout after 20 seconds")), 20_000);
-      }),
-    ]);
+const server = app.listen(PORT, () => {
+  console.log(`🚀 Server đang trên: http://localhost:${PORT}`);
+  startOrcidScanWorker();
+});
 
-    if (!warmup.skipped) {
-      logger.info(`Article discovery cache warm-up hoàn tất trong ${warmup.durationMs}ms`);
-    }
-  } catch (error) {
-    logger.warn(`Bỏ qua cache warm-up: ${error.message}`);
-  }
-
-  app.listen(PORT, () => {
-    console.log(`🚀 Server đang trên: http://localhost:${PORT}`);
-  });
+const shutdown = async () => {
+  server.close();
+  await Promise.allSettled([
+    closeOrcidScanWorker(),
+    closeOrcidScanQueue(),
+  ]);
 };
 
-void startServer();
+process.once("SIGINT", shutdown);
+process.once("SIGTERM", shutdown);
