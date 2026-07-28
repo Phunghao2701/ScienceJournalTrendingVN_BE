@@ -49,6 +49,13 @@ Tạo file `.env` ở thư mục gốc:
 
 ```env
 PORT=8080
+REDIS_URL=redis://default:password@host:6379
+
+# Optional cache tuning (defaults shown)
+CACHE_FRESH_TTL_SECONDS=1800
+CACHE_STALE_TTL_SECONDS=604800
+CACHE_ENABLED=true
+CACHE_WARMUP_ENABLED=true
 ```
 
 ---
