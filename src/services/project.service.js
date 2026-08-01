@@ -436,7 +436,23 @@ export const getRelatedArticles = async (journalIds, categoryIds, { limit = 5 })
                 a.abstract,
                 a.publication_year,
                 a.doi,
-                j.display_name AS journal_name -- Lấy ra tên tạp chí tương ứng như yêu cầu bài toán
+                j.display_name AS journal_name, -- Lấy ra tên tạp chí tương ứng như yêu cầu bài toán
+                COALESCE(
+                    (
+                        SELECT JSON_AGG(
+                            JSON_BUILD_OBJECT(
+                                'author_id', au.author_id,
+                                'name', au.display_name
+                            )
+                            ORDER BY au.display_name
+                        )
+                        FROM "Author_Article" aa
+                        JOIN "Author" au ON au.author_id = au.author_id
+                        WHERE aa.article_id = a.article_id
+                          AND COALESCE(au.is_deleted, false) = false
+                    ),
+                    '[]'::json
+                ) AS authors
             FROM "Article" a
             -- Luồng đi ngược cây thư mục theo sơ đồ DB của bạn: Article -> Issue -> Volume -> Journal
             JOIN "Issue" i ON a.issue_id = i.issue_id
