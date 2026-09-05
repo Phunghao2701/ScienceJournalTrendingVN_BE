@@ -33,12 +33,12 @@ const VALID_NAME_REGEX = /^[\p{L}]+(?:[\s'-][\p{L}]+)*$/u;
 export const validateAuthorId = (req, res, next) => {
   const idParam = req.params.id;
 
-  // Kiểm tra nếu ID chứa ký tự lạ không phải là số (ví dụ: "2dsaf", "abc")
+  // Kiểm tra nếu ID chứa ký tự lạ không phải l�  số (ví dụ: "2dsaf", "abc")
   if (!/^\d+$/.test(idParam)) {
     return res.status(400).json({
       success: false,
       code: AUTHOR_CODES.AUTHOR_INVALID_ID,
-      message: "ID tác giả không hợp lệ, phải là số nguyên dương",
+      message: "ID tác giả không hợp lệ, phải l�  số nguyên dương",
     });
   }
 
@@ -122,7 +122,7 @@ export const validateCreateAuthor = (req, res, next) => {
     });
   }
 
-  // --- ĐOẠN FIX: Kiểm tra ký tự đặc biệt ---
+  // --- ĐO� N FIX: Kiểm tra ký tự đặc biệt ---
   if (!VALID_NAME_REGEX.test(trimmedName)) {
     return res.status(400).json({
       success: false,
@@ -191,7 +191,7 @@ export const validateUpdateAuthor = (req, res, next) => {
       });
     }
 
-    // --- ĐOẠN FIX: Kiểm tra ký tự đặc biệt ---
+    // --- ĐO� N FIX: Kiểm tra ký tự đặc biệt ---
     if (!VALID_NAME_REGEX.test(trimmedName)) {
       return res.status(400).json({
         success: false,
@@ -213,7 +213,7 @@ export const validateUpdateAuthor = (req, res, next) => {
         return res.status(400).json({
           success: false,
           code: AUTHOR_CODES.AUTHOR_INVALID_BODY,
-          message: `${field} phải là số nguyên không âm`,
+          message: `${field} phải l�  số nguyên không âm`,
         });
       }
     }

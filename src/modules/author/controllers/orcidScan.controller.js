@@ -1,4 +1,4 @@
-﻿import logger from '../../../utils/logger.js';
+import logger from '../../../utils/logger.js';
 import { extractOrcidId, normalizeOrcid } from '../../../utils/orcid.js';
 import { createOrReuseOrcidScanJob, getOrcidScanJobById, getOrcidScanJobPublications, updateOrcidScanJob } from '../repositories/orcidScanJob.repository.js';
 import { enqueueOrcidScanJob } from '../services/orcidScanQueue.service.js';
@@ -18,7 +18,7 @@ export const ORCID_SCAN_CODES = {
 
 export const validateOrcidScan = async (request, reply) => {
   const normalizedOrcid = normalizeOrcid(request.body?.orcid);
-  if (!normalizedOrcid) return reply.status(400).send({ success: false, code: ORCID_SCAN_CODES.INVALID, message: "ORCID khÃ´ng há»£p lá»‡" });
+  if (!normalizedOrcid) return reply.status(400).send({ success: false, code: ORCID_SCAN_CODES.INVALID, message: "ORCID không hợp lệ" });
 
   request.orcid = normalizedOrcid;
   request.orcidId = extractOrcidId(normalizedOrcid);
@@ -63,7 +63,7 @@ const serializeJob = (job, { reused } = {}) => {
     author_id: authorId,
     articles_url: authorId ? `/api/v1/author/${authorId}/articles?page=1&limit=20` : null,
     publications_url: `/api/v1/orcid/scan/${job.job_id}/publications?cursor=0&limit=20`,
-    error: job.error_code || job.error_message ? { code: job.error_code || "ORCID_SCAN_JOB_FAILED", message: job.error_message || "KhÃ´ng thá»ƒ hoÃ n táº¥t tÃ¬m cÃ´ng trÃ¬nh" } : null,
+    error: job.error_code || job.error_message ? { code: job.error_code || "ORCID_SCAN_JOB_FAILED", message: job.error_message || "Không thể ho� n tất tìm công trình" } : null,
     created_at: job.created_at,
     started_at: job.started_at,
     completed_at: job.completed_at,
@@ -78,48 +78,48 @@ export const scanAuthorWorksByOrcid = async (request, reply) => {
       try {
         await orcidScanJobServiceRef.enqueueOrcidScanJob({ jobId: job.job_id, orcid: request.orcid, requestedBy: request.user.user_id });
       } catch (error) {
-        await orcidScanJobServiceRef.updateOrcidScanJob(job.job_id, { status: "failed", stage: "completed", errorCode: "ORCID_SCAN_QUEUE_UNAVAILABLE", errorMessage: "KhÃ´ng thá»ƒ xáº¿p lÆ°á»£t tÃ¬m cÃ´ng trÃ¬nh vÃ o hÃ ng Ä‘á»£i", completedAt: new Date() });
+        await orcidScanJobServiceRef.updateOrcidScanJob(job.job_id, { status: "failed", stage: "completed", errorCode: "ORCID_SCAN_QUEUE_UNAVAILABLE", errorMessage: "Không thể xếp lượt tìm công trình v� o h� ng đợi", completedAt: new Date() });
         throw Object.assign(error, { statusCode: 503, code: "ORCID_SCAN_QUEUE_UNAVAILABLE" });
       }
     }
 
-    return reply.status(202).send({ success: true, code: reused ? ORCID_SCAN_CODES.ALREADY_RUNNING : ORCID_SCAN_CODES.QUEUED, message: reused ? "LÆ°á»£t tÃ¬m cÃ´ng trÃ¬nh cho ORCID nÃ y Ä‘ang Ä‘Æ°á»£c xá»­ lÃ½" : "ÄÃ£ xáº¿p lÆ°á»£t tÃ¬m cÃ´ng trÃ¬nh vÃ o hÃ ng Ä‘á»£i", data: serializeJob(job, { reused }) });
+    return reply.status(202).send({ success: true, code: reused ? ORCID_SCAN_CODES.ALREADY_RUNNING : ORCID_SCAN_CODES.QUEUED, message: reused ? "Lượt tìm công trình cho ORCID n� y đang được xử lý" : "Đã xếp lượt tìm công trình v� o h� ng đợi", data: serializeJob(job, { reused }) });
   } catch (error) {
     if (error.statusCode && error.code) return reply.status(error.statusCode).send({ success: false, code: error.code, message: error.message, ...(error.job ? { data: serializeJob(error.job, { reused: true }) } : {}) });
-    logger.error("[ORCID Scan Controller] Lá»—i khi táº¡o scan job:", error);
-    return reply.status(500).send({ success: false, code: ORCID_SCAN_CODES.SERVER_ERROR, message: "CÃ³ lá»—i xáº£y ra khi táº¡o lÆ°á»£t tÃ¬m cÃ´ng trÃ¬nh theo ORCID" });
+    logger.error("[ORCID Scan Controller] Lỗi khi tạo scan job:", error);
+    return reply.status(500).send({ success: false, code: ORCID_SCAN_CODES.SERVER_ERROR, message: "Có lỗi xảy ra khi tạo lượt tìm công trình theo ORCID" });
   }
 };
 
 export const getOrcidScanJobStatus = async (request, reply) => {
-  if (!UUID_PATTERN.test(request.params.jobId || "")) return reply.status(400).send({ success: false, code: ORCID_SCAN_CODES.JOB_INVALID, message: "Job ID khÃ´ng há»£p lá»‡" });
+  if (!UUID_PATTERN.test(request.params.jobId || "")) return reply.status(400).send({ success: false, code: ORCID_SCAN_CODES.JOB_INVALID, message: "Job ID không hợp lệ" });
 
   try {
     const job = await orcidScanJobServiceRef.getOrcidScanJobById(request.params.jobId);
-    if (!job) return reply.status(404).send({ success: false, code: ORCID_SCAN_CODES.JOB_NOT_FOUND, message: "KhÃ´ng tÃ¬m tháº¥y lÆ°á»£t tÃ¬m cÃ´ng trÃ¬nh" });
+    if (!job) return reply.status(404).send({ success: false, code: ORCID_SCAN_CODES.JOB_NOT_FOUND, message: "Không tìm thấy lượt tìm công trình" });
     return reply.status(200).send({ success: true, code: `ORCID_SCAN_${String(job.status).toUpperCase()}`, data: serializeJob(job) });
   } catch (error) {
-    logger.error("[ORCID Scan Controller] Lá»—i khi Ä‘á»c scan job:", error);
-    return reply.status(500).send({ success: false, code: ORCID_SCAN_CODES.SERVER_ERROR, message: "CÃ³ lá»—i xáº£y ra khi Ä‘á»c tráº¡ng thÃ¡i tÃ¬m cÃ´ng trÃ¬nh" });
+    logger.error("[ORCID Scan Controller] Lỗi khi đọc scan job:", error);
+    return reply.status(500).send({ success: false, code: ORCID_SCAN_CODES.SERVER_ERROR, message: "Có lỗi xảy ra khi đọc trạng thái tìm công trình" });
   }
 };
 
 export const getOrcidScanJobPublicationPage = async (request, reply) => {
-  if (!UUID_PATTERN.test(request.params.jobId || "")) return reply.status(400).send({ success: false, code: ORCID_SCAN_CODES.JOB_INVALID, message: "Job ID khÃ´ng há»£p lá»‡" });
+  if (!UUID_PATTERN.test(request.params.jobId || "")) return reply.status(400).send({ success: false, code: ORCID_SCAN_CODES.JOB_INVALID, message: "Job ID không hợp lệ" });
 
   const cursor = String(request.query.cursor ?? "0");
   const limit = Number(request.query.limit ?? 20);
-  if (!/^\d+$/.test(cursor) || BigInt(cursor) > 9223372036854775807n || !Number.isSafeInteger(limit) || limit < 1 || limit > 50) return reply.status(400).send({ success: false, code: "ORCID_SCAN_PAGINATION_INVALID", message: "Cursor hoáº·c limit khÃ´ng há»£p lá»‡" });
+  if (!/^\d+$/.test(cursor) || BigInt(cursor) > 9223372036854775807n || !Number.isSafeInteger(limit) || limit < 1 || limit > 50) return reply.status(400).send({ success: false, code: "ORCID_SCAN_PAGINATION_INVALID", message: "Cursor hoặc limit không hợp lệ" });
 
   try {
     const job = await orcidScanJobServiceRef.getOrcidScanJobById(request.params.jobId);
-    if (!job) return reply.status(404).send({ success: false, code: ORCID_SCAN_CODES.JOB_NOT_FOUND, message: "KhÃ´ng tÃ¬m tháº¥y lÆ°á»£t tÃ¬m cÃ´ng trÃ¬nh" });
+    if (!job) return reply.status(404).send({ success: false, code: ORCID_SCAN_CODES.JOB_NOT_FOUND, message: "Không tìm thấy lượt tìm công trình" });
 
     const result = await orcidScanJobServiceRef.getOrcidScanJobPublications(request.params.jobId, { cursor, limit });
     return reply.status(200).send({ success: true, code: "ORCID_SCAN_PUBLICATIONS", data: result });
   } catch (error) {
-    logger.error("[ORCID Scan Controller] Lá»—i khi Ä‘á»c publications cá»§a scan job:", error);
-    return reply.status(500).send({ success: false, code: ORCID_SCAN_CODES.SERVER_ERROR, message: "CÃ³ lá»—i xáº£y ra khi Ä‘á»c danh sÃ¡ch cÃ´ng trÃ¬nh" });
+    logger.error("[ORCID Scan Controller] Lỗi khi đọc publications của scan job:", error);
+    return reply.status(500).send({ success: false, code: ORCID_SCAN_CODES.SERVER_ERROR, message: "Có lỗi xảy ra khi đọc danh sách công trình" });
   }
 };
 

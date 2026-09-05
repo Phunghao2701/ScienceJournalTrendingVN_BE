@@ -1,13 +1,13 @@
-﻿import prisma from '../../../config/prisma.js';
+import prisma from '../../../config/prisma.js';
 import logger from '../../../utils/logger.js';
 
 /**
- * Kiá»ƒm tra sá»± tá»“n táº¡i cá»§a má»™t Subject Category trong database dá»±a trÃªn ID.
- * KhÃ´ng phÃ¢n biá»‡t Ä‘Ã£ bá»‹ xÃ³a má»m hay chÆ°a.
+ * Kiểm tra sự tồn tại của một Subject Category trong database dựa trên ID.
+ * Không phân biệt đã bị xóa mềm hay chưa.
  * 
  * @async
- * @param {number|string} id - ID cá»§a Subject Category.
- * @returns {Promise<boolean>} Tráº£ vá» true náº¿u tá»“n táº¡i, ngÆ°á»£c láº¡i false.
+ * @param {number|string} id - ID của Subject Category.
+ * @returns {Promise<boolean>} Trả về true nếu tồn tại, ngược lại false.
  */
 export const subjectCategoryExist = async (id) => {
   try {
@@ -15,17 +15,17 @@ export const subjectCategoryExist = async (id) => {
     const result = await prisma.$queryRawUnsafe(query, BigInt(id));
     return result.length > 0;
   } catch (error) {
-    logger.error(`Lá»—i khi kiá»ƒm tra tá»“n táº¡i cá»§a Subject Category vá»›i ID ${id}:`, error.message);
+    logger.error(`Lỗi khi kiểm tra tồn tại của Subject Category với ID ${id}:`, error.message);
     throw error;
   }
 };
 
 /**
- * Kiá»ƒm tra xem Subject Category cÃ³ Ä‘ang bá»‹ xÃ³a má»m (is_deleted = true) hay khÃ´ng.
+ * Kiểm tra xem Subject Category có đang bị xóa mềm (is_deleted = true) hay không.
  * 
  * @async
- * @param {number|string} id - ID cá»§a Subject Category.
- * @returns {Promise<boolean>} Tráº£ vá» true náº¿u Ä‘Ã£ bá»‹ xÃ³a má»m, ngÆ°á»£c láº¡i false.
+ * @param {number|string} id - ID của Subject Category.
+ * @returns {Promise<boolean>} Trả về true nếu đã bị xóa mềm, ngược lại false.
  */
 export const subjectCategoryIsDeleted = async (id) => {
   try {
@@ -33,19 +33,19 @@ export const subjectCategoryIsDeleted = async (id) => {
     const result = await prisma.$queryRawUnsafe(query, BigInt(id));
     return result.length > 0;
   } catch (error) {
-    logger.error(`Lá»—i khi kiá»ƒm tra tráº¡ng thÃ¡i xÃ³a má»m cá»§a Subject Category vá»›i ID ${id}:`, error.message);
+    logger.error(`Lỗi khi kiểm tra trạng thái xóa mềm của Subject Category với ID ${id}:`, error.message);
     throw error;
   }
 };
 
 /**
- * Kiá»ƒm tra xem cÃ³ Subject Category nÃ o khÃ¡c Ä‘ang hoáº¡t Ä‘á»™ng trÃ¹ng láº·p display_name trong cÃ¹ng Subject Area khÃ´ng.
+ * Kiểm tra xem có Subject Category n� o khác đang hoạt động trùng lặp display_name trong cùng Subject Area không.
  * 
  * @async
- * @param {number|string} subjectAreaId - ID cá»§a Subject Area cha.
- * @param {string} displayName - TÃªn cáº§n kiá»ƒm tra.
- * @param {number|string} [excludeId=null] - ID cáº§n loáº¡i trá»« (trong trÆ°á»ng há»£p update).
- * @returns {Promise<{ duplicateName: boolean }>} Äá»‘i tÆ°á»£ng chá»©a káº¿t quáº£ trÃ¹ng láº·p.
+ * @param {number|string} subjectAreaId - ID của Subject Area cha.
+ * @param {string} displayName - Tên cần kiểm tra.
+ * @param {number|string} [excludeId=null] - ID cần loại trừ (trong trường hợp update).
+ * @returns {Promise<{ duplicateName: boolean }>} Đối tượng chứa kết quả trùng lặp.
  */
 export const checkDuplicateSubjectCategory = async (subjectAreaId, displayName, excludeId = null) => {
   try {
@@ -64,20 +64,20 @@ export const checkDuplicateSubjectCategory = async (subjectAreaId, displayName, 
       duplicateName: resName.length > 0
     };
   } catch (error) {
-    logger.error("Lá»—i khi kiá»ƒm tra trÃ¹ng láº·p Subject Category:", error.message);
+    logger.error("Lỗi khi kiểm tra trùng lặp Subject Category:", error.message);
     throw error;
   }
 };
 
 /**
- * Táº¡o má»›i má»™t Subject Category.
+ * Tạo mới một Subject Category.
  * 
  * @async
- * @param {Object} data - Dá»¯ liá»‡u táº¡o.
- * @param {number|string} data.subject_area_id - ID cá»§a Subject Area cha.
- * @param {string} data.display_name - TÃªn hiá»ƒn thá»‹.
- * @param {string} [data.description] - MÃ´ táº£.
- * @returns {Promise<Object>} Tráº£ vá» Ä‘á»‘i tÆ°á»£ng vá»«a táº¡o.
+ * @param {Object} data - Dữ liệu tạo.
+ * @param {number|string} data.subject_area_id - ID của Subject Area cha.
+ * @param {string} data.display_name - Tên hiển thị.
+ * @param {string} [data.description] - Mô tả.
+ * @returns {Promise<Object>} Trả về đối tượng vừa tạo.
  */
 export const createSubjectCategory = async (data) => {
   try {
@@ -98,17 +98,17 @@ export const createSubjectCategory = async (data) => {
     const result = await prisma.$queryRawUnsafe(query, BigInt(subject_area_id), trimmedName, cleanDesc);
     return result[0];
   } catch (error) {
-    logger.error("Lá»—i khi táº¡o má»›i Subject Category:", error.message);
+    logger.error("Lỗi khi tạo mới Subject Category:", error.message);
     throw error;
   }
 };
 
 /**
- * Láº¥y danh sÃ¡ch Subject Category há»— trá»£ tÃ¬m kiáº¿m, phÃ¢n trang, lá»c theo Subject Area vÃ  sáº¯p xáº¿p.
- * Chá»‰ láº¥y báº£n ghi chÆ°a bá»‹ xÃ³a má»m (is_deleted = false).
+ * Lấy danh sách Subject Category hỗ trợ tìm kiếm, phân trang, lọc theo Subject Area v�  sắp xếp.
+ * Chỉ lấy bản ghi chưa bị xóa mềm (is_deleted = false).
  * 
  * @async
- * @param {Object} params - Tham sá»‘ Ä‘áº§u vÃ o.
+ * @param {Object} params - Tham số đầu v� o.
  * @returns {Promise<{ items: Array<Object>, total: number }>}
  */
 export const getSubjectCategories = async ({
@@ -130,29 +130,29 @@ export const getSubjectCategories = async ({
     `;
     const queryParams = [];
 
-    // Lá»c theo subject_area_id
+    // Lọc theo subject_area_id
     if (subject_area_id !== undefined && subject_area_id !== null && subject_area_id.toString().trim() !== "") {
       queryParams.push(BigInt(subject_area_id));
       baseQuery += ` AND subject_area_id = $${queryParams.length}`;
     }
 
-    // TÃ¬m kiáº¿m theo display_name (khÃ´ng phÃ¢n biá»‡t hoa thÆ°á»ng)
+    // Tìm kiếm theo display_name (không phân biệt hoa thường)
     if (search !== undefined && search !== null && search.toString().trim() !== "") {
       queryParams.push(`%${search.toString().trim()}%`);
       baseQuery += ` AND display_name ILIKE $${queryParams.length}`;
     }
 
-    // Äáº¿m tá»•ng sá»‘ báº£n ghi
+    // Đếm tổng số bản ghi
     const countQuery = `SELECT COUNT(*)::integer AS total ${baseQuery}`;
     const countRes = await prisma.$queryRawUnsafe(countQuery, ...queryParams);
     const total = countRes[0]?.total || 0;
 
-    // Sáº¯p xáº¿p
+    // Sắp xếp
     const allowedSortFields = ["subject_category_id", "display_name", "subject_area_id"];
     const sortField = allowedSortFields.includes(sort_by) ? sort_by : "display_name";
     const sortDir = sort_order.toLowerCase() === "desc" ? "DESC" : "ASC";
 
-    // PhÃ¢n trang
+    // Phân trang
     queryParams.push(limitNum, offset);
     const dataQuery = `
       SELECT 
@@ -172,17 +172,17 @@ export const getSubjectCategories = async ({
       total
     };
   } catch (error) {
-    logger.error("Lá»—i khi láº¥y danh sÃ¡ch Subject Category:", error.message);
+    logger.error("Lỗi khi lấy danh sách Subject Category:", error.message);
     throw error;
   }
 };
 
 /**
- * Láº¥y thÃ´ng tin chi tiáº¿t má»™t Subject Category vÃ  JOIN vá»›i Subject Area.
+ * Lấy thông tin chi tiết một Subject Category v�  JOIN với Subject Area.
  * 
  * @async
- * @param {number|string} id - ID cá»§a Subject Category.
- * @returns {Promise<Object|null>} Tráº£ vá» Ä‘á»‘i tÆ°á»£ng chi tiáº¿t hoáº·c null.
+ * @param {number|string} id - ID của Subject Category.
+ * @returns {Promise<Object|null>} Trả về đối tượng chi tiết hoặc null.
  */
 export const getSubjectCategoryById = async (id) => {
   try {
@@ -201,18 +201,18 @@ export const getSubjectCategoryById = async (id) => {
     const result = await prisma.$queryRawUnsafe(query, BigInt(id));
     return result.length > 0 ? result[0] : null;
   } catch (error) {
-    logger.error(`Lá»—i khi láº¥y chi tiáº¿t Subject Category ID ${id}:`, error.message);
+    logger.error(`Lỗi khi lấy chi tiết Subject Category ID ${id}:`, error.message);
     throw error;
   }
 };
 
 /**
- * Cáº­p nháº­t thÃ´ng tin Subject Category.
+ * Cập nhật thông tin Subject Category.
  * 
  * @async
- * @param {number|string} id - ID cá»§a Subject Category.
- * @param {Object} data - Dá»¯ liá»‡u cáº­p nháº­t.
- * @returns {Promise<Object|null>} Tráº£ vá» Ä‘á»‘i tÆ°á»£ng sau cáº­p nháº­t hoáº·c null.
+ * @param {number|string} id - ID của Subject Category.
+ * @param {Object} data - Dữ liệu cập nhật.
+ * @returns {Promise<Object|null>} Trả về đối tượng sau cập nhật hoặc null.
  */
 export const updateSubjectCategory = async (id, data) => {
   try {
@@ -254,17 +254,17 @@ export const updateSubjectCategory = async (id, data) => {
     const result = await prisma.$queryRawUnsafe(query, ...values);
     return result.length > 0 ? result[0] : null;
   } catch (error) {
-    logger.error(`Lá»—i khi cáº­p nháº­t Subject Category ID ${id}:`, error.message);
+    logger.error(`Lỗi khi cập nhật Subject Category ID ${id}:`, error.message);
     throw error;
   }
 };
 
 /**
- * XÃ³a má»m má»™t Subject Category.
+ * Xóa mềm một Subject Category.
  * 
  * @async
- * @param {number|string} id - ID cá»§a Subject Category.
- * @returns {Promise<Object|null>} Tráº£ vá» Ä‘á»‘i tÆ°á»£ng Ä‘Ã£ xÃ³a hoáº·c null.
+ * @param {number|string} id - ID của Subject Category.
+ * @returns {Promise<Object|null>} Trả về đối tượng đã xóa hoặc null.
  */
 export const deleteSubjectCategory = async (id) => {
   try {
@@ -282,17 +282,17 @@ export const deleteSubjectCategory = async (id) => {
     const result = await prisma.$queryRawUnsafe(query, BigInt(id));
     return result.length > 0 ? result[0] : null;
   } catch (error) {
-    logger.error(`Lá»—i khi xÃ³a má»m Subject Category ID ${id}:`, error.message);
+    logger.error(`Lỗi khi xóa mềm Subject Category ID ${id}:`, error.message);
     throw error;
   }
 };
 
 /**
- * KhÃ´i phá»¥c má»™t Subject Category Ä‘Ã£ bá»‹ xÃ³a má»m.
+ * Khôi phục một Subject Category đã bị xóa mềm.
  * 
  * @async
- * @param {number|string} id - ID cá»§a Subject Category.
- * @returns {Promise<Object|null>} Tráº£ vá» Ä‘á»‘i tÆ°á»£ng Ä‘Ã£ khÃ´i phá»¥c hoáº·c null.
+ * @param {number|string} id - ID của Subject Category.
+ * @returns {Promise<Object|null>} Trả về đối tượng đã khôi phục hoặc null.
  */
 export const restoreSubjectCategory = async (id) => {
   try {
@@ -310,24 +310,24 @@ export const restoreSubjectCategory = async (id) => {
     const result = await prisma.$queryRawUnsafe(query, BigInt(id));
     return result.length > 0 ? result[0] : null;
   } catch (error) {
-    logger.error(`Lá»—i khi khÃ´i phá»¥c Subject Category ID ${id}:`, error.message);
+    logger.error(`Lỗi khi khôi phục Subject Category ID ${id}:`, error.message);
     throw error;
   }
 };
 
 /**
- * TÃ­nh toÃ¡n thá»‘ng kÃª dá»¯ liá»‡u liÃªn quan tá»›i Subject Category: total_journals, total_articles, total_authors.
- * Sá»­ dá»¥ng Promise.all Ä‘á»ƒ tá»‘i Æ°u hÃ³a hiá»‡u nÄƒng.
+ * Tính toán thống kê dữ liệu liên quan tới Subject Category: total_journals, total_articles, total_authors.
+ * Sử dụng Promise.all để tối ưu hóa hiệu năng.
  * 
  * @async
- * @param {number|string} id - ID cá»§a Subject Category.
- * @returns {Promise<Object>} Äá»‘i tÆ°á»£ng thá»‘ng kÃª.
+ * @param {number|string} id - ID của Subject Category.
+ * @returns {Promise<Object>} Đối tượng thống kê.
  */
 export const getSubjectCategoryStatistics = async (id) => {
   try {
     const parsedId = BigInt(id);
 
-    // 1. Láº¥y thÃ´ng tin Subject Category trÆ°á»›c
+    // 1. Lấy thông tin Subject Category trước
     const scRes = await prisma.$queryRawUnsafe(
       `SELECT display_name FROM "Subject_Category" WHERE subject_category_id = $1 AND is_deleted = false`,
       parsedId
@@ -339,8 +339,8 @@ export const getSubjectCategoryStatistics = async (id) => {
 
     const { display_name } = scRes[0];
 
-    // 2. Äá»‹nh nghÄ©a cÃ¡c cÃ¢u truy váº¥n Ä‘áº¿m song song
-    // Äáº¿m tá»•ng sá»‘ Journal Ä‘ang hoáº¡t Ä‘á»™ng thuá»™c Subject Category
+    // 2. Định nghĩa các câu truy vấn đếm song song
+    // Đếm tổng số Journal đang hoạt động thuộc Subject Category
     const journalsQuery = `
       SELECT COUNT(DISTINCT j.journal_id)::integer AS count
       FROM "Journal" j
@@ -348,7 +348,7 @@ export const getSubjectCategoryStatistics = async (id) => {
       WHERE jsc.subject_category_id = $1 AND COALESCE(j.is_deleted, false) = false
     `;
 
-    // Äáº¿m tá»•ng sá»‘ Article Ä‘ang hoáº¡t Ä‘á»™ng (Article -> Issue -> Volume -> Journal) thuá»™c Category nÃ y
+    // Đếm tổng số Article đang hoạt động (Article -> Issue -> Volume -> Journal) thuộc Category n� y
     const articlesQuery = `
       SELECT COUNT(DISTINCT a.article_id)::integer AS count
       FROM "Article" a
@@ -362,7 +362,7 @@ export const getSubjectCategoryStatistics = async (id) => {
         AND COALESCE(j.is_deleted, false) = false
     `;
 
-    // Äáº¿m tá»•ng sá»‘ Author duy nháº¥t cá»§a cÃ¡c Article nÃ y
+    // Đếm tổng số Author duy nhất của các Article n� y
     const authorsQuery = `
       SELECT COUNT(DISTINCT aa.author_id)::integer AS count
       FROM "Author_Article" aa
@@ -377,7 +377,7 @@ export const getSubjectCategoryStatistics = async (id) => {
         AND COALESCE(j.is_deleted, false) = false
     `;
 
-    // 3. Thá»±c hiá»‡n song song truy váº¥n báº±ng Promise.all
+    // 3. Thực hiện song song truy vấn bằng Promise.all
     const [journalsRes, articlesRes, authorsRes] = await Promise.all([
       prisma.$queryRawUnsafe(journalsQuery, parsedId),
       prisma.$queryRawUnsafe(articlesQuery, parsedId),
@@ -392,7 +392,7 @@ export const getSubjectCategoryStatistics = async (id) => {
       total_authors: authorsRes[0]?.count || 0
     };
   } catch (error) {
-    logger.error(`Lá»—i khi láº¥y thá»‘ng kÃª Subject Category ID ${id}:`, error.message);
+    logger.error(`Lỗi khi lấy thống kê Subject Category ID ${id}:`, error.message);
     throw error;
   }
 };

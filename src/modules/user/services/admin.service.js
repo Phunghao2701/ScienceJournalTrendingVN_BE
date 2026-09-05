@@ -1,12 +1,12 @@
-﻿import prisma from '../../../config/prisma.js';
+import prisma from '../../../config/prisma.js';
 import logger from '../../../utils/logger.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
 /**
- * Láº¥y sá»‘ liá»‡u thá»‘ng kÃª tá»•ng quan cho Admin Dashboard.
- * Äáº¿m tá»•ng sá»‘ Journal, Article, lÆ°á»£ng dá»¯ liá»‡u Ä‘Æ°á»£c Ä‘á»“ng bá»™/thÃªm má»›i trong ngÃ y hÃ´m nay (growth), 
- * vÃ  tá»•ng sá»‘ lÆ°á»£ng ngÆ°á»i dÃ¹ng Ä‘ang hoáº¡t Ä‘á»™ng.
+ * Lấy số liệu thống kê tổng quan cho Admin Dashboard.
+ * Đếm tổng số Journal, Article, lượng dữ liệu được đồng bộ/thêm mới trong ng� y hôm nay (growth), 
+ * v�  tổng số lượng người dùng đang hoạt động.
  *
  * @async
  * @returns {Promise<{
@@ -16,8 +16,8 @@ import crypto from 'crypto';
  *   article_growth: number,
  *   pending_reviews: number,
  *   active_users: number
- * }>} Äá»‘i tÆ°á»£ng chá»©a cÃ¡c sá»‘ liá»‡u thá»‘ng kÃª tá»•ng quan.
- * @throws {Error} NÃ©m lá»—i náº¿u quÃ¡ trÃ¬nh truy váº¥n CSDL tháº¥t báº¡i.
+ * }>} Đối tượng chứa các số liệu thống kê tổng quan.
+ * @throws {Error} Ném lỗi nếu quá trình truy vấn CSDL thất bại.
  */
 export const summary = async () => {
     try {
@@ -41,18 +41,18 @@ export const summary = async () => {
             active_users: activeUsers
         };
     } catch (error) {
-        logger.error('Lá»—i khi láº¥y sá»‘ liá»‡u thá»‘ng kÃª tá»•ng quan (Admin):', error);
+        logger.error('Lỗi khi lấy số liệu thống kê tổng quan (Admin):', error);
         throw error;
     }
 };
 
 /**
- * Táº¡o má»›i má»™t ngÆ°á»i dÃ¹ng tá»« phÃ­a Admin.
+ * Tạo mới một người dùng từ phía Admin.
  *
  * @async
- * @param {object} userData - Dá»¯ liá»‡u ngÆ°á»i dÃ¹ng cáº§n táº¡o.
- * @returns {Promise<object>} ThÃ´ng vá»‹ ngÆ°á»i dÃ¹ng vá»«a Ä‘Æ°á»£c táº¡o.
- * @throws {Error} NÃ©m lá»—i 409 náº¿u email Ä‘Ã£ tá»“n táº¡i, hoáº·c lá»—i DB khÃ¡c.
+ * @param {object} userData - Dữ liệu người dùng cần tạo.
+ * @returns {Promise<object>} Thông vị người dùng vừa được tạo.
+ * @throws {Error} Ném lỗi 409 nếu email đã tồn tại, hoặc lỗi DB khác.
  */
 export const createUser = async (userData) => {
     const {
@@ -68,19 +68,19 @@ export const createUser = async (userData) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // 1. Kiá»ƒm tra email Ä‘Ã£ tá»“n táº¡i chÆ°a
+    // 1. Kiểm tra email đã tồn tại chưa
     const existingUser = await prisma.user.findFirst({
         where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
         select: { user_id: true }
     });
 
     if (existingUser) {
-        const error = new Error('Email Ä‘Ã£ tá»“n táº¡i trong há»‡ thá»‘ng');
+        const error = new Error('Email đã tồn tại trong hệ thống');
         error.statusCode = 409;
         throw error;
     }
 
-    // 2. BÄƒm máº­t kháº©u
+    // 2. Băm mật khẩu
     const hashedPassword = await bcrypt.hash(password, 10);
     const userId = crypto.randomUUID();
 
@@ -102,18 +102,18 @@ export const createUser = async (userData) => {
         });
         return result;
     } catch (error) {
-        logger.error('Lá»—i khi insert User vÃ o DB (Admin Service):', error);
+        logger.error('Lỗi khi insert User v� o DB (Admin Service):', error);
         throw error;
     }
 };
 
 /**
- * Láº¥y dá»¯ liá»‡u biá»ƒu Ä‘á»“ Publication Trends theo tá»«ng nÄƒm.
- * Sá»­ dá»¥ng generate_series Ä‘á»ƒ Ä‘áº£m báº£o luÃ´n tráº£ vá» Ä‘á»§ sá»‘ nÄƒm (máº·c Ä‘á»‹nh 5 nÄƒm gáº§n nháº¥t) ngay cáº£ khi khÃ´ng cÃ³ dá»¯ liá»‡u.
+ * Lấy dữ liệu biểu đồ Publication Trends theo từng năm.
+ * Sử dụng generate_series để đảm bảo luôn trả về đủ số năm (mặc định 5 năm gần nhất) ngay cả khi không có dữ liệu.
  *
  * @async
- * @param {number|string} year - NÄƒm lÃ m má»‘c (máº·c Ä‘á»‹nh lÃ  nÄƒm hiá»‡n táº¡i)
- * @param {number|string} limit - Sá»‘ lÆ°á»£ng nÄƒm muá»‘n thá»‘ng kÃª (máº·c Ä‘á»‹nh lÃ  5)
+ * @param {number|string} year - Năm l� m mốc (mặc định l�  năm hiện tại)
+ * @param {number|string} limit - Số lượng năm muốn thống kê (mặc định l�  5)
  * @returns {Promise<{ target_year: number, items: Array<{year: number, manuscripts: number, published: number}> }>}
  */
 export const getPublicationTrends = async (year, limit = 5) => {
@@ -144,20 +144,20 @@ export const getPublicationTrends = async (year, limit = 5) => {
             items: result
         };
     } catch (error) {
-        logger.error('Lá»—i khi láº¥y dá»¯ liá»‡u publication trends (Admin Service):', error);
+        logger.error('Lỗi khi lấy dữ liệu publication trends (Admin Service):', error);
         throw error;
     }
 };
 
 /**
- * Láº¥y danh sÃ¡ch tráº¡ng thÃ¡i Volume & Issue cho Admin Dashboard, cÃ³ phÃ¢n trang.
+ * Lấy danh sách trạng thái Volume & Issue cho Admin Dashboard, có phân trang.
  *
  * @async
- * @param {object} options - TÃ¹y chá»n truy váº¥n.
- * @param {number} [options.page=1] - Trang hiá»‡n táº¡i.
- * @param {number} [options.limit=10] - Sá»‘ lÆ°á»£ng báº£n ghi trÃªn má»—i trang.
+ * @param {object} options - Tùy chọn truy vấn.
+ * @param {number} [options.page=1] - Trang hiện tại.
+ * @param {number} [options.limit=10] - Số lượng bản ghi trên mỗi trang.
  * @returns {Promise<{items: Array<object>, pagination: object}>}
- * @throws {Error} NÃ©m lá»—i náº¿u truy váº¥n CSDL tháº¥t báº¡i.
+ * @throws {Error} Ném lỗi nếu truy vấn CSDL thất bại.
  */
 export const getVolumeIssueStatus = async ({ page = 1, limit = 10 }) => {
     try {
@@ -194,17 +194,17 @@ export const getVolumeIssueStatus = async ({ page = 1, limit = 10 }) => {
 
         return { items, pagination: { total, page: parseInt(page, 10), limit: parseInt(limit, 10), totalPages: Math.ceil(total / limit) } };
     } catch (error) {
-        logger.error('Lá»—i khi láº¥y Volume & Issue Status (Admin Service):', error);
+        logger.error('Lỗi khi lấy Volume & Issue Status (Admin Service):', error);
         throw error;
     }
 };
 
 /**
- * Láº¥y toÃ n bá»™ danh sÃ¡ch tráº¡ng thÃ¡i Volume & Issue Ä‘á»ƒ export CSV.
+ * Lấy to� n bộ danh sách trạng thái Volume & Issue để export CSV.
  *
  * @async
  * @returns {Promise<Array<object>>}
- * @throws {Error} NÃ©m lá»—i náº¿u truy váº¥n CSDL tháº¥t báº¡i.
+ * @throws {Error} Ném lỗi nếu truy vấn CSDL thất bại.
  */
 export const exportVolumeIssueStatus = async () => {
     try {
@@ -234,25 +234,25 @@ export const exportVolumeIssueStatus = async () => {
             progress: Number(item.progress)
         }));
     } catch (error) {
-        logger.error('Lá»—i khi láº¥y dá»¯ liá»‡u Volume & Issue Status Ä‘á»ƒ export (Admin Service):', error);
+        logger.error('Lỗi khi lấy dữ liệu Volume & Issue Status để export (Admin Service):', error);
         throw error;
     }
 };
 
 /**
- * Láº¥y danh sÃ¡ch ngÆ°á»i dÃ¹ng (User) dÃ nh cho Admin, há»— trá»£ tÃ¬m kiáº¿m, lá»c, sáº¯p xáº¿p vÃ  phÃ¢n trang.
+ * Lấy danh sách người dùng (User) d� nh cho Admin, hỗ trợ tìm kiếm, lọc, sắp xếp v�  phân trang.
  *
  * @async
- * @param {object} options - TÃ¹y chá»n truy váº¥n.
- * @param {string} [options.search] - Tá»« khÃ³a tÃ¬m kiáº¿m (email, first_name, last_name).
- * @param {string} [options.role] - Lá»c theo role.
- * @param {string} [options.status] - Lá»c theo status.
- * @param {number} [options.page=1] - Trang hiá»‡n táº¡i.
- * @param {number} [options.limit=10] - Sá»‘ lÆ°á»£ng báº£n ghi trÃªn má»—i trang.
- * @param {string} [options.sortBy='email'] - TrÆ°á»ng cáº§n sáº¯p xáº¿p.
- * @param {'ASC'|'DESC'} [options.sortOrder='DESC'] - Thá»© tá»± sáº¯p xáº¿p.
+ * @param {object} options - Tùy chọn truy vấn.
+ * @param {string} [options.search] - Từ khóa tìm kiếm (email, first_name, last_name).
+ * @param {string} [options.role] - Lọc theo role.
+ * @param {string} [options.status] - Lọc theo status.
+ * @param {number} [options.page=1] - Trang hiện tại.
+ * @param {number} [options.limit=10] - Số lượng bản ghi trên mỗi trang.
+ * @param {string} [options.sortBy='email'] - Trường cần sắp xếp.
+ * @param {'ASC'|'DESC'} [options.sortOrder='DESC'] - Thứ tự sắp xếp.
  * @returns {Promise<{items: Array<object>, pagination: object}>}
- * @throws {Error} NÃ©m lá»—i náº¿u truy váº¥n CSDL tháº¥t báº¡i.
+ * @throws {Error} Ném lỗi nếu truy vấn CSDL thất bại.
  */
 export const getUsersList = async (options = {}) => {
     const {
@@ -296,18 +296,18 @@ export const getUsersList = async (options = {}) => {
 
         return { items, pagination: { total, page: parseInt(page, 10), limit: parseInt(limit, 10), totalPages: Math.ceil(total / limit) } };
     } catch (error) {
-        logger.error('Lá»—i khi láº¥y danh sÃ¡ch User (Admin Service):', error);
+        logger.error('Lỗi khi lấy danh sách User (Admin Service):', error);
         throw error;
     }
 };
 
 /**
- * Láº¥y thÃ´ng tin chi tiáº¿t cá»§a má»™t ngÆ°á»i dÃ¹ng theo ID.
+ * Lấy thông tin chi tiết của một người dùng theo ID.
  *
  * @async
- * @param {string} userId - UUID cá»§a ngÆ°á»i dÃ¹ng.
- * @returns {Promise<object|null>} Tráº£ vá» Ä‘á»‘i tÆ°á»£ng ngÆ°á»i dÃ¹ng hoáº·c null náº¿u khÃ´ng tÃ¬m tháº¥y.
- * @throws {Error} NÃ©m lá»—i náº¿u truy váº¥n CSDL tháº¥t báº¡i.
+ * @param {string} userId - UUID của người dùng.
+ * @returns {Promise<object|null>} Trả về đối tượng người dùng hoặc null nếu không tìm thấy.
+ * @throws {Error} Ném lỗi nếu truy vấn CSDL thất bại.
  */
 export const getUserDetailById = async (userId) => {
     try {
@@ -317,13 +317,13 @@ export const getUserDetailById = async (userId) => {
         });
         return user;
     } catch (error) {
-        logger.error(`Lá»—i khi láº¥y chi tiáº¿t User ID ${userId} (Admin Service):`, error);
+        logger.error(`Lỗi khi lấy chi tiết User ID ${userId} (Admin Service):`, error);
         throw error;
     }
 };
 
 /**
- * Admin cáº­p nháº­t thÃ´ng tin ngÆ°á»i dÃ¹ng báº¥t ká»³
+ * Admin cập nhật thông tin người dùng bất kỳ
  */
 export const updateUserByAdmin = async (userId, data) => {
     try {

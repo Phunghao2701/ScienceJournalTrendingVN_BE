@@ -1,4 +1,4 @@
-﻿import { articleExists } from '../../article/services/article.service.js';
+import { articleExists } from '../../article/services/article.service.js';
 import { checkAuthorsExistence } from '../../author/services/author.service.js';
 
 export const validateCreateArticle = async (request, reply) => {
@@ -17,9 +17,9 @@ export const validateCreateArticle = async (request, reply) => {
     if (authors.length > 0) {
       try {
         const authorIdsNotExist = await checkAuthorsExistence(authors);
-        if (authorIdsNotExist.length > 0) return reply.status(400).send({ success: false, code: "AUTHORS_NOT_FOUND", message: `CÃ¡c tÃ¡c giáº£ vá»›i ID sau khÃ´ng tá»“n táº¡i: ${authorIdsNotExist.join(", ")}` });
+        if (authorIdsNotExist.length > 0) return reply.status(400).send({ success: false, code: "AUTHORS_NOT_FOUND", message: `Các tác giả với ID sau không tồn tại: ${authorIdsNotExist.join(", ")}` });
       } catch (error) {
-        return reply.status(500).send({ success: false, code: "INTERNAL_SERVER_ERROR", message: "Lá»—i há»‡ thá»‘ng khi xÃ¡c thá»±c tÃ¡c giáº£!" });
+        return reply.status(500).send({ success: false, code: "INTERNAL_SERVER_ERROR", message: "Lỗi hệ thống khi xác thực tác giả!" });
       }
     }
   }
@@ -41,10 +41,10 @@ export const validateCreateArticle = async (request, reply) => {
 
 export const validateUpdateArticle = async (request, reply) => {
   const dataBody = request.body;
-  if (dataBody.sub_topic !== undefined && !Array.isArray(dataBody.sub_topic)) return reply.status(400).send({ success: false, code: "SUB_TOPIC_INVALID", message: "sub_topic pháº£i lÃ  máº£ng" });
+  if (dataBody.sub_topic !== undefined && !Array.isArray(dataBody.sub_topic)) return reply.status(400).send({ success: false, code: "SUB_TOPIC_INVALID", message: "sub_topic phải l�  mảng" });
 
   if (dataBody.authors !== undefined) {
-    if (!Array.isArray(dataBody.authors)) return reply.status(400).send({ success: false, code: "AUTHORS_INVALID", message: "authors pháº£i lÃ  máº£ng" });
+    if (!Array.isArray(dataBody.authors)) return reply.status(400).send({ success: false, code: "AUTHORS_INVALID", message: "authors phải l�  mảng" });
     const normalizedAuthors = dataBody.authors.map((item) => {
       if (typeof item === "object" && item !== null) return Number(item.author_id || item.id);
       return Number(item);
@@ -53,9 +53,9 @@ export const validateUpdateArticle = async (request, reply) => {
     if (normalizedAuthors.length > 0) {
       try {
         const authorIdsNotExist = await checkAuthorsExistence(normalizedAuthors);
-        if (authorIdsNotExist.length > 0) return reply.status(400).send({ success: false, code: "AUTHORS_NOT_FOUND", message: `CÃ¡c tÃ¡c giáº£ vá»›i ID sau khÃ´ng tá»“n táº¡i: ${authorIdsNotExist.join(", ")}` });
+        if (authorIdsNotExist.length > 0) return reply.status(400).send({ success: false, code: "AUTHORS_NOT_FOUND", message: `Các tác giả với ID sau không tồn tại: ${authorIdsNotExist.join(", ")}` });
       } catch (error) {
-        return reply.status(500).send({ success: false, code: "INTERNAL_SERVER_ERROR", message: "Lá»—i há»‡ thá»‘ng khi xÃ¡c thá»±c tÃ¡c giáº£!" });
+        return reply.status(500).send({ success: false, code: "INTERNAL_SERVER_ERROR", message: "Lỗi hệ thống khi xác thực tác giả!" });
       }
     }
     request.body.authors = normalizedAuthors;
@@ -75,7 +75,7 @@ export const validateUpdateArticle = async (request, reply) => {
 
 export const validateId = async (request, reply) => {
   const { id } = request.params;
-  if (!Number.isInteger(Number(id))) return reply.status(400).send({ success: false, code: "ID_INVALID", message: "ID pháº£i lÃ  má»™t sá»‘ nguyÃªn" });
+  if (!Number.isInteger(Number(id))) return reply.status(400).send({ success: false, code: "ID_INVALID", message: "ID phải l�  một số nguyên" });
 
-  if (await articleExists(Number(id)) === false) return reply.status(404).send({ success: false, code: "ARTICLE_NOT_FOUND", message: "KhÃ´ng tÃ¬m tháº¥y Article vá»›i ID Ä‘Ã£ cho" });
+  if (await articleExists(Number(id)) === false) return reply.status(404).send({ success: false, code: "ARTICLE_NOT_FOUND", message: "Không tìm thấy Article với ID đã cho" });
 };

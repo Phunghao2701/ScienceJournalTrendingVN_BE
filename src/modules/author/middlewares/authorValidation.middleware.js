@@ -22,7 +22,7 @@ const VALID_NAME_REGEX = /^[\p{L}]+(?:[\s'-][\p{L}]+)*$/u;
 
 export const validateAuthorId = async (request, reply) => {
   const idParam = request.params.id;
-  if (!/^\d+$/.test(idParam)) return reply.status(400).send({ success: false, code: AUTHOR_CODES.AUTHOR_INVALID_ID, message: "ID tác giả không hợp lệ, phải là số nguyên dương" });
+  if (!/^\d+$/.test(idParam)) return reply.status(400).send({ success: false, code: AUTHOR_CODES.AUTHOR_INVALID_ID, message: "ID tác giả không hợp lệ, phải l�  số nguyên dương" });
 
   const id = parseInt(idParam, 10);
   if (id <= 0) return reply.status(400).send({ success: false, code: AUTHOR_CODES.AUTHOR_INVALID_ID, message: "ID tác giả không hợp lệ, phải lớn hơn 0" });
@@ -74,7 +74,7 @@ export const validateUpdateAuthor = async (request, reply) => {
   for (const field of intFields) {
     if (body[field] !== undefined) {
       const val = parseInt(body[field]);
-      if (isNaN(val) || val < 0) return reply.status(400).send({ success: false, code: AUTHOR_CODES.AUTHOR_INVALID_BODY, message: `${field} phải là số nguyên không âm` });
+      if (isNaN(val) || val < 0) return reply.status(400).send({ success: false, code: AUTHOR_CODES.AUTHOR_INVALID_BODY, message: `${field} phải l�  số nguyên không âm` });
     }
   }
 };

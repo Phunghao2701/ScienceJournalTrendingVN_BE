@@ -1,4 +1,4 @@
-﻿import crypto from 'crypto';
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import prisma from '../../../config/prisma.js';
 import { emailHelper } from '../../../utils/email.js';
@@ -9,14 +9,14 @@ export const hashToken = (token) => {
 };
 
 /**
- * Gá»­i yÃªu cáº§u quÃªn máº­t kháº©u
+ * Gửi yêu cầu quên mật khẩu
  * @param {string} email
  * @returns {Promise<Object>}
  */
 export const requestPasswordReset = async (email) => {
   const normalizedEmail = email.trim().toLowerCase();
 
-  // TÃ¬m user theo email
+  // Tìm user theo email
   const user = await prisma.user.findFirst({
     where: {
       email: {
@@ -27,30 +27,30 @@ export const requestPasswordReset = async (email) => {
     select: { user_id: true, first_name: true, type: true }
   });
 
-  // Äá»ƒ trÃ¡nh lá»™ tÃ i khoáº£n, náº¿u email khÃ´ng tá»“n táº¡i, tráº£ vá» success: true nhÆ°ng khÃ´ng lÃ m gÃ¬ tiáº¿p theo
+  // Để tránh lộ t� i khoản, nếu email không tồn tại, trả về success: true nhưng không l� m gì tiếp theo
   if (!user) {
     return {
       success: true,
-      message: 'Náº¿u email tá»“n táº¡i trong há»‡ thá»‘ng, link Ä‘áº·t láº¡i máº­t kháº©u sáº½ Ä‘Æ°á»£c gá»­i Ä‘áº¿n email cá»§a báº¡n'
+      message: 'Nếu email tồn tại trong hệ thống, link đặt lại mật khẩu sẽ được gửi đến email của bạn'
     };
   }
 
-  // Chá»‰ cho phÃ©p reset password vá»›i tÃ i khoáº£n type = LOCAL
+  // Chỉ cho phép reset password với t� i khoản type = LOCAL
   if (user.type !== 'LOCAL') {
-    const error = new Error('TÃ i khoáº£n khÃ´ng há»— trá»£ reset password báº±ng email/password');
+    const error = new Error('T� i khoản không hỗ trợ reset password bằng email/password');
     error.statusCode = 403;
     error.code = 'RESET_PASSWORD_NOT_SUPPORTED';
     throw error;
   }
 
-  // Táº¡o reset token
+  // Tạo reset token
   const resetToken = crypto.randomBytes(32).toString('hex');
   const tokenHash = hashToken(resetToken);
 
-  // Set háº¡n sá»­ dá»¥ng 15 phÃºt
+  // Set hạn sử dụng 15 phút
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
-  // LÆ°u token Ä‘Ã£ hash vÃ o database
+  // Lưu token đã hash v� o database
   await prisma.password_Reset_Token.create({
     data: {
       user_id: user.user_id,
@@ -59,17 +59,17 @@ export const requestPasswordReset = async (email) => {
     }
   });
 
-  // Gá»­i email chá»©a link reset password cho ngÆ°á»i dÃ¹ng
+  // Gửi email chứa link reset password cho người dùng
   await emailHelper.sendResetPasswordEmail(normalizedEmail, user.first_name, resetToken);
 
   return {
     success: true,
-    message: 'Náº¿u email tá»“n táº¡i trong há»‡ thá»‘ng, link Ä‘áº·t láº¡i máº­t kháº©u sáº½ Ä‘Æ°á»£c gá»­i Ä‘áº¿n email cá»§a báº¡n'
+    message: 'Nếu email tồn tại trong hệ thống, link đặt lại mật khẩu sẽ được gửi đến email của bạn'
   };
 };
 
 /**
- * Äáº·t láº¡i máº­t kháº©u
+ * Đặt lại mật khẩu
  * @param {string} token
  * @param {string} newPassword
  * @returns {Promise<Object>}
@@ -77,41 +77,41 @@ export const requestPasswordReset = async (email) => {
 export const resetPassword = async (token, newPassword) => {
   const tokenHash = hashToken(token);
 
-  // Truy váº¥n láº¥y token thÃ´ng tin
+  // Truy vấn lấy token thông tin
   const tokenData = await prisma.password_Reset_Token.findFirst({
     where: { token_hash: tokenHash },
     select: { token_id: true, user_id: true, expires_at: true, used_at: true }
   });
 
   if (!tokenData) {
-    const error = new Error('Token khÃ´ng há»£p lá»‡ hoáº·c Ä‘Ã£ háº¿t háº¡n');
+    const error = new Error('Token không hợp lệ hoặc đã hết hạn');
     error.statusCode = 400;
     error.code = 'INVALID_OR_EXPIRED_TOKEN';
     throw error;
   }
 
-  // Kiá»ƒm tra Ä‘Ã£ sá»­ dá»¥ng
+  // Kiểm tra đã sử dụng
   if (tokenData.used_at) {
-    const error = new Error('Token khÃ´ng há»£p lá»‡ hoáº·c Ä‘Ã£ háº¿t háº¡n');
+    const error = new Error('Token không hợp lệ hoặc đã hết hạn');
     error.statusCode = 400;
     error.code = 'INVALID_OR_EXPIRED_TOKEN';
     throw error;
   }
 
-  // Kiá»ƒm tra háº¿t háº¡n
+  // Kiểm tra hết hạn
   const now = new Date();
   if (new Date(tokenData.expires_at) <= now) {
-    const error = new Error('Token khÃ´ng há»£p lá»‡ hoáº·c Ä‘Ã£ háº¿t háº¡n');
+    const error = new Error('Token không hợp lệ hoặc đã hết hạn');
     error.statusCode = 400;
     error.code = 'INVALID_OR_EXPIRED_TOKEN';
     throw error;
   }
 
-  // Hash máº­t kháº©u má»›i báº±ng bcryptjs
+  // Hash mật khẩu mới bằng bcryptjs
   const salt = await bcrypt.genSalt(10);
   const passwordHash = await bcrypt.hash(newPassword, salt);
 
-  // Báº¯t Ä‘áº§u transaction Ä‘á»ƒ update password vÃ  cáº­p nháº­t tráº¡ng thÃ¡i token
+  // Bắt đầu transaction để update password v�  cập nhật trạng thái token
   await prisma.$transaction([
     prisma.user.update({
       where: { user_id: tokenData.user_id },
@@ -125,7 +125,7 @@ export const resetPassword = async (token, newPassword) => {
 
   return {
     success: true,
-    message: 'Äáº·t láº¡i máº­t kháº©u thÃ nh cÃ´ng'
+    message: 'Đặt lại mật khẩu th� nh công'
   };
 };
 

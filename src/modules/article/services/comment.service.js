@@ -1,8 +1,8 @@
-﻿import prisma from '../../../config/prisma.js';
+import prisma from '../../../config/prisma.js';
 import logger from '../../../utils/logger.js';
 
 /**
- * Láº¥y danh sÃ¡ch comment cá»§a má»™t bÃ i bÃ¡o, kÃ¨m thÃ´ng tin ngÆ°á»i bÃ¬nh luáº­n
+ * Lấy danh sách comment của một b� i báo, kèm thông tin người bình luận
  * @param {number} articleId
  * @returns {Promise<Array>}
  */
@@ -28,13 +28,13 @@ export const getArticleComments = async (articleId) => {
       };
     });
   } catch (error) {
-    logger.error(`Lá»—i khi láº¥y danh sÃ¡ch comment cá»§a bÃ i bÃ¡o ${articleId}:`, error);
+    logger.error(`Lỗi khi lấy danh sách comment của b� i báo ${articleId}:`, error);
     throw error;
   }
 };
 
 /**
- * Táº¡o comment má»›i cho má»™t bÃ i bÃ¡o
+ * Tạo comment mới cho một b� i báo
  * @param {number} articleId
  * @param {string} userId
  * @param {string} content
@@ -63,17 +63,17 @@ export const createComment = async (articleId, userId, content) => {
       url_image: user?.url_image || null,
     };
   } catch (error) {
-    logger.error(`Lá»—i khi táº¡o comment cho bÃ i bÃ¡o ${articleId}:`, error);
+    logger.error(`Lỗi khi tạo comment cho b� i báo ${articleId}:`, error);
     throw error;
   }
 };
 
 /**
- * Cáº­p nháº­t ná»™i dung comment, chá»‰ cho phÃ©p chá»§ sá»Ÿ há»¯u comment
+ * Cập nhật nội dung comment, chỉ cho phép chủ sở hữu comment
  * @param {number} commentId
  * @param {string} userId
  * @param {string} content
- * @returns {Promise<Object|null>} null náº¿u comment khÃ´ng tá»“n táº¡i hoáº·c khÃ´ng thuá»™c quyá»n sá»Ÿ há»¯u
+ * @returns {Promise<Object|null>} null nếu comment không tồn tại hoặc không thuộc quyền sở hữu
  */
 export const updateComment = async (commentId, userId, content) => {
   try {
@@ -91,13 +91,13 @@ export const updateComment = async (commentId, userId, content) => {
 
     return updated;
   } catch (error) {
-    logger.error(`Lá»—i khi cáº­p nháº­t comment ${commentId}:`, error);
+    logger.error(`Lỗi khi cập nhật comment ${commentId}:`, error);
     throw error;
   }
 };
 
 /**
- * XÃ³a comment, chá»‰ cho phÃ©p chá»§ sá»Ÿ há»¯u comment
+ * Xóa comment, chỉ cho phép chủ sở hữu comment
  * @param {number} commentId
  * @param {string} userId
  * @returns {Promise<boolean>}
@@ -117,7 +117,7 @@ export const deleteComment = async (commentId, userId) => {
 
     return true;
   } catch (error) {
-    logger.error(`Lá»—i khi xÃ³a comment ${commentId}:`, error);
+    logger.error(`Lỗi khi xóa comment ${commentId}:`, error);
     throw error;
   }
 };

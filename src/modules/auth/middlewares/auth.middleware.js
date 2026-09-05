@@ -1,4 +1,4 @@
-﻿import jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import logger from '../../../utils/logger.js';
 import { createLog } from '../../system/services/log.service.js';
 
@@ -8,7 +8,7 @@ export const requireAuth = async (request, reply) => {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return reply.status(401).send({
         success: false,
-        message: 'KhÃ´ng tÃ¬m tháº¥y token xÃ¡c thá»±c hoáº·c token khÃ´ng há»£p lá»‡'
+        message: 'Không tìm thấy token xác thực hoặc token không hợp lệ'
       });
     }
 
@@ -16,7 +16,7 @@ export const requireAuth = async (request, reply) => {
     if (!process.env.JWT_SECRET) {
       return reply.status(500).send({
         success: false,
-        message: 'Lá»—i cáº¥u hÃ¬nh JWT trÃªn server'
+        message: 'Lỗi cấu hình JWT trên server'
       });
     }
 
@@ -25,7 +25,7 @@ export const requireAuth = async (request, reply) => {
   } catch (error) {
     return reply.status(401).send({
       success: false,
-      message: 'Token xÃ¡c thá»±c khÃ´ng há»£p lá»‡ hoáº·c Ä‘Ã£ háº¿t háº¡n'
+      message: 'Token xác thực không hợp lệ hoặc đã hết hạn'
     });
   }
 };
@@ -46,7 +46,7 @@ export const verifyToken = async (request, reply) => {
     return reply.status(401).send({
       success: false,
       code: "ACCESS_TOKEN_MISSING",
-      message: "Báº¡n chÆ°a Ä‘Äƒng nháº­p hoáº·c phiÃªn lÃ m viá»‡c Ä‘Ã£ háº¿t háº¡n"
+      message: "Bạn chưa đăng nhập hoặc phiên l� m việc đã hết hạn"
     });
   }
 
@@ -57,7 +57,7 @@ export const verifyToken = async (request, reply) => {
     return reply.status(401).send({
       success: false,
       code: "ACCESS_TOKEN_EXPIRED",
-      message: "Access token khÃ´ng há»£p lá»‡ hoáº·c Ä‘Ã£ háº¿t háº¡n"
+      message: "Access token không hợp lệ hoặc đã hết hạn"
     });
   }
 };
@@ -66,7 +66,7 @@ export const verifyAdmin = async (request, reply) => {
   if (!request.user) {
     return reply.status(401).send({
       success: false,
-      message: 'XÃ¡c thá»±c khÃ´ng thÃ nh cÃ´ng, khÃ´ng tÃ¬m tháº¥y thÃ´ng tin ngÆ°á»i dÃ¹ng.',
+      message: 'Xác thực không th� nh công, không tìm thấy thông tin người dùng.',
       code: 'UNAUTHENTICATED'
     });
   }
@@ -77,12 +77,12 @@ export const verifyAdmin = async (request, reply) => {
       userRole: request.user.role,
       action: 'SYSTEM',
       level: 'WARNING',
-      message: `TÃ i khoáº£n ${request.user.email} cá»‘ gáº¯ng truy cáº­p tÃ i nguyÃªn Admin (Bá»‹ tá»« chá»‘i)`,
+      message: `T� i khoản ${request.user.email} cố gắng truy cập t� i nguyên Admin (Bị từ chối)`,
       metadata: { ip: request.ip, path: request.url }
     });
     return reply.status(403).send({
       success: false,
-      message: 'Báº¡n khÃ´ng cÃ³ quyá»n truy cáº­p tÃ i nguyÃªn nÃ y',
+      message: 'Bạn không có quyền truy cập t� i nguyên n� y',
       code: 'NO_PERMISSION'
     });
   }

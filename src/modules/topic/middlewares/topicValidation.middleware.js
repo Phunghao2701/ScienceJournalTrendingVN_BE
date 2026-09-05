@@ -1,7 +1,7 @@
-﻿import pool from "../../../config/database.js";
+import pool from "../../../config/database.js";
 
 /**
- * Helper kiá»ƒm tra má»™t giÃ¡ trá»‹ cÃ³ pháº£i lÃ  chuá»—i/sá»‘ chá»‰ chá»©a cÃ¡c chá»¯ sá»‘ vÃ  lá»›n hÆ¡n 0 hay khÃ´ng.
+ * Helper kiểm tra một giá trị có phải l�  chuỗi/số chỉ chứa các chữ số v�  lớn hơn 0 hay không.
  */
 export const isValidPositiveInt = (val) => {
   if (val === undefined || val === null || val === "") return false;
@@ -10,7 +10,7 @@ export const isValidPositiveInt = (val) => {
 };
 
 /**
- * Middleware kiá»ƒm tra URL parameter id pháº£i lÃ  sá»‘ nguyÃªn dÆ°Æ¡ng há»£p lá»‡.
+ * Middleware kiểm tra URL parameter id phải l�  số nguyên dương hợp lệ.
  */
 export const validateTopicId = (req, res, next) => {
   const { id } = req.params;
@@ -19,7 +19,7 @@ export const validateTopicId = (req, res, next) => {
     return res.status(400).json({
       success: false,
       code: "INVALID_TOPIC_ID",
-      message: "Id khÃ´ng há»£p lá»‡, pháº£i lÃ  sá»‘ nguyÃªn dÆ°Æ¡ng (khÃ´ng chá»©a chá»¯ hoáº·c kÃ½ tá»± Ä‘áº·c biá»‡t)"
+      message: "Id không hợp lệ, phải l�  số nguyên dương (không chứa chữ hoặc ký tự đặc biệt)"
     });
   }
 

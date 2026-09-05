@@ -1,8 +1,8 @@
-﻿import prisma from '../../../config/prisma.js';
+import prisma from '../../../config/prisma.js';
 import logger from '../../../utils/logger.js';
 
 /**
- * XÃ³a tÃ i khoáº£n theo user_id
+ * Xóa t� i khoản theo user_id
  * @param {string} userId 
  * @returns {Promise<Object>}
  */
@@ -15,7 +15,7 @@ export const deleteUserById = async (userId) => {
     return deletedUser;
   } catch (error) {
     if (error.code === 'P2025') { // Prisma error code for Record to delete does not exist
-      const customError = new Error('TÃ i khoáº£n khÃ´ng tá»“n táº¡i hoáº·c Ä‘Ã£ bá»‹ xÃ³a trÆ°á»›c Ä‘Ã³');
+      const customError = new Error('T� i khoản không tồn tại hoặc đã bị xóa trước đó');
       customError.statusCode = 404;
       throw customError;
     }
@@ -24,7 +24,7 @@ export const deleteUserById = async (userId) => {
 };
 
 /**
- * Cáº­p nháº­t thÃ´ng tin tÃ i khoáº£n ngÆ°á»i dÃ¹ng
+ * Cập nhật thông tin t� i khoản người dùng
  * @param {string} userId 
  * @param {Object} updateData 
  * @returns {Promise<Object>}
@@ -44,7 +44,7 @@ export const updateUserProfile = async (userId, updateData) => {
   }
 
   if (Object.keys(dataToUpdate).length === 0) {
-    // Náº¿u khÃ´ng truyá»n dá»¯ liá»‡u gÃ¬ Ä‘á»•i, tráº£ vá» thÃ´ng tin user hiá»‡n táº¡i
+    // Nếu không truyền dữ liệu gì đổi, trả về thông tin user hiện tại
     const user = await prisma.user.findUnique({
       where: { user_id: userId },
       select: { user_id: true, email: true, first_name: true, last_name: true, date_of_birth: true, gender: true, url_image: true, role: true, status: true, type: true }
@@ -61,7 +61,7 @@ export const updateUserProfile = async (userId, updateData) => {
     return updatedUser;
   } catch (error) {
     if (error.code === 'P2025') {
-      const customError = new Error('KhÃ´ng tÃ¬m tháº¥y tÃ i khoáº£n Ä‘á»ƒ cáº­p nháº­t');
+      const customError = new Error('Không tìm thấy t� i khoản để cập nhật');
       customError.statusCode = 404;
       throw customError;
     }
@@ -89,7 +89,7 @@ export const getUserById = async (userId) => {
 
     return user;
   } catch (error) {
-    logger.error(`Lá»—i database trong hÃ m getUserById vá»›i id ${userId}:`, error);
+    logger.error(`Lỗi database trong h� m getUserById với id ${userId}:`, error);
     throw error;
   }
 };

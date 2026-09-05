@@ -1,10 +1,10 @@
-﻿import prisma from '../../../config/prisma.js';
+import prisma from '../../../config/prisma.js';
 import logger from '../../../utils/logger.js';
 
 /**
- * Láº¥y thÃ´ng tin tÃ¡c giáº£ theo ID
+ * Lấy thông tin tác giả theo ID
  * @param {number} authorId
- * @returns {Promise<Object>} ThÃ´ng tin tÃ¡c giáº£
+ * @returns {Promise<Object>} Thông tin tác giả
  */
 export const getAuthorById = async (authorId) => {
   try {
@@ -29,16 +29,16 @@ export const getAuthorById = async (authorId) => {
     const res = await prisma.$queryRawUnsafe(queryText, authorId);
     return res[0];
   } catch (error) {
-    logger.error("Lá»—i khi láº¥y thÃ´ng tin tÃ¡c giáº£ theo ID:", error);
+    logger.error("Lỗi khi lấy thông tin tác giả theo ID:", error);
     throw error;
   }
 };
 
 /**
- * PhÃ¢n tÃ­ch danh má»¥c chuyÃªn ngÃ nh (Subject Category) nghiÃªn cá»©u cá»§a má»™t tÃ¡c giáº£
+ * Phân tích danh mục chuyên ng� nh (Subject Category) nghiên cứu của một tác giả
  * @async
- * @param {number|string} authorId - ID cá»§a tÃ¡c giáº£ cáº§n thá»‘ng kÃª
- * @returns {Promise<Array>} Máº£ng danh sÃ¡ch chuyÃªn ngÃ nh, sáº£n lÆ°á»£ng bÃ i bÃ¡o vÃ  tá»· lá»‡ %
+ * @param {number|string} authorId - ID của tác giả cần thống kê
+ * @returns {Promise<Array>} Mảng danh sách chuyên ng� nh, sản lượng b� i báo v�  tỷ lệ %
  */
 export const getAuthorAreasBreakdownService = async (authorId) => {
   try {
@@ -75,7 +75,7 @@ export const getAuthorAreasBreakdownService = async (authorId) => {
     return res;
   } catch (error) {
     logger.error(
-      "Xuáº¥t hiá»‡n lá»—i khi phÃ¢n tÃ­ch lÄ©nh vá»±c nghiÃªn cá»©u cá»§a tÃ¡c giáº£:",
+      "Xuất hiện lỗi khi phân tích lĩnh vực nghiên cứu của tác giả:",
       error,
     );
     throw error;
@@ -83,18 +83,18 @@ export const getAuthorAreasBreakdownService = async (authorId) => {
 };
 
 /**
- * Láº¥y danh sÃ¡ch bÃ i viáº¿t cá»§a má»™t tÃ¡c giáº£ vá»›i phÃ¢n trang an toÃ n.
+ * Lấy danh sách b� i viết của một tác giả với phân trang an to� n.
  *
- * - Chuyá»ƒn `limit` vÃ  `page` sang cÃ¡c giÃ¡ trá»‹ an toÃ n (`safeLimit`, `safePage`).
- * - TÃ­nh `OFFSET` tá»« `page` vÃ  `limit` rá»“i truy váº¥n cÆ¡ sá»Ÿ dá»¯ liá»‡u.
+ * - Chuyển `limit` v�  `page` sang các giá trị an to� n (`safeLimit`, `safePage`).
+ * - Tính `OFFSET` từ `page` v�  `limit` rồi truy vấn cơ sở dữ liệu.
  *
  * @async
- * @param {number} authorId - ID tÃ¡c giáº£ cáº§n láº¥y bÃ i viáº¿t.
- * @param {number|string} [limit=10] - Sá»‘ bÃ i viáº¿t trÃªn má»—i trang (hoáº·c chuá»—i cÃ³ thá»ƒ parse Ä‘Æ°á»£c).
- * @param {number|string} [page=1] - Sá»‘ trang (1-based) (hoáº·c chuá»—i cÃ³ thá»ƒ parse Ä‘Æ°á»£c).
- * @returns {Promise<Array<Object>>} Máº£ng cÃ¡c bÃ i viáº¿t, má»—i pháº§n tá»­ chá»©a cÃ¡c trÆ°á»ng:
+ * @param {number} authorId - ID tác giả cần lấy b� i viết.
+ * @param {number|string} [limit=10] - Số b� i viết trên mỗi trang (hoặc chuỗi có thể parse được).
+ * @param {number|string} [page=1] - Số trang (1-based) (hoặc chuỗi có thể parse được).
+ * @returns {Promise<Array<Object>>} Mảng các b� i viết, mỗi phần tử chứa các trường:
  * `{ article_id, title, abstract, publication_year, doi, primary_topic, created_at }`.
- * @throws {Error} NÃ©m lá»—i khi truy váº¥n DB gáº·p váº¥n Ä‘á»; caller nÃªn xá»­ lÃ½ vÃ  log lá»—i.
+ * @throws {Error} Ném lỗi khi truy vấn DB gặp vấn đề; caller nên xử lý v�  log lỗi.
  */
 export const getAuthorArticlesService = async (authorId, limit, page) => {
   try {
@@ -158,17 +158,17 @@ export const getAuthorArticlesService = async (authorId, limit, page) => {
       },
     };
   } catch (error) {
-    logger.error("Lá»—i khi láº¥y bÃ i viáº¿t cá»§a tÃ¡c giáº£:", error);
+    logger.error("Lỗi khi lấy b� i viết của tác giả:", error);
     throw error;
   }
 };
 
 /**
- * Láº¥y báº£ng xáº¿p háº¡ng tÃ¡c giáº£ vá»›i phÃ¢n trang.
+ * Lấy bảng xếp hạng tác giả với phân trang.
  *
- * @param {number|string} [limit=10] - Sá»‘ lÆ°á»£ng báº£n ghi trÃªn má»—i trang.
- * @param {number|string} [page=1] - Sá»‘ trang báº¯t Ä‘áº§u tá»« 1.
- * @returns {Promise<Array<Object>>} Danh sÃ¡ch tÃ¡c giáº£ vÃ  chá»‰ sá»‘ xáº¿p háº¡ng.
+ * @param {number|string} [limit=10] - Số lượng bản ghi trên mỗi trang.
+ * @param {number|string} [page=1] - Số trang bắt đầu từ 1.
+ * @returns {Promise<Array<Object>>} Danh sách tác giả v�  chỉ số xếp hạng.
  */
 export const getAuthorLeaderboardService = async (limit, page) => {
   try {
@@ -222,16 +222,16 @@ export const getAuthorLeaderboardService = async (limit, page) => {
       },
     };
   } catch (error) {
-    logger.error("Lá»—i khi láº¥y báº£ng xáº¿p háº¡ng tÃ¡c giáº£:", error);
+    logger.error("Lỗi khi lấy bảng xếp hạng tác giả:", error);
     throw error;
   }
 };
 
 /**
- * Kiá»ƒm tra xem má»™t tÃ¡c giáº£ cÃ³ tá»“n táº¡i hay khÃ´ng.
+ * Kiểm tra xem một tác giả có tồn tại hay không.
  *
- * @param {number|string} authorId - ID cá»§a tÃ¡c giáº£ cáº§n kiá»ƒm tra
- * @returns {Promise<boolean>} `true` náº¿u tá»“n táº¡i, ngÆ°á»£c láº¡i `false`
+ * @param {number|string} authorId - ID của tác giả cần kiểm tra
+ * @returns {Promise<boolean>} `true` nếu tồn tại, ngược lại `false`
  */
 export const isAuthorExists = async (authorId) => {
   try {
@@ -239,16 +239,16 @@ export const isAuthorExists = async (authorId) => {
     const res = await prisma.$queryRawUnsafe(queryText, authorId);
     return res.length > 0;
   } catch (error) {
-    logger.error("Lá»—i khi kiá»ƒm tra tá»“n táº¡i cá»§a tÃ¡c giáº£:", error);
+    logger.error("Lỗi khi kiểm tra tồn tại của tác giả:", error);
     throw error;
   }
 };
 
 /**
- * Kiá»ƒm tra tá»“n táº¡i má»™t loáº¡t tÃ¡c giáº£ vÃ  tráº£ vá» nhá»¯ng `author_id` khÃ´ng tá»“n táº¡i.
+ * Kiểm tra tồn tại một loạt tác giả v�  trả về những `author_id` không tồn tại.
  *
- * @param {Array<number|string>} authorIds - Máº£ng ID tÃ¡c giáº£ cáº§n kiá»ƒm tra
- * @returns {Promise<number[]>} Máº£ng cÃ¡c `author_id` khÃ´ng tá»“n táº¡i trÃªn há»‡ thá»‘ng
+ * @param {Array<number|string>} authorIds - Mảng ID tác giả cần kiểm tra
+ * @returns {Promise<number[]>} Mảng các `author_id` không tồn tại trên hệ thống
  */
 export const checkAuthorsExistence = async (authorIds) => {
   try {
@@ -274,19 +274,19 @@ export const checkAuthorsExistence = async (authorIds) => {
 
     return nonExistingAuthorIds;
   } catch (error) {
-    logger.error("Lá»—i khi kiá»ƒm tra tá»“n táº¡i cá»§a cÃ¡c tÃ¡c giáº£:", error);
+    logger.error("Lỗi khi kiểm tra tồn tại của các tác giả:", error);
     throw error;
   }
 };
 
 /**
- * Táº¡o cÃ¡c quan há»‡ `Author_Article` cho má»™t bÃ i bÃ¡o.
- * - Bá» qua náº¿u `authorIds` rá»—ng.
- * - Loáº¡i bá» trÃ¹ng láº·p trÆ°á»›c khi chÃ¨n.
+ * Tạo các quan hệ `Author_Article` cho một b� i báo.
+ * - Bỏ qua nếu `authorIds` rỗng.
+ * - Loại bỏ trùng lặp trước khi chèn.
  *
- * @param {number|string} articleId - ID bÃ i bÃ¡o
- * @param {Array<number|string>} authorIds - Máº£ng ID tÃ¡c giáº£ Ä‘á»ƒ gÃ¡n cho bÃ i bÃ¡o
- * @returns {Promise<void>} KhÃ´ng tráº£ vá» dá»¯ liá»‡u, nÃ©m lá»—i náº¿u cÃ³ sá»± cá»‘
+ * @param {number|string} articleId - ID b� i báo
+ * @param {Array<number|string>} authorIds - Mảng ID tác giả để gán cho b� i báo
+ * @returns {Promise<void>} Không trả về dữ liệu, ném lỗi nếu có sự cố
  */
 export const createAuthorArticleRelationships = async (
   articleId,
@@ -297,7 +297,7 @@ export const createAuthorArticleRelationships = async (
       return;
     }
 
-    // Loáº¡i bá» trÃ¹ng láº·p, chuyá»ƒn thÃ nh Number, vÃ  lá»c bá» NaN / ID khÃ´ng há»£p lá»‡
+    // Loại bỏ trùng lặp, chuyển th� nh Number, v�  lọc bỏ NaN / ID không hợp lệ
     const uniqueAuthorIds = [...new Set(
       authorIds
         .map((id) => Number(id))
@@ -316,19 +316,19 @@ export const createAuthorArticleRelationships = async (
 
     await prisma.$executeRawUnsafe(query, articleId, uniqueAuthorIds);
 
-    logger.info(`ÄÃ£ táº¡o ${uniqueAuthorIds.length} quan há»‡ tÃ¡c giáº£ - bÃ i bÃ¡o`);
+    logger.info(`Đã tạo ${uniqueAuthorIds.length} quan hệ tác giả - b� i báo`);
   } catch (error) {
-    logger.error("Lá»—i khi táº¡o quan há»‡ tÃ¡c giáº£ - bÃ i bÃ¡o:", error);
+    logger.error("Lỗi khi tạo quan hệ tác giả - b� i báo:", error);
     throw error;
   }
 };
 
 /**
- * Cáº­p nháº­t toÃ n bá»™ má»‘i quan há»‡ tÃ¡c giáº£ cho bÃ i bÃ¡o
- * - BÆ°á»›c 1: XÃ³a toÃ n bá»™ liÃªn káº¿t tÃ¡c giáº£ cÅ© cá»§a bÃ i bÃ¡o nÃ y
- * - BÆ°á»›c 2: Gá»i láº¡i hÃ m create Ä‘á»ƒ chÃ¨n danh sÃ¡ch má»›i sáº¡ch sáº½
- * * @param {number|string} articleId - ID cá»§a bÃ i bÃ¡o cáº§n cáº­p nháº­t
- * @param {number[]} authorIds - Máº£ng cÃ¡c ID tÃ¡c giáº£ má»›i (vÃ­ dá»¥: [1, 2, 3])
+ * Cập nhật to� n bộ mối quan hệ tác giả cho b� i báo
+ * - Bước 1: Xóa to� n bộ liên kết tác giả cũ của b� i báo n� y
+ * - Bước 2: Gọi lại h� m create để chèn danh sách mới sạch sẽ
+ * * @param {number|string} articleId - ID của b� i báo cần cập nhật
+ * @param {number[]} authorIds - Mảng các ID tác giả mới (ví dụ: [1, 2, 3])
  */
 export const updateAuthorArticleRelationships = async (
   articleId,
@@ -337,7 +337,7 @@ export const updateAuthorArticleRelationships = async (
   try {
     if (!articleId) {
       throw new Error(
-        "Thiáº¿u articleId khi gá»i hÃ m updateAuthorArticleRelationships",
+        "Thiếu articleId khi gọi h� m updateAuthorArticleRelationships",
       );
     }
 
@@ -350,20 +350,20 @@ export const updateAuthorArticleRelationships = async (
     await createAuthorArticleRelationships(articleId, authorIds);
 
     logger.info(
-      `ÄÃ£ cáº­p nháº­t lÃ m má»›i toÃ n bá»™ quan há»‡ tÃ¡c giáº£ cho bÃ i bÃ¡o ID: ${articleId}`,
+      `Đã cập nhật l� m mới to� n bộ quan hệ tác giả cho b� i báo ID: ${articleId}`,
     );
   } catch (error) {
     logger.error(
-      `Lá»—i khi cáº­p nháº­t quan há»‡ tÃ¡c giáº£ cho bÃ i bÃ¡o ID ${articleId}:`,
+      `Lỗi khi cập nhật quan hệ tác giả cho b� i báo ID ${articleId}:`,
       error,
     );
     throw error;
   }
 };
 
-//Pháº§n API xá»­ lÃ½ CRUD Author - Author Management
+//Phần API xử lý CRUD Author - Author Management
 /**
- * Láº¥y danh sÃ¡ch authors vá»›i pagination vÃ  search
+ * Lấy danh sách authors với pagination v�  search
  */
 export const getAllAuthors = async ({ page = 1, limit = 10, search = "", sort = "impact" }) => {
   const offset = (page - 1) * limit;
@@ -423,7 +423,7 @@ export const getAllAuthors = async ({ page = 1, limit = 10, search = "", sort = 
 };
 
 /**
- * Táº¡o má»›i author
+ * Tạo mới author
  */
 export const createAuthor = async (data) => {
   const {
@@ -459,7 +459,7 @@ export const createAuthor = async (data) => {
   return result[0];
 };
 /**
- * Cáº­p nháº­t author theo ID
+ * Cập nhật author theo ID
  */
 export const updateAuthor = async (id, data) => {
   const allowedFields = [
@@ -480,7 +480,7 @@ export const updateAuthor = async (id, data) => {
   );
 
   if (!existing.length) {
-    const error = new Error("TÃ¡c giáº£ khÃ´ng tá»“n táº¡i");
+    const error = new Error("Tác giả không tồn tại");
     error.statusCode = 404;
     error.code = "AUTHOR_NOT_FOUND";
     throw error;
@@ -519,14 +519,14 @@ export const deleteAuthor = async (id) => {
   );
 
   if (!existing.length) {
-    const error = new Error("TÃ¡c giáº£ khÃ´ng tá»“n táº¡i");
+    const error = new Error("Tác giả không tồn tại");
     error.statusCode = 404;
     error.code = "AUTHOR_NOT_FOUND";
     throw error;
   }
 
   if (existing[0].is_deleted) {
-    const error = new Error("TÃ¡c giáº£ Ä‘Ã£ bá»‹ xÃ³a trÆ°á»›c Ä‘Ã³");
+    const error = new Error("Tác giả đã bị xóa trước đó");
     error.statusCode = 400;
     error.code = "AUTHOR_ALREADY_DELETED";
     throw error;
@@ -543,7 +543,7 @@ export const deleteAuthor = async (id) => {
 };
 
 /**
- * Restore author Ä‘Ã£ bá»‹ soft delete
+ * Restore author đã bị soft delete
  */
 export const restoreAuthor = async (id) => {
   const existing = await prisma.$queryRawUnsafe(
@@ -552,14 +552,14 @@ export const restoreAuthor = async (id) => {
   );
 
   if (!existing.length) {
-    const error = new Error("TÃ¡c giáº£ khÃ´ng tá»“n táº¡i");
+    const error = new Error("Tác giả không tồn tại");
     error.statusCode = 404;
     error.code = "AUTHOR_NOT_FOUND";
     throw error;
   }
 
   if (!existing[0].is_deleted) {
-    const error = new Error("TÃ¡c giáº£ Ä‘ang active, khÃ´ng cáº§n restore");
+    const error = new Error("Tác giả đang active, không cần restore");
     error.statusCode = 400;
     error.code = "AUTHOR_ALREADY_ACTIVE";
     throw error;

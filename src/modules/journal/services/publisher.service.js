@@ -1,10 +1,10 @@
-﻿import prisma from '../../../config/prisma.js';
+import prisma from '../../../config/prisma.js';
 import logger from '../../../utils/logger.js';
 
 /**
- * Kiá»ƒm tra NhÃ  xuáº¥t báº£n cÃ³ tá»“n táº¡i trong há»‡ thá»‘ng hay khÃ´ng
- * @param {string|number} id - ID cá»§a nhÃ  xuáº¥t báº£n
- * @returns {Promise<boolean>} true náº¿u tá»“n táº¡i, false náº¿u khÃ´ng
+ * Kiểm tra Nh�  xuất bản có tồn tại trong hệ thống hay không
+ * @param {string|number} id - ID của nh�  xuất bản
+ * @returns {Promise<boolean>} true nếu tồn tại, false nếu không
  */
 export const publisherExist = async (id) => {
     try {
@@ -20,13 +20,13 @@ export const publisherExist = async (id) => {
         return result[0]?.exists || false;
 
     } catch (error) {
-        logger.error(`[Service Error] Lá»—i khi kiá»ƒm tra publisherExist vá»›i ID ${id}:`, error);
+        logger.error(`[Service Error] Lỗi khi kiểm tra publisherExist với ID ${id}:`, error);
         throw error; 
     }
 };
 
 /**
- * Kiá»ƒm tra NhÃ  xuáº¥t báº£n cÃ³ Ä‘ang bá»‹ xÃ³a má»m (is_deleted = true) hay khÃ´ng
+ * Kiểm tra Nh�  xuất bản có đang bị xóa mềm (is_deleted = true) hay không
  * @param {string|number} id
  * @returns {Promise<boolean>}
  */
@@ -36,13 +36,13 @@ export const publisherIsDeleted = async (id) => {
         const result = await prisma.$queryRawUnsafe(query, id);
         return result.length > 0;
     } catch (error) {
-        logger.error(`[Service Error] Lá»—i khi kiá»ƒm tra publisherIsDeleted vá»›i ID ${id}:`, error);
+        logger.error(`[Service Error] Lỗi khi kiểm tra publisherIsDeleted với ID ${id}:`, error);
         throw error;
     }
 };
 
 /**
- * Láº¥y danh sÃ¡ch NhÃ  xuáº¥t báº£n cÃ³ phÃ¢n trang vÃ  tÃ¬m kiáº¿m
+ * Lấy danh sách Nh�  xuất bản có phân trang v�  tìm kiếm
  * @param {Object} params
  * @returns {Promise<Object>}
  */
@@ -81,7 +81,7 @@ export const getPublishers = async ({ page = 1, limit = 100, search = '' }) => {
             }
         };
     } catch (error) {
-        logger.error('[Service Error] Lá»—i khi láº¥y danh sÃ¡ch publisher:', error);
+        logger.error('[Service Error] Lỗi khi lấy danh sách publisher:', error);
         throw error;
     }
 };
@@ -92,7 +92,7 @@ export const getPublisherById = async (id) => {
         const result = await prisma.$queryRawUnsafe(query, id);
         return result[0] || null;
     } catch (error) {
-        logger.error(`[Service Error] Lá»—i khi láº¥y publisher ${id}:`, error);
+        logger.error(`[Service Error] Lỗi khi lấy publisher ${id}:`, error);
         throw error;
     }
 };
@@ -107,7 +107,7 @@ export const createPublisher = async (data) => {
         const result = await prisma.$queryRawUnsafe(query, data.display_name, data.image_url);
         return result[0];
     } catch (error) {
-        logger.error('[Service Error] Lá»—i khi táº¡o publisher:', error);
+        logger.error('[Service Error] Lỗi khi tạo publisher:', error);
         throw error;
     }
 };
@@ -124,7 +124,7 @@ export const updatePublisher = async (id, data) => {
         const result = await prisma.$queryRawUnsafe(query, data.display_name, data.image_url, id);
         return result[0] || null;
     } catch (error) {
-        logger.error(`[Service Error] Lá»—i khi cáº­p nháº­t publisher ${id}:`, error);
+        logger.error(`[Service Error] Lỗi khi cập nhật publisher ${id}:`, error);
         throw error;
     }
 };
@@ -140,7 +140,7 @@ export const deletePublisher = async (id) => {
         const result = await prisma.$queryRawUnsafe(query, id);
         return result[0] || null;
     } catch (error) {
-        logger.error(`[Service Error] Lá»—i khi xÃ³a publisher ${id}:`, error);
+        logger.error(`[Service Error] Lỗi khi xóa publisher ${id}:`, error);
         throw error;
     }
 };
@@ -156,7 +156,7 @@ export const restorePublisher = async (id) => {
         const result = await prisma.$queryRawUnsafe(query, id);
         return result[0] || null;
     } catch (error) {
-        logger.error(`[Service Error] Lá»—i khi khÃ´i phá»¥c publisher ${id}:`, error);
+        logger.error(`[Service Error] Lỗi khi khôi phục publisher ${id}:`, error);
         throw error;
     }
 };

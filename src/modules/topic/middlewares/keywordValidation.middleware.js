@@ -12,7 +12,7 @@ export const validateKeywordBody = async (request, reply) => {
 
 export const validateKeywordId = async (request, reply) => {
   const idParam = request.params.id || request.params.keywordId;
-  if (!/^\d+$/.test(idParam)) return reply.status(400).send({ success: false, code: "KEYWORD_INVALID_ID", message: "ID không hợp lệ, phải là số nguyên dương" });
+  if (!/^\d+$/.test(idParam)) return reply.status(400).send({ success: false, code: "KEYWORD_INVALID_ID", message: "ID không hợp lệ, phải l�  số nguyên dương" });
   const id = parseInt(idParam, 10);
   if (id <= 0) return reply.status(400).send({ success: false, code: "KEYWORD_INVALID_ID", message: "ID phải lớn hơn 0" });
   request.keywordId = id;
@@ -26,7 +26,7 @@ export const validateDeleteWatchedKeyword = async (request, reply) => {
 
   const userId = request.user.user_id;
   const isOwner = await checkProjectOwnership(projectId, userId);
-  if (!isOwner) return reply.status(404).send({ success: false, code: "PROJECT_NOT_FOUND", message: "Không tìm thấy dự án hoặc bạn không có quyền truy cập dự án này" });
+  if (!isOwner) return reply.status(404).send({ success: false, code: "PROJECT_NOT_FOUND", message: "Không tìm thấy dự án hoặc bạn không có quyền truy cập dự án n� y" });
 };
 
 export const validateUpdateWatchedKeywords = async (request, reply) => {
@@ -34,11 +34,11 @@ export const validateUpdateWatchedKeywords = async (request, reply) => {
   if (isNaN(projectId) || projectId <= 0) return reply.status(400).send({ success: false, code: "PROJECT_INVALID_ID", message: "ID dự án không hợp lệ" });
 
   const { keyword_ids } = request.body || {};
-  if (!Array.isArray(keyword_ids)) return reply.status(400).send({ success: false, code: "KEYWORD_INVALID_BODY", message: "keyword_ids phải là một mảng" });
+  if (!Array.isArray(keyword_ids)) return reply.status(400).send({ success: false, code: "KEYWORD_INVALID_BODY", message: "keyword_ids phải l�  một mảng" });
 
   if (keyword_ids.length > 0) {
     const isValid = keyword_ids.every((id) => Number.isInteger(id) && id > 0);
-    if (!isValid) return reply.status(400).send({ success: false, code: "KEYWORD_INVALID_BODY", message: "Các phần tử trong keyword_ids phải là số nguyên dương" });
+    if (!isValid) return reply.status(400).send({ success: false, code: "KEYWORD_INVALID_BODY", message: "Các phần tử trong keyword_ids phải l�  số nguyên dương" });
   }
 
   const userId = request.user.user_id;

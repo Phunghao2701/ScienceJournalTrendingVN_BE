@@ -1,17 +1,17 @@
-﻿import jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import prisma from '../../../config/prisma.js';
 import logger from '../../../utils/logger.js';
 import axios from 'axios';
 
 /**
- * Táº¡o token JWT Ä‘á»ƒ duy trÃ¬ phiÃªn Ä‘Äƒng nháº­p cho user
- * @param {Object} user - Äá»‘i tÆ°á»£ng user cáº§n táº¡o token
- * @param {string} user.user_id - ID cá»§a user
- * @param {string} user.email - Email cá»§a user
- * @param {string} user.role - Vai trÃ² cá»§a user
- * @returns {string} Chuá»—i JWT token
- * @throws {Error} NÃ©m lá»—i náº¿u chÆ°a Ä‘á»‹nh nghÄ©a JWT_SECRET trong biáº¿n mÃ´i trÆ°á»ng
+ * Tạo token JWT để duy trì phiên đăng nhập cho user
+ * @param {Object} user - Đối tượng user cần tạo token
+ * @param {string} user.user_id - ID của user
+ * @param {string} user.email - Email của user
+ * @param {string} user.role - Vai trò của user
+ * @returns {string} Chuỗi JWT token
+ * @throws {Error} Ném lỗi nếu chưa định nghĩa JWT_SECRET trong biến môi trường
  */
 const signToken = (user) => {
   if (!process.env.JWT_SECRET) {
@@ -32,47 +32,47 @@ const signToken = (user) => {
 };
 
 /**
- * XÃ¡c thá»±c Google ID Token gá»­i tá»« phÃ­a client báº±ng cÃ¡ch gá»i trá»±c tiáº¿p Google Tokeninfo API
- * @param {string} idToken - Chuá»—i Google ID Token nháº­n tá»« phÃ­a client
- * @returns {Promise<Object>} Tráº£ vá» thÃ´ng tin payload cá»§a user tá»« Google náº¿u token há»£p lá»‡
- * @throws {Error} NÃ©m lá»—i 400 náº¿u token khÃ´ng há»£p lá»‡ hoáº·c lá»—i 500 náº¿u khÃ´ng thá»ƒ káº¿t ná»‘i tá»›i Google API
+ * Xác thực Google ID Token gửi từ phía client bằng cách gọi trực tiếp Google Tokeninfo API
+ * @param {string} idToken - Chuỗi Google ID Token nhận từ phía client
+ * @returns {Promise<Object>} Trả về thông tin payload của user từ Google nếu token hợp lệ
+ * @throws {Error} Ném lỗi 400 nếu token không hợp lệ hoặc lỗi 500 nếu không thể kết nối tới Google API
  */
 export const verifyGoogleIdToken = async (idToken) => {
   try {
     const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));
-      const error = new Error(errData.error_description || 'MÃ£ xÃ¡c thá»±c Google khÃ´ng há»£p lá»‡');
+      const error = new Error(errData.error_description || 'Mã xác thực Google không hợp lệ');
       error.statusCode = 400;
       throw error;
     }
     return await response.json();
   } catch (err) {
     if (err.statusCode) throw err;
-    const error = new Error('KhÃ´ng thá»ƒ káº¿t ná»‘i Ä‘áº¿n dá»‹ch vá»¥ xÃ¡c thá»±c Google');
+    const error = new Error('Không thể kết nối đến dịch vụ xác thực Google');
     error.statusCode = 500;
     throw error;
   }
 };
 
 /**
- * Thá»±c hiá»‡n Ä‘Äƒng nháº­p hoáº·c Ä‘Äƒng kÃ½ tÃ i khoáº£n tá»± Ä‘á»™ng khi xÃ¡c thá»±c báº±ng Google ID Token
- * @param {string} idToken - Chuá»—i Google ID Token nháº­n tá»« phÃ­a client
- * @returns {Promise<Object>} Tráº£ vá» Ä‘á»‘i tÆ°á»£ng chá»©a JWT access token vÃ  thÃ´ng tin chi tiáº¿t ngÆ°á»i dÃ¹ng
- * @throws {Error} NÃ©m lá»—i 403 náº¿u tÃ i khoáº£n bá»‹ khÃ³a (BANNED) hoáº·c lá»—i validation khÃ¡c
+ * Thực hiện đăng nhập hoặc đăng ký t� i khoản tự động khi xác thực bằng Google ID Token
+ * @param {string} idToken - Chuỗi Google ID Token nhận từ phía client
+ * @returns {Promise<Object>} Trả về đối tượng chứa JWT access token v�  thông tin chi tiết người dùng
+ * @throws {Error} Ném lỗi 403 nếu t� i khoản bị khóa (BANNED) hoặc lỗi validation khác
  */
 export const loginOrCreateWithGoogle = async (idToken) => {
   if (!idToken || !idToken.trim()) {
-    const error = new Error('Token xÃ¡c thá»±c Google khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng');
+    const error = new Error('Token xác thực Google không được để trống');
     error.statusCode = 400;
     throw error;
   }
 
-  // 1. XÃ¡c thá»±c ID Token vá»›i Google
+  // 1. Xác thực ID Token với Google
   const googleUser = await verifyGoogleIdToken(idToken);
   const email = googleUser.email.trim().toLowerCase();
 
-  // 2. TÃ¬m xem email Ä‘Ã£ tá»“n táº¡i trong DB chÆ°a
+  // 2. Tìm xem email đã tồn tại trong DB chưa
   let user = await prisma.user.findFirst({
     where: {
       email: {
@@ -83,14 +83,14 @@ export const loginOrCreateWithGoogle = async (idToken) => {
   });
 
   if (user) {
-    // Náº¿u tÃ i khoáº£n bá»‹ khÃ³a
+    // Nếu t� i khoản bị khóa
     if (user.status === 'BANNED') {
-      const error = new Error('TÃ i khoáº£n Ä‘Ã£ bá»‹ khÃ³a');
+      const error = new Error('T� i khoản đã bị khóa');
       error.statusCode = 403;
       throw error;
     }
 
-    // Náº¿u tráº¡ng thÃ¡i lÃ  INACTIVE hoáº·c auth_provider chÆ°a pháº£i GOOGLE, cáº­p nháº­t láº¡i
+    // Nếu trạng thái l�  INACTIVE hoặc auth_provider chưa phải GOOGLE, cập nhật lại
     if (user.status === 'INACTIVE' || user.type !== 'GOOGLE') {
       user = await prisma.user.update({
         where: { user_id: user.user_id },
@@ -101,7 +101,7 @@ export const loginOrCreateWithGoogle = async (idToken) => {
       });
     }
   } else {
-    // ÄÄƒng kÃ½ má»›i tÃ i khoáº£n báº±ng Google
+    // Đăng ký mới t� i khoản bằng Google
     user = await prisma.user.create({
       data: {
         user_id: crypto.randomUUID(),
@@ -129,12 +129,12 @@ export const loginOrCreateWithGoogle = async (idToken) => {
 };
 
 /**
- * HÃ m Ä‘á»•i Authorization Code láº¥y id_token tá»« Google
- * @param {string} code - MÃ£ code nháº­n tá»« useGoogleLogin (chuá»—i 4/0A...)
- * @returns {Promise<string|null>} - Tráº£ vá» chuá»—i id_token (JWT) náº¿u thÃ nh cÃ´ng
+ * H� m đổi Authorization Code lấy id_token từ Google
+ * @param {string} code - Mã code nhận từ useGoogleLogin (chuỗi 4/0A...)
+ * @returns {Promise<string|null>} - Trả về chuỗi id_token (JWT) nếu th� nh công
  */
 export const getTokenId = async (code) => {
-  // 1. Cáº¥u hÃ¬nh cÃ¡c thÃ´ng sá»‘ cáº§n thiáº¿t
+  // 1. Cấu hình các thông số cần thiết
   const tokenUrl = process.env.TOKEN_URL;
   
   const payload = {
@@ -146,23 +146,23 @@ export const getTokenId = async (code) => {
   };
 
   try {
-    // 2. Thá»±c hiá»‡n gá»i API vá»›i Ä‘á»‹nh dáº¡ng x-www-form-urlencoded
+    // 2. Thực hiện gọi API với định dạng x-www-form-urlencoded
     const response = await axios.post(tokenUrl, payload, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
     });
 
-    // 3. Google tráº£ vá» data thÃ nh cÃ´ng, láº¥y ra id_token
+    // 3. Google trả về data th� nh công, lấy ra id_token
     if (response.data && response.data.id_token) {
-      console.log('Láº¥y id_token thÃ nh cÃ´ng!');
-      return response.data.id_token; // ÄÃ¢y lÃ  chuá»—i JWT báº¡n cáº§n Ä‘em vá» Backend
+      console.log('Lấy id_token th� nh công!');
+      return response.data.id_token; // Đây l�  chuỗi JWT bạn cần đem về Backend
     }
     
     return null;
   } catch (error) {
     logger.error(
-      'Lá»—i khi Ä‘á»•i code láº¥y id_token:', 
+      'Lỗi khi đổi code lấy id_token:', 
       error.response?.data || error.message
     );
     throw error;

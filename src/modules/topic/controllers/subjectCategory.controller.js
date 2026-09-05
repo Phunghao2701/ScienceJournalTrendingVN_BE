@@ -1,4 +1,4 @@
-﻿import * as subjectCategoryService from '../services/subjectCategory.service.js';
+import * as subjectCategoryService from '../services/subjectCategory.service.js';
 import logger from '../../../utils/logger.js';
 
 export const subjectCategoryServiceRef = { ...subjectCategoryService };
@@ -7,10 +7,10 @@ export const createSubjectCategory = async (request, reply) => {
   try {
     const { subject_area_id, display_name, description } = request.body;
     const newSubjectCategory = await subjectCategoryServiceRef.createSubjectCategory({ subject_area_id, display_name, description });
-    return reply.status(201).send({ success: true, message: "Táº¡o Subject Category thÃ nh cÃ´ng", code: "CREATE_SUBJECT_CATEGORY_SUCCESS", data: newSubjectCategory });
+    return reply.status(201).send({ success: true, message: "Tạo Subject Category th� nh công", code: "CREATE_SUBJECT_CATEGORY_SUCCESS", data: newSubjectCategory });
   } catch (error) {
-    logger.error("Lá»—i khi táº¡o Subject Category á»Ÿ controller:", error.message);
-    return reply.status(500).send({ success: false, message: "Lá»—i há»‡ thá»‘ng khi táº¡o má»›i Subject Category", code: "SERVER_ERROR", data: null });
+    logger.error("Lỗi khi tạo Subject Category ở controller:", error.message);
+    return reply.status(500).send({ success: false, message: "Lỗi hệ thống khi tạo mới Subject Category", code: "SERVER_ERROR", data: null });
   }
 };
 
@@ -21,10 +21,10 @@ export const getSubjectCategories = async (request, reply) => {
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.max(1, parseInt(limit, 10) || 10);
 
-    return reply.status(200).send({ success: true, message: "Láº¥y danh sÃ¡ch subject category thÃ nh cÃ´ng", code: "GET_SUBJECT_CATEGORIES_SUCCESS", data: { items, pagination: { page: pageNum, limit: limitNum, total } } });
+    return reply.status(200).send({ success: true, message: "Lấy danh sách subject category th� nh công", code: "GET_SUBJECT_CATEGORIES_SUCCESS", data: { items, pagination: { page: pageNum, limit: limitNum, total } } });
   } catch (error) {
-    logger.error("Lá»—i khi láº¥y danh sÃ¡ch Subject Category á»Ÿ controller:", error.message);
-    return reply.status(500).send({ success: false, message: "Lá»—i há»‡ thá»‘ng khi láº¥y danh sÃ¡ch Subject Category", code: "SERVER_ERROR", data: null });
+    logger.error("Lỗi khi lấy danh sách Subject Category ở controller:", error.message);
+    return reply.status(500).send({ success: false, message: "Lỗi hệ thống khi lấy danh sách Subject Category", code: "SERVER_ERROR", data: null });
   }
 };
 
@@ -32,12 +32,12 @@ export const getSubjectCategoryById = async (request, reply) => {
   try {
     const { id } = request.params;
     const subjectCategory = await subjectCategoryServiceRef.getSubjectCategoryById(id);
-    if (!subjectCategory) return reply.status(404).send({ success: false, message: "KhÃ´ng tÃ¬m tháº¥y Subject Category", code: "SUBJECT_CATEGORY_NOT_FOUND", data: null });
+    if (!subjectCategory) return reply.status(404).send({ success: false, message: "Không tìm thấy Subject Category", code: "SUBJECT_CATEGORY_NOT_FOUND", data: null });
 
-    return reply.status(200).send({ success: true, message: "Láº¥y chi tiáº¿t subject category thÃ nh cÃ´ng", code: "GET_SUBJECT_CATEGORY_SUCCESS", data: subjectCategory });
+    return reply.status(200).send({ success: true, message: "Lấy chi tiết subject category th� nh công", code: "GET_SUBJECT_CATEGORY_SUCCESS", data: subjectCategory });
   } catch (error) {
-    logger.error(`Lá»—i khi láº¥y chi tiáº¿t Subject Category ID ${request.params.id} á»Ÿ controller:`, error.message);
-    return reply.status(500).send({ success: false, message: "Lá»—i há»‡ thá»‘ng khi láº¥y thÃ´ng tin chi tiáº¿t Subject Category", code: "SERVER_ERROR", data: null });
+    logger.error(`Lỗi khi lấy chi tiết Subject Category ID ${request.params.id} ở controller:`, error.message);
+    return reply.status(500).send({ success: false, message: "Lỗi hệ thống khi lấy thông tin chi tiết Subject Category", code: "SERVER_ERROR", data: null });
   }
 };
 
@@ -47,10 +47,10 @@ export const updateSubjectCategory = async (request, reply) => {
     const { subject_area_id, display_name, description } = request.body;
     const updatedSubjectCategory = await subjectCategoryServiceRef.updateSubjectCategory(id, { subject_area_id, display_name, description });
 
-    return reply.status(200).send({ success: true, message: "Cáº­p nháº­t Subject Category thÃ nh cÃ´ng", code: "UPDATE_SUBJECT_CATEGORY_SUCCESS", data: updatedSubjectCategory });
+    return reply.status(200).send({ success: true, message: "Cập nhật Subject Category th� nh công", code: "UPDATE_SUBJECT_CATEGORY_SUCCESS", data: updatedSubjectCategory });
   } catch (error) {
-    logger.error(`Lá»—i khi cáº­p nháº­t Subject Category ID ${request.params.id} á»Ÿ controller:`, error.message);
-    return reply.status(500).send({ success: false, message: "Lá»—i há»‡ thá»‘ng khi cáº­p nháº­t Subject Category", code: "SERVER_ERROR", data: null });
+    logger.error(`Lỗi khi cập nhật Subject Category ID ${request.params.id} ở controller:`, error.message);
+    return reply.status(500).send({ success: false, message: "Lỗi hệ thống khi cập nhật Subject Category", code: "SERVER_ERROR", data: null });
   }
 };
 
@@ -58,16 +58,16 @@ export const deleteSubjectCategory = async (request, reply) => {
   try {
     const { id } = request.params;
     const exists = await subjectCategoryServiceRef.subjectCategoryExist(id);
-    if (!exists) return reply.status(404).send({ success: false, message: "KhÃ´ng tÃ¬m tháº¥y Subject Category", code: "SUBJECT_CATEGORY_NOT_FOUND", data: null });
+    if (!exists) return reply.status(404).send({ success: false, message: "Không tìm thấy Subject Category", code: "SUBJECT_CATEGORY_NOT_FOUND", data: null });
 
     const isDeleted = await subjectCategoryServiceRef.subjectCategoryIsDeleted(id);
-    if (isDeleted) return reply.status(400).send({ success: false, message: "KhÃ´ng delete subject category Ä‘Ã£ bá»‹ delete", code: "SUBJECT_CATEGORY_ALREADY_DELETED", data: null });
+    if (isDeleted) return reply.status(400).send({ success: false, message: "Không delete subject category đã bị delete", code: "SUBJECT_CATEGORY_ALREADY_DELETED", data: null });
 
     const deletedSubjectCategory = await subjectCategoryServiceRef.deleteSubjectCategory(id);
-    return reply.status(200).send({ success: true, message: "XÃ³a Subject Category thÃ nh cÃ´ng", code: "DELETE_SUBJECT_CATEGORY_SUCCESS", data: deletedSubjectCategory });
+    return reply.status(200).send({ success: true, message: "Xóa Subject Category th� nh công", code: "DELETE_SUBJECT_CATEGORY_SUCCESS", data: deletedSubjectCategory });
   } catch (error) {
-    logger.error(`Lá»—i khi xÃ³a má»m Subject Category ID ${request.params.id} á»Ÿ controller:`, error.message);
-    return reply.status(500).send({ success: false, message: "Lá»—i há»‡ thá»‘ng khi xÃ³a Subject Category", code: "SERVER_ERROR", data: null });
+    logger.error(`Lỗi khi xóa mềm Subject Category ID ${request.params.id} ở controller:`, error.message);
+    return reply.status(500).send({ success: false, message: "Lỗi hệ thống khi xóa Subject Category", code: "SERVER_ERROR", data: null });
   }
 };
 
@@ -75,16 +75,16 @@ export const restoreSubjectCategory = async (request, reply) => {
   try {
     const { id } = request.params;
     const exists = await subjectCategoryServiceRef.subjectCategoryExist(id);
-    if (!exists) return reply.status(404).send({ success: false, message: "KhÃ´ng tÃ¬m tháº¥y Subject Category", code: "SUBJECT_CATEGORY_NOT_FOUND", data: null });
+    if (!exists) return reply.status(404).send({ success: false, message: "Không tìm thấy Subject Category", code: "SUBJECT_CATEGORY_NOT_FOUND", data: null });
 
     const isDeleted = await subjectCategoryServiceRef.subjectCategoryIsDeleted(id);
-    if (!isDeleted) return reply.status(400).send({ success: false, message: "KhÃ´ng khÃ´i phá»¥c subject category chÆ°a bá»‹ delete", code: "SUBJECT_CATEGORY_NOT_DELETED", data: null });
+    if (!isDeleted) return reply.status(400).send({ success: false, message: "Không khôi phục subject category chưa bị delete", code: "SUBJECT_CATEGORY_NOT_DELETED", data: null });
 
     const restoredSubjectCategory = await subjectCategoryServiceRef.restoreSubjectCategory(id);
-    return reply.status(200).send({ success: true, message: "KhÃ´i phá»¥c Subject Category thÃ nh cÃ´ng", code: "RESTORE_SUBJECT_CATEGORY_SUCCESS", data: restoredSubjectCategory });
+    return reply.status(200).send({ success: true, message: "Khôi phục Subject Category th� nh công", code: "RESTORE_SUBJECT_CATEGORY_SUCCESS", data: restoredSubjectCategory });
   } catch (error) {
-    logger.error(`Lá»—i khi khÃ´i phá»¥c Subject Category ID ${request.params.id} á»Ÿ controller:`, error.message);
-    return reply.status(500).send({ success: false, message: "Lá»—i há»‡ thá»‘ng khi khÃ´i phá»¥c Subject Category", code: "SERVER_ERROR", data: null });
+    logger.error(`Lỗi khi khôi phục Subject Category ID ${request.params.id} ở controller:`, error.message);
+    return reply.status(500).send({ success: false, message: "Lỗi hệ thống khi khôi phục Subject Category", code: "SERVER_ERROR", data: null });
   }
 };
 
@@ -92,16 +92,16 @@ export const getSubjectCategoryStatistics = async (request, reply) => {
   try {
     const { id } = request.params;
     const exists = await subjectCategoryServiceRef.subjectCategoryExist(id);
-    if (!exists) return reply.status(404).send({ success: false, message: "KhÃ´ng tÃ¬m tháº¥y Subject Category", code: "SUBJECT_CATEGORY_NOT_FOUND", data: null });
+    if (!exists) return reply.status(404).send({ success: false, message: "Không tìm thấy Subject Category", code: "SUBJECT_CATEGORY_NOT_FOUND", data: null });
 
     const isDeleted = await subjectCategoryServiceRef.subjectCategoryIsDeleted(id);
-    if (isDeleted) return reply.status(404).send({ success: false, message: "KhÃ´ng tÃ¬m tháº¥y Subject Category", code: "SUBJECT_CATEGORY_NOT_FOUND", data: null });
+    if (isDeleted) return reply.status(404).send({ success: false, message: "Không tìm thấy Subject Category", code: "SUBJECT_CATEGORY_NOT_FOUND", data: null });
 
     const stats = await subjectCategoryServiceRef.getSubjectCategoryStatistics(id);
-    return reply.status(200).send({ success: true, message: "Láº¥y thá»‘ng kÃª subject category thÃ nh cÃ´ng", code: "GET_SUBJECT_CATEGORY_STATISTICS_SUCCESS", data: stats });
+    return reply.status(200).send({ success: true, message: "Lấy thống kê subject category th� nh công", code: "GET_SUBJECT_CATEGORY_STATISTICS_SUCCESS", data: stats });
   } catch (error) {
-    logger.error(`Lá»—i khi láº¥y thá»‘ng kÃª Subject Category ID ${request.params.id} á»Ÿ controller:`, error.message);
-    return reply.status(500).send({ success: false, message: "Lá»—i há»‡ thá»‘ng khi láº¥y thá»‘ng kÃª Subject Category", code: "SERVER_ERROR", data: null });
+    logger.error(`Lỗi khi lấy thống kê Subject Category ID ${request.params.id} ở controller:`, error.message);
+    return reply.status(500).send({ success: false, message: "Lỗi hệ thống khi lấy thống kê Subject Category", code: "SERVER_ERROR", data: null });
   }
 };
 

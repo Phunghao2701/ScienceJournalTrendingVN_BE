@@ -4,14 +4,14 @@ import { publisherExist } from "./publisher.service.js";
 import { zoneExist } from '../../system/services/zone.service.js';
 
 /**
- * Láº¥y danh sÃ¡ch journal cÃ³ há»— trá»£ tÃ¬m kiáº¿m theo tÃªn vÃ  phÃ¢n trang.
+ * Láº¥y danh sÃ¡ch journal cÃ³ há»— trá»£ tÃ¬m kiáº¿m theo tÃªn vÃ�  phÃ¢n trang.
  *
  * @async
- * @param {Object} params - Tham sá»‘ Ä‘áº§u vÃ o.
+ * @param {Object} params - Tham sá»‘ Ä‘áº§u vÃ� o.
  * @param {string} [params.search] - TÃªn journal cáº§n tÃ¬m kiáº¿m.
  * @param {number} [params.page=1] - Trang hiá»‡n táº¡i.
  * @param {number} [params.limit=10] - Sá»‘ lÆ°á»£ng báº£n ghi má»—i trang.
- * @returns {Promise<{ items: Array<Object>, total: number }>} Danh sÃ¡ch journal vÃ  tá»•ng sá»‘ lÆ°á»£ng báº£n ghi phÃ¹ há»£p.
+ * @returns {Promise<{ items: Array<Object>, total: number }>} Danh sÃ¡ch journal vÃ�  tá»•ng sá»‘ lÆ°á»£ng báº£n ghi phÃ¹ há»£p.
  */
 export const getJournals = async ({
   search,
@@ -321,8 +321,8 @@ export const getJournalsById = async (id) => {
 /**
  * Kiá»ƒm tra sá»± tá»“n táº¡i cá»§a má»™t journal trong database dá»±a trÃªn ID.
  * @async
- * @param {number|string} id - ID cá»§a journal cáº§n kiá»ƒm tra (cÃ³ thá»ƒ lÃ  sá»‘ hoáº·c chuá»—i sá»‘).
- * @returns {Promise<boolean>} Tráº£ vá» true náº¿u journal tá»“n táº¡i vÃ  chÆ°a bá»‹ xÃ³a má»m, false náº¿u khÃ´ng tá»“n táº¡i hoáº·c Ä‘Ã£ bá»‹ xÃ³a.
+ * @param {number|string} id - ID cá»§a journal cáº§n kiá»ƒm tra (cÃ³ thá»ƒ lÃ�  sá»‘ hoáº·c chuá»—i sá»‘).
+ * @returns {Promise<boolean>} Tráº£ vá» true náº¿u journal tá»“n táº¡i vÃ�  chÆ°a bá»‹ xÃ³a má»m, false náº¿u khÃ´ng tá»“n táº¡i hoáº·c Ä‘Ã£ bá»‹ xÃ³a.
  * @throws {Error} NÃ©m lá»—i náº¿u cÃ³ lá»—i há»‡ thá»‘ng trong quÃ¡ trÃ¬nh truy váº¥n database.
 */
 export const journalExist = async (id) => {
@@ -345,7 +345,7 @@ export const journalExist = async (id) => {
  */
 export const createJournal = async (data) => {
   try {
-    // Nháº­n cÃ¡c field tá»« object data truyá»n vÃ o
+    // Nháº­n cÃ¡c field tá»« object data truyá»n vÃ� o
     let {
       source_id, publisher_id, country, region, display_name,
       type, is_open_access, is_oa_diamond, coverage, issn, scope_detail, description
@@ -389,18 +389,18 @@ export const createJournal = async (data) => {
   }
 };
 
-//viáº¿t documentation cho hÃ m updateJournal
+//viáº¿t documentation cho hÃ� m updateJournal
 /**
   * Cáº­p nháº­t thÃ´ng tin má»™t journal.
-  * - Nháº­n ID cá»§a journal cáº§n cáº­p nháº­t vÃ  dá»¯ liá»‡u má»›i tá»« tham sá»‘ Ä‘áº§u vÃ o.
-  * - Kiá»ƒm tra tÃ­nh há»£p lá»‡ cá»§a ID (pháº£i lÃ  sá»‘ nguyÃªn dÆ°Æ¡ng).
+  * - Nháº­n ID cá»§a journal cáº§n cáº­p nháº­t vÃ�  dá»¯ liá»‡u má»›i tá»« tham sá»‘ Ä‘áº§u vÃ� o.
+  * - Kiá»ƒm tra tÃ­nh há»£p lá»‡ cá»§a ID (pháº£i lÃ�  sá»‘ nguyÃªn dÆ°Æ¡ng).
   * - Cáº­p nháº­t cÃ¡c trÆ°á»ng Ä‘Æ°á»£c phÃ©p trong database náº¿u chÃºng tá»“n táº¡i trong dá»¯ liá»‡u má»›i.
-  * - Tráº£ vá» thÃ´ng tin journal Ä‘Ã£ cáº­p nháº­t náº¿u thÃ nh cÃ´ng, hoáº·c null náº¿u khÃ´ng tÃ¬m tháº¥y journal vá»›i ID Ä‘Ã³, hoáº·c lá»—i náº¿u cÃ³ lá»—i há»‡ thá»‘ng.
+  * - Tráº£ vá» thÃ´ng tin journal Ä‘Ã£ cáº­p nháº­t náº¿u thÃ� nh cÃ´ng, hoáº·c null náº¿u khÃ´ng tÃ¬m tháº¥y journal vá»›i ID Ä‘Ã³, hoáº·c lá»—i náº¿u cÃ³ lá»—i há»‡ thá»‘ng.
   * CÃ¡c trÆ°á»ng Ä‘Æ°á»£c phÃ©p cáº­p nháº­t bao gá»“m: source_id, publisher_id, country, region, display_name, type, is_open_access, is_oa_diamond, coverage, issn. Náº¿u client gá»­i scope_detail/description thÃ¬ service sáº½ Ã¡nh xáº¡ sang coverage vÃ¬ schema hiá»‡n táº¡i khÃ´ng cÃ³ cá»™t scope_detail. CÃ¡c trÆ°á»ng publisher_id, country, region sáº½ Ä‘Æ°á»£c chuyá»ƒn sang kiá»ƒu BigInt trÆ°á»›c khi cáº­p nháº­t.
   * @async
-  * @param {number|string} id - ID cá»§a journal cáº§n cáº­p nháº­t (cÃ³ thá»ƒ lÃ  sá»‘ hoáº·c chuá»—i sá»‘).
+  * @param {number|string} id - ID cá»§a journal cáº§n cáº­p nháº­t (cÃ³ thá»ƒ lÃ�  sá»‘ hoáº·c chuá»—i sá»‘).
   * @param {Object} data - Dá»¯ liá»‡u má»›i Ä‘á»ƒ cáº­p nháº­t cho journal, cÃ³ thá»ƒ chá»©a má»™t hoáº·c nhiá»u trÆ°á»ng trong sá»‘ cÃ¡c trÆ°á»ng Ä‘Æ°á»£c phÃ©p cáº­p nháº­t.
-  * @returns {Promise<Object|null>} ThÃ´ng tin journal Ä‘Ã£ Ä‘Æ°á»£c cáº­p nháº­t náº¿u thÃ nh cÃ´ng, null náº¿u khÃ´ng tÃ¬m tháº¥y journal vá»›i ID Ä‘Ã³, hoáº·c lá»—i náº¿u cÃ³ lá»—i há»‡ thá»‘ng.
+  * @returns {Promise<Object|null>} ThÃ´ng tin journal Ä‘Ã£ Ä‘Æ°á»£c cáº­p nháº­t náº¿u thÃ� nh cÃ´ng, null náº¿u khÃ´ng tÃ¬m tháº¥y journal vá»›i ID Ä‘Ã³, hoáº·c lá»—i náº¿u cÃ³ lá»—i há»‡ thá»‘ng.
 */ 
 export const updateJournal = async (id, data) => {
   try {
@@ -433,7 +433,7 @@ export const updateJournal = async (id, data) => {
     }
 
     if (updateParts.length === 0) {
-      logger.warn(`KhÃ´ng cÃ³ trÆ°á»ng nÃ o há»£p lá»‡ Ä‘á»ƒ cáº­p nháº­t cho journal ID ${id}`);
+      logger.warn(`KhÃ´ng cÃ³ trÆ°á»ng nÃ� o há»£p lá»‡ Ä‘á»ƒ cáº­p nháº­t cho journal ID ${id}`);
       return null; 
     }
 
@@ -483,8 +483,8 @@ export const deleteJournal = async (id) => {
 /**
  * KhÃ´i phá»¥c má»™t journal Ä‘Ã£ bá»‹ xÃ³a má»m báº±ng cÃ¡ch cáº­p nháº­t trÆ°á»ng is_deleted.
  * @async
- * @param {string|number} id - ID cá»§a journal cáº§n khÃ´i phá»¥c (cÃ³ thá»ƒ lÃ  sá»‘ hoáº·c chuá»—i sá»‘).
- * @return {Promise<Object|null>} Tráº£ vá» journal Ä‘Ã£ Ä‘Æ°á»£c khÃ´i phá»¥c náº¿u thÃ nh cÃ´ng, null náº¿u khÃ´ng tÃ¬m tháº¥y journal vá»›i ID Ä‘Ã³ hoáº·c Ä‘Ã£ Ä‘Æ°á»£c khÃ´i phá»¥c trÆ°á»›c Ä‘Ã³, hoáº·c lá»—i náº¿u cÃ³ lá»—i há»‡ thá»‘ng.
+ * @param {string|number} id - ID cá»§a journal cáº§n khÃ´i phá»¥c (cÃ³ thá»ƒ lÃ�  sá»‘ hoáº·c chuá»—i sá»‘).
+ * @return {Promise<Object|null>} Tráº£ vá» journal Ä‘Ã£ Ä‘Æ°á»£c khÃ´i phá»¥c náº¿u thÃ� nh cÃ´ng, null náº¿u khÃ´ng tÃ¬m tháº¥y journal vá»›i ID Ä‘Ã³ hoáº·c Ä‘Ã£ Ä‘Æ°á»£c khÃ´i phá»¥c trÆ°á»›c Ä‘Ã³, hoáº·c lá»—i náº¿u cÃ³ lá»—i há»‡ thá»‘ng.
  */
 export const restoreJournal = async (id) => {
   try {

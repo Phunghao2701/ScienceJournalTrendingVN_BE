@@ -48,7 +48,7 @@ const buildApp = async () => {
     swagger: {
       info: {
         title: "Tuyển Tập API Fastify của Tôi",
-        description: "Tài liệu hướng dẫn sử dụng các API hệ thống (Fastify)",
+        description: "T� i liệu hướng dẫn sử dụng các API hệ thống (Fastify)",
         version: "1.0.0",
       },
       host: 'localhost:' + PORT,
@@ -84,12 +84,12 @@ const buildApp = async () => {
       if (url.startsWith('/api/v1/auth')) tag = 'Xác thực (Auth)';
       else if (url.startsWith('/api/v1/users')) tag = 'Người dùng (User)';
       else if (url.startsWith('/api/v1/admin')) tag = 'Quản trị (Admin)';
-      else if (url.startsWith('/api/v1/articles')) tag = 'Bài báo (Article)';
+      else if (url.startsWith('/api/v1/articles')) tag = 'B� i báo (Article)';
       else if (url.startsWith('/api/v1/comments')) tag = 'Bình luận (Comment)';
       else if (url.includes('journal')) tag = 'Tạp chí (Journal)';
       else if (url.includes('issues')) tag = 'Kỳ xuất bản (Issue)';
       else if (url.includes('volumes')) tag = 'Tập san (Volume)';
-      else if (url.includes('publishers')) tag = 'Nhà xuất bản (Publisher)';
+      else if (url.includes('publishers')) tag = 'Nh�  xuất bản (Publisher)';
       
       else if (url.includes('author')) tag = 'Tác giả (Author)';
       else if (url.includes('institution')) tag = 'Đơn vị (Institution)';

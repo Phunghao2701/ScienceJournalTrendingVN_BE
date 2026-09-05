@@ -1,4 +1,4 @@
-﻿import { Worker } from "bullmq";
+import { Worker } from "bullmq";
 import logger from '../../../utils/logger.js';
 import { scanAuthorByOrcid } from "./orcidScan.service.js";
 import {
@@ -93,7 +93,7 @@ export const processOrcidScanQueueJob = async (
       status: isFinalAttempt ? "failed" : "queued",
       stage: isFinalAttempt ? "completed" : "queued",
       errorCode: error.code || "ORCID_SCAN_JOB_FAILED",
-      errorMessage: error.message || "KhÃ´ng thá»ƒ hoÃ n táº¥t tÃ¬m cÃ´ng trÃ¬nh",
+      errorMessage: error.message || "Không thể ho� n tất tìm công trình",
       heartbeatAt: new Date(),
       completedAt: isFinalAttempt ? new Date() : null,
     });
@@ -122,7 +122,7 @@ export const startOrcidScanWorker = () => {
   const retentionDays =
     Math.max(1, Number(process.env.ORCID_SCAN_JOB_RETENTION_DAYS)) || 7;
   deleteExpiredOrcidScanJobs({ retentionDays }).catch((error) => {
-    logger.warn("[ORCID Scan Worker] KhÃ´ng thá»ƒ dá»n job cÅ©", {
+    logger.warn("[ORCID Scan Worker] Không thể dọn job cũ", {
       code: error.code || "JOB_CLEANUP_FAILED",
     });
   });

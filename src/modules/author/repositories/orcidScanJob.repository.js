@@ -1,4 +1,4 @@
-﻿import prisma from '../../../config/prisma.js';
+import prisma from '../../../config/prisma.js';
 
 const ACTIVE_STATUSES = ["queued", "running"];
 const TERMINAL_STATUSES = ["completed", "partial", "failed"];
@@ -18,7 +18,7 @@ const activeJobQuery = `
 `;
 
 const busyError = (job) => {
-  const error = new Error("Báº¡n Ä‘ang cÃ³ má»™t lÆ°á»£t tÃ¬m cÃ´ng trÃ¬nh khÃ¡c Ä‘ang cháº¡y");
+  const error = new Error("Bạn đang có một lượt tìm công trình khác đang chạy");
   error.statusCode = 409;
   error.code = "ORCID_SCAN_USER_BUSY";
   error.job = job;
@@ -34,9 +34,9 @@ const resolveExistingJob = (job, userId, orcid) => {
 
 export const createOrReuseOrcidScanJob = async (
   { orcid, requestedBy },
-  { databasePool = pool } = {},
+  { databasePool = null } = {},
 ) => {
-  const existing = await databaseprisma.$queryRawUnsafe(activeJobQuery, [
+  const existing = await prisma.$queryRawUnsafe(activeJobQuery, [
     ACTIVE_STATUSES,
     requestedBy,
     orcid,
@@ -45,7 +45,7 @@ export const createOrReuseOrcidScanJob = async (
   if (resolved) return resolved;
 
   try {
-    const inserted = await databaseprisma.$queryRawUnsafe(
+    const inserted = await prisma.$queryRawUnsafe(
       `
         INSERT INTO public."Orcid_Scan_Job" (
           orcid,
@@ -60,7 +60,7 @@ export const createOrReuseOrcidScanJob = async (
   } catch (error) {
     if (error.code !== "23505") throw error;
 
-    const raced = await databaseprisma.$queryRawUnsafe(activeJobQuery, [
+    const raced = await prisma.$queryRawUnsafe(activeJobQuery, [
       ACTIVE_STATUSES,
       requestedBy,
       orcid,
@@ -77,9 +77,9 @@ export const createOrReuseOrcidScanJob = async (
 
 export const getOrcidScanJobById = async (
   jobId,
-  { databasePool = pool } = {},
+  { databasePool = null } = {},
 ) => {
-  const result = await databaseprisma.$queryRawUnsafe(
+  const result = await prisma.$queryRawUnsafe(
     'SELECT * FROM public."Orcid_Scan_Job" WHERE job_id = $1',
     [jobId],
   );
@@ -89,13 +89,13 @@ export const getOrcidScanJobById = async (
 export const getOrcidScanJobPublications = async (
   jobId,
   { cursor = 0, limit = 20 } = {},
-  { databasePool = pool } = {},
+  { databasePool = null } = {},
 ) => {
   const safeCursor = /^\d+$/.test(String(cursor))
     ? String(cursor)
     : "0";
   const safeLimit = Math.min(50, Math.max(1, Number(limit) || 20));
-  const result = await databaseprisma.$queryRawUnsafe(
+  const result = await prisma.$queryRawUnsafe(
     `
       WITH page_items AS MATERIALIZED (
         SELECT item_id, article_id
@@ -187,7 +187,7 @@ const UPDATE_COLUMNS = new Map([
 export const updateOrcidScanJob = async (
   jobId,
   patch,
-  { databasePool = pool } = {},
+  { databasePool = null } = {},
 ) => {
   const assignments = [];
   const values = [jobId];
@@ -205,7 +205,7 @@ export const updateOrcidScanJob = async (
   if (!assignments.length) return getOrcidScanJobById(jobId, { databasePool });
 
   assignments.push('"updated_at" = now()');
-  const result = await databaseprisma.$queryRawUnsafe(
+  const result = await prisma.$queryRawUnsafe(
     `
       UPDATE public."Orcid_Scan_Job"
       SET ${assignments.join(", ")}
@@ -219,10 +219,10 @@ export const updateOrcidScanJob = async (
 
 export const deleteExpiredOrcidScanJobs = async (
   { retentionDays = 7 } = {},
-  { databasePool = pool } = {},
+  { databasePool = null } = {},
 ) => {
   const safeDays = Math.max(1, Number(retentionDays) || 7);
-  const result = await databaseprisma.$queryRawUnsafe(
+  const result = await prisma.$queryRawUnsafe(
     `
       DELETE FROM public."Orcid_Scan_Job"
       WHERE status = ANY($1::varchar[])

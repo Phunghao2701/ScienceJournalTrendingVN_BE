@@ -7,7 +7,7 @@ import {
   enrichCrossrefByDoi,
   mergeArticleCandidates,
   scanAuthorByOrcid,
-} from "../../../services/orcidScan.service.js";
+} from "../../../modules/author/services/orcidScan.service.js";
 
 const crossrefArticle = (overrides = {}) => ({
   source: "crossref",

@@ -1,13 +1,13 @@
-﻿import prisma from '../../../config/prisma.js';
+import prisma from '../../../config/prisma.js';
 import logger from '../../../utils/logger.js';
 
 /**
- * Kiá»ƒm tra sá»± tá»“n táº¡i cá»§a má»™t Volume trong database dá»±a trÃªn ID.
- * KhÃ´ng phÃ¢n biá»‡t Ä‘Ã£ bá»‹ xÃ³a má»m hay chÆ°a.
+ * Kiểm tra sự tồn tại của một Volume trong database dựa trên ID.
+ * Không phân biệt đã bị xóa mềm hay chưa.
  * 
  * @async
- * @param {number|string} id - ID cá»§a Volume cáº§n kiá»ƒm tra.
- * @returns {Promise<boolean>} Tráº£ vá» true náº¿u Volume tá»“n táº¡i, ngÆ°á»£c láº¡i false.
+ * @param {number|string} id - ID của Volume cần kiểm tra.
+ * @returns {Promise<boolean>} Trả về true nếu Volume tồn tại, ngược lại false.
  */
 export const volumeExist = async (id) => {
   try {
@@ -15,17 +15,17 @@ export const volumeExist = async (id) => {
     const result = await prisma.$queryRawUnsafe(query, BigInt(id));
     return result.length > 0;
   } catch (error) {
-    logger.error(`Lá»—i khi kiá»ƒm tra tá»“n táº¡i cá»§a Volume vá»›i ID ${id}:`, error.message);
+    logger.error(`Lỗi khi kiểm tra tồn tại của Volume với ID ${id}:`, error.message);
     throw error;
   }
 };
 
 /**
- * Kiá»ƒm tra xem Volume cÃ³ Ä‘ang bá»‹ xÃ³a má»m (is_deleted = true) hay khÃ´ng.
+ * Kiểm tra xem Volume có đang bị xóa mềm (is_deleted = true) hay không.
  * 
  * @async
- * @param {number|string} id - ID cá»§a Volume cáº§n kiá»ƒm tra.
- * @returns {Promise<boolean>} Tráº£ vá» true náº¿u Volume Ä‘Ã£ bá»‹ xÃ³a má»m, ngÆ°á»£c láº¡i false.
+ * @param {number|string} id - ID của Volume cần kiểm tra.
+ * @returns {Promise<boolean>} Trả về true nếu Volume đã bị xóa mềm, ngược lại false.
  */
 export const volumeIsDeleted = async (id) => {
   try {
@@ -33,19 +33,19 @@ export const volumeIsDeleted = async (id) => {
     const result = await prisma.$queryRawUnsafe(query, BigInt(id));
     return result.length > 0;
   } catch (error) {
-    logger.error(`Lá»—i khi kiá»ƒm tra tráº¡ng thÃ¡i xÃ³a má»m cá»§a Volume vá»›i ID ${id}:`, error.message);
+    logger.error(`Lỗi khi kiểm tra trạng thái xóa mềm của Volume với ID ${id}:`, error.message);
     throw error;
   }
 };
 
 /**
- * Kiá»ƒm tra xem cÃ³ Volume nÃ o khÃ¡c Ä‘ang hoáº¡t Ä‘á»™ng trÃ¹ng láº·p sá»‘ volume trong cÃ¹ng má»™t táº¡p chÃ­ khÃ´ng.
+ * Kiểm tra xem có Volume n� o khác đang hoạt động trùng lặp số volume trong cùng một tạp chí không.
  * 
  * @async
- * @param {number|string} journalId - ID cá»§a Journal.
- * @param {number} volumeNumber - Sá»‘ volume cáº§n kiá»ƒm tra.
- * @param {number|string} [excludeId=null] - ID cá»§a Volume cáº§n loáº¡i trá»« (trong trÆ°á»ng há»£p update).
- * @returns {Promise<boolean>} Tráº£ vá» true náº¿u bá»‹ trÃ¹ng láº·p, ngÆ°á»£c láº¡i false.
+ * @param {number|string} journalId - ID của Journal.
+ * @param {number} volumeNumber - Số volume cần kiểm tra.
+ * @param {number|string} [excludeId=null] - ID của Volume cần loại trừ (trong trường hợp update).
+ * @returns {Promise<boolean>} Trả về true nếu bị trùng lặp, ngược lại false.
  */
 export const checkDuplicateVolume = async (journalId, volumeNumber, excludeId = null) => {
   try {
@@ -63,20 +63,20 @@ export const checkDuplicateVolume = async (journalId, volumeNumber, excludeId = 
     const result = await prisma.$queryRawUnsafe(query, ...params);
     return result.length > 0;
   } catch (error) {
-    logger.error("Lá»—i khi kiá»ƒm tra trÃ¹ng láº·p volume:", error.message);
+    logger.error("Lỗi khi kiểm tra trùng lặp volume:", error.message);
     throw error;
   }
 };
 
 /**
- * Táº¡o má»›i má»™t Volume.
+ * Tạo mới một Volume.
  * 
  * @async
- * @param {Object} data - Dá»¯ liá»‡u Volume cáº§n táº¡o.
- * @param {number|string} data.journal_id - ID cá»§a Journal liÃªn káº¿t.
- * @param {number} data.volume_number - Sá»‘ volume.
- * @param {number} data.publication_year - NÄƒm xuáº¥t báº£n.
- * @returns {Promise<Object>} Tráº£ vá» Ä‘á»‘i tÆ°á»£ng Volume vá»«a Ä‘Æ°á»£c táº¡o.
+ * @param {Object} data - Dữ liệu Volume cần tạo.
+ * @param {number|string} data.journal_id - ID của Journal liên kết.
+ * @param {number} data.volume_number - Số volume.
+ * @param {number} data.publication_year - Năm xuất bản.
+ * @returns {Promise<Object>} Trả về đối tượng Volume vừa được tạo.
  */
 export const createVolume = async (data) => {
   try {
@@ -95,17 +95,17 @@ export const createVolume = async (data) => {
     const result = await prisma.$queryRawUnsafe(query, ...values);
     return result[0];
   } catch (error) {
-    logger.error("Lá»—i khi táº¡o má»›i Volume:", error.message);
+    logger.error("Lỗi khi tạo mới Volume:", error.message);
     throw error;
   }
 };
 
 /**
- * Láº¥y danh sÃ¡ch Volumes cÃ³ há»— trá»£ tÃ¬m kiáº¿m, lá»c, sáº¯p xáº¿p vÃ  phÃ¢n trang.
- * Chá»‰ láº¥y cÃ¡c Volume chÆ°a bá»‹ xÃ³a má»m (is_deleted = false).
+ * Lấy danh sách Volumes có hỗ trợ tìm kiếm, lọc, sắp xếp v�  phân trang.
+ * Chỉ lấy các Volume chưa bị xóa mềm (is_deleted = false).
  * 
  * @async
- * @param {Object} params - CÃ¡c tham sá»‘ lá»c vÃ  phÃ¢n trang.
+ * @param {Object} params - Các tham số lọc v�  phân trang.
  * @returns {Promise<{ items: Array<Object>, total: number }>}
  */
 export const getVolumes = async ({
@@ -128,35 +128,35 @@ export const getVolumes = async ({
     `;
     const queryParams = [];
 
-    // Lá»c theo journal_id
+    // Lọc theo journal_id
     if (journal_id !== undefined && journal_id !== null && journal_id !== "") {
       queryParams.push(BigInt(journal_id));
       baseQuery += ` AND journal_id = $${queryParams.length}`;
     }
 
-    // Lá»c theo publication_year
+    // Lọc theo publication_year
     if (publication_year !== undefined && publication_year !== null && publication_year !== "") {
       queryParams.push(parseInt(publication_year, 10));
       baseQuery += ` AND publication_year = $${queryParams.length}`;
     }
 
-    // TÃ¬m kiáº¿m theo sá»‘ volume
+    // Tìm kiếm theo số volume
     if (search !== undefined && search !== null && search.toString().trim() !== "") {
       queryParams.push(`%${search.toString().trim()}%`);
       baseQuery += ` AND volume_number::text ILIKE $${queryParams.length}`;
     }
 
-    // Äáº¿m tá»•ng sá»‘ báº£n ghi
+    // Đếm tổng số bản ghi
     const countQuery = `SELECT COUNT(*)::integer AS total ${baseQuery}`;
     const countRes = await prisma.$queryRawUnsafe(countQuery, ...queryParams);
     const total = countRes[0]?.total || 0;
 
-    // Sáº¯p xáº¿p
+    // Sắp xếp
     const allowedSortFields = ["volume_id", "volume_number", "publication_year"];
     const sortField = allowedSortFields.includes(sort_by) ? sort_by : "volume_number";
     const sortDir = sort_order.toLowerCase() === "desc" ? "DESC" : "ASC";
 
-    // PhÃ¢n trang
+    // Phân trang
     queryParams.push(limitNum, offset);
     const dataQuery = `
       SELECT 
@@ -176,17 +176,17 @@ export const getVolumes = async ({
       total
     };
   } catch (error) {
-    logger.error("Lá»—i khi láº¥y danh sÃ¡ch Volume:", error.message);
+    logger.error("Lỗi khi lấy danh sách Volume:", error.message);
     throw error;
   }
 };
 
 /**
- * Láº¥y thÃ´ng tin chi tiáº¿t má»™t Volume theo ID (chÆ°a bá»‹ xÃ³a má»m).
+ * Lấy thông tin chi tiết một Volume theo ID (chưa bị xóa mềm).
  * 
  * @async
- * @param {number|string} id - ID cá»§a Volume cáº§n láº¥y.
- * @returns {Promise<Object|null>} Tráº£ vá» thÃ´ng tin Volume hoáº·c null náº¿u khÃ´ng tÃ¬m tháº¥y.
+ * @param {number|string} id - ID của Volume cần lấy.
+ * @returns {Promise<Object|null>} Trả về thông tin Volume hoặc null nếu không tìm thấy.
  */
 export const getVolumeById = async (id) => {
   try {
@@ -203,20 +203,20 @@ export const getVolumeById = async (id) => {
     const result = await prisma.$queryRawUnsafe(query, BigInt(id));
     return result.length > 0 ? result[0] : null;
   } catch (error) {
-    logger.error(`Lá»—i khi láº¥y chi tiáº¿t Volume ID ${id}:`, error.message);
+    logger.error(`Lỗi khi lấy chi tiết Volume ID ${id}:`, error.message);
     throw error;
   }
 };
 
 /**
- * Cáº­p nháº­t thÃ´ng tin Volume.
+ * Cập nhật thông tin Volume.
  * 
  * @async
- * @param {number|string} id - ID cá»§a Volume cáº§n cáº­p nháº­t.
- * @param {Object} data - Dá»¯ liá»‡u cáº§n cáº­p nháº­t.
- * @param {number} [data.volume_number] - Sá»‘ volume má»›i.
- * @param {number} [data.publication_year] - NÄƒm xuáº¥t báº£n má»›i.
- * @returns {Promise<Object|null>} Tráº£ vá» Volume sau cáº­p nháº­t, hoáº·c null náº¿u khÃ´ng thÃ nh cÃ´ng.
+ * @param {number|string} id - ID của Volume cần cập nhật.
+ * @param {Object} data - Dữ liệu cần cập nhật.
+ * @param {number} [data.volume_number] - Số volume mới.
+ * @param {number} [data.publication_year] - Năm xuất bản mới.
+ * @returns {Promise<Object|null>} Trả về Volume sau cập nhật, hoặc null nếu không th� nh công.
  */
 export const updateVolume = async (id, data) => {
   try {
@@ -252,17 +252,17 @@ export const updateVolume = async (id, data) => {
     const result = await prisma.$queryRawUnsafe(query, ...values);
     return result.length > 0 ? result[0] : null;
   } catch (error) {
-    logger.error(`Lá»—i khi cáº­p nháº­t Volume ID ${id}:`, error.message);
+    logger.error(`Lỗi khi cập nhật Volume ID ${id}:`, error.message);
     throw error;
   }
 };
 
 /**
- * XÃ³a má»m má»™t Volume (Ä‘áº·t is_deleted = true).
+ * Xóa mềm một Volume (đặt is_deleted = true).
  * 
  * @async
- * @param {number|string} id - ID cá»§a Volume cáº§n xÃ³a má»m.
- * @returns {Promise<Object|null>} Tráº£ vá» thÃ´ng tin Volume Ä‘Ã£ xÃ³a má»m, hoáº·c null.
+ * @param {number|string} id - ID của Volume cần xóa mềm.
+ * @returns {Promise<Object|null>} Trả về thông tin Volume đã xóa mềm, hoặc null.
  */
 export const deleteVolume = async (id) => {
   try {
@@ -280,17 +280,17 @@ export const deleteVolume = async (id) => {
     const result = await prisma.$queryRawUnsafe(query, BigInt(id));
     return result.length > 0 ? result[0] : null;
   } catch (error) {
-    logger.error(`Lá»—i khi xÃ³a má»m Volume ID ${id}:`, error.message);
+    logger.error(`Lỗi khi xóa mềm Volume ID ${id}:`, error.message);
     throw error;
   }
 };
 
 /**
- * KhÃ´i phá»¥c má»™t Volume Ä‘Ã£ bá»‹ xÃ³a má»m (Ä‘áº·t is_deleted = false).
+ * Khôi phục một Volume đã bị xóa mềm (đặt is_deleted = false).
  * 
  * @async
- * @param {number|string} id - ID cá»§a Volume cáº§n khÃ´i phá»¥c.
- * @returns {Promise<Object|null>} Tráº£ vá» thÃ´ng tin Volume Ä‘Ã£ khÃ´i phá»¥c, hoáº·c null.
+ * @param {number|string} id - ID của Volume cần khôi phục.
+ * @returns {Promise<Object|null>} Trả về thông tin Volume đã khôi phục, hoặc null.
  */
 export const restoreVolume = async (id) => {
   try {
@@ -308,7 +308,7 @@ export const restoreVolume = async (id) => {
     const result = await prisma.$queryRawUnsafe(query, BigInt(id));
     return result.length > 0 ? result[0] : null;
   } catch (error) {
-    logger.error(`Lá»—i khi khÃ´i phá»¥c Volume ID ${id}:`, error.message);
+    logger.error(`Lỗi khi khôi phục Volume ID ${id}:`, error.message);
     throw error;
   }
 };

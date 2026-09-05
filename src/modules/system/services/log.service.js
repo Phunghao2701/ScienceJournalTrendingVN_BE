@@ -1,24 +1,24 @@
-﻿import prisma from '../../../config/prisma.js';
+import prisma from '../../../config/prisma.js';
 import logger from '../../../utils/logger.js';
 
 /**
- * Ghi má»™t báº£n ghi log vÃ o báº£ng system_log.
- * HÃ m nÃ y Ä‘Æ°á»£c thiáº¿t káº¿ Ä‘á»ƒ "fire-and-forget", nÃ³ sáº½ tá»± báº¯t lá»—i vÃ  ghi ra file log thay vÃ¬ nÃ©m lá»—i ra ngoÃ i,
- * trÃ¡nh lÃ m giÃ¡n Ä‘oáº¡n luá»“ng chÃ­nh cá»§a á»©ng dá»¥ng khi viá»‡c ghi log tháº¥t báº¡i.
+ * Ghi một bản ghi log v� o bảng system_log.
+ * H� m n� y được thiết kế để "fire-and-forget", nó sẽ tự bắt lỗi v�  ghi ra file log thay vì ném lỗi ra ngo� i,
+ * tránh l� m gián đoạn luồng chính của ứng dụng khi việc ghi log thất bại.
  *
  * @async
- * @param {object} logData - Dá»¯ liá»‡u log cáº§n ghi.
- * @param {string} [logData.userId] - ID cá»§a ngÆ°á»i dÃ¹ng thá»±c hiá»‡n hÃ nh Ä‘á»™ng (UUID).
- * @param {string} [logData.userRole] - Role cá»§a ngÆ°á»i dÃ¹ng (láº¥y tá»« enum role_account).
- * @param {'CREATE'|'UPDATE'|'DELETE'|'LOGIN'|'LOGOUT'|'VIEW'|'EXPORT'|'IMPORT'|'ERROR'|'SYSTEM'} logData.action - Loáº¡i hÃ nh Ä‘á»™ng (báº¯t buá»™c).
- * @param {'INFO'|'WARNING'|'ERROR'|'CRITICAL'} [logData.level='INFO'] - Má»©c Ä‘á»™ cá»§a log.
- * @param {'API'|'ADMIN_PANEL'|'SYSTEM'|'CRON'} [logData.source='API'] - Nguá»“n gá»‘c cá»§a log.
- * @param {string} [logData.entityTable] - TÃªn báº£ng cá»§a Ä‘á»‘i tÆ°á»£ng bá»‹ áº£nh hÆ°á»Ÿng.
- * @param {string|number} [logData.entityId] - ID cá»§a Ä‘á»‘i tÆ°á»£ng bá»‹ áº£nh hÆ°á»Ÿng.
- * @param {string} [logData.message] - ThÃ´ng Ä‘iá»‡p log mÃ´ táº£ hÃ nh Ä‘á»™ng.
- * @param {object} [logData.oldData] - Tráº¡ng thÃ¡i cÅ© cá»§a dá»¯ liá»‡u (dáº¡ng object).
- * @param {object} [logData.newData] - Tráº¡ng thÃ¡i má»›i cá»§a dá»¯ liá»‡u (dáº¡ng object).
- * @param {object} [logData.metadata] - Dá»¯ liá»‡u metadata khÃ¡c (vÃ­ dá»¥: IP, user agent).
+ * @param {object} logData - Dữ liệu log cần ghi.
+ * @param {string} [logData.userId] - ID của người dùng thực hiện h� nh động (UUID).
+ * @param {string} [logData.userRole] - Role của người dùng (lấy từ enum role_account).
+ * @param {'CREATE'|'UPDATE'|'DELETE'|'LOGIN'|'LOGOUT'|'VIEW'|'EXPORT'|'IMPORT'|'ERROR'|'SYSTEM'} logData.action - Loại h� nh động (bắt buộc).
+ * @param {'INFO'|'WARNING'|'ERROR'|'CRITICAL'} [logData.level='INFO'] - Mức độ của log.
+ * @param {'API'|'ADMIN_PANEL'|'SYSTEM'|'CRON'} [logData.source='API'] - Nguồn gốc của log.
+ * @param {string} [logData.entityTable] - Tên bảng của đối tượng bị ảnh hưởng.
+ * @param {string|number} [logData.entityId] - ID của đối tượng bị ảnh hưởng.
+ * @param {string} [logData.message] - Thông điệp log mô tả h� nh động.
+ * @param {object} [logData.oldData] - Trạng thái cũ của dữ liệu (dạng object).
+ * @param {object} [logData.newData] - Trạng thái mới của dữ liệu (dạng object).
+ * @param {object} [logData.metadata] - Dữ liệu metadata khác (ví dụ: IP, user agent).
  * @returns {Promise<void>}
  */
 export const createLog = async (logData) => {
@@ -37,7 +37,7 @@ export const createLog = async (logData) => {
     } = logData;
 
     if (!action) {
-        logger.error('[Log Service] Lá»—i: `action` lÃ  trÆ°á»ng báº¯t buá»™c khi ghi log.');
+        logger.error('[Log Service] Lỗi: `action` l�  trường bắt buộc khi ghi log.');
         return;
     }
 
@@ -56,7 +56,7 @@ export const createLog = async (logData) => {
             level,
             source,
             entityTable,
-            String(entityId), // Ã‰p kiá»ƒu sang string Ä‘á»ƒ phÃ¹ há»£p vá»›i DB
+            String(entityId), // Ép kiểu sang string để phù hợp với DB
             message,
             oldData ? JSON.stringify(oldData) : null,
             newData ? JSON.stringify(newData) : null,
@@ -66,27 +66,27 @@ export const createLog = async (logData) => {
         await prisma.$queryRawUnsafe(query, ...values);
 
     } catch (error) {
-        // Ghi lá»—i ra file log, trÃ¡nh táº¡o vÃ²ng láº·p vÃ´ háº¡n náº¿u chÃ­nh hÃ m ghi log bá»‹ lá»—i DB
-        logger.error('Lá»—i nghiÃªm trá»ng khi ghi log vÃ o CSDL:', error);
+        // Ghi lỗi ra file log, tránh tạo vòng lặp vô hạn nếu chính h� m ghi log bị lỗi DB
+        logger.error('Lỗi nghiêm trọng khi ghi log v� o CSDL:', error);
     }
 };
 
 /**
- * Láº¥y danh sÃ¡ch log tá»« há»‡ thá»‘ng vá»›i cÃ¡c tÃ¹y chá»n lá»c vÃ  phÃ¢n trang.
+ * Lấy danh sách log từ hệ thống với các tùy chọn lọc v�  phân trang.
  *
  * @async
- * @param {object} [options={}] - TÃ¹y chá»n truy váº¥n.
- * @param {number} [options.page=1] - Trang hiá»‡n táº¡i.
- * @param {number} [options.limit=20] - Sá»‘ lÆ°á»£ng log trÃªn má»—i trang.
- * @param {string} [options.userId] - Lá»c theo ID ngÆ°á»i dÃ¹ng.
- * @param {string} [options.action] - Lá»c theo hÃ nh Ä‘á»™ng.
- * @param {string} [options.level] - Lá»c theo má»©c Ä‘á»™ log.
- * @param {string} [options.entityTable] - Lá»c theo báº£ng.
- * @param {string|number} [options.entityId] - Lá»c theo ID cá»§a Ä‘á»‘i tÆ°á»£ng.
- * @param {string} [options.sortBy='created_at'] - Sáº¯p xáº¿p theo trÆ°á»ng.
- * @param {'ASC'|'DESC'} [options.sortOrder='DESC'] - Thá»© tá»± sáº¯p xáº¿p.
+ * @param {object} [options={}] - Tùy chọn truy vấn.
+ * @param {number} [options.page=1] - Trang hiện tại.
+ * @param {number} [options.limit=20] - Số lượng log trên mỗi trang.
+ * @param {string} [options.userId] - Lọc theo ID người dùng.
+ * @param {string} [options.action] - Lọc theo h� nh động.
+ * @param {string} [options.level] - Lọc theo mức độ log.
+ * @param {string} [options.entityTable] - Lọc theo bảng.
+ * @param {string|number} [options.entityId] - Lọc theo ID của đối tượng.
+ * @param {string} [options.sortBy='created_at'] - Sắp xếp theo trường.
+ * @param {'ASC'|'DESC'} [options.sortOrder='DESC'] - Thứ tự sắp xếp.
  * @returns {Promise<{logs: Array<object>, pagination: object}>}
- * @throws {Error} NÃ©m lá»—i náº¿u truy váº¥n CSDL tháº¥t báº¡i.
+ * @throws {Error} Ném lỗi nếu truy vấn CSDL thất bại.
  */
 export const getLogs = async (options = {}) => {
     const {
@@ -133,7 +133,7 @@ export const getLogs = async (options = {}) => {
 
         return { logs: dataResult, pagination: { total, page, limit, totalPages: Math.ceil(total / limit) } };
     } catch (error) {
-        logger.error('Lá»—i khi láº¥y danh sÃ¡ch log tá»« CSDL:', error);
+        logger.error('Lỗi khi lấy danh sách log từ CSDL:', error);
         throw error;
     }
 };

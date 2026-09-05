@@ -1,4 +1,4 @@
-﻿import prisma from '../../../config/prisma.js';
+import prisma from '../../../config/prisma.js';
 import { fetchOpenAlexWorksByIds } from '../../author/services/openAlexApi.service.js';
 import {
   normalizeDoi,
@@ -81,7 +81,7 @@ const loadHydrationState = async (databasePool, articleId) => {
   const article = articleResult[0];
   if (!article || article.is_deleted) {
     throw createHydrationError(
-      "KhÃ´ng tÃ¬m tháº¥y bÃ i bÃ¡o",
+      "Không tìm thấy b� i báo",
       404,
       "ARTICLE_NOT_FOUND",
     );
@@ -179,7 +179,7 @@ const persistReferences = async (
     );
     if (!articleResult[0]) {
       throw createHydrationError(
-        "KhÃ´ng tÃ¬m tháº¥y bÃ i bÃ¡o",
+        "Không tìm thấy b� i báo",
         404,
         "ARTICLE_NOT_FOUND",
       );
@@ -360,7 +360,7 @@ export const hydrateArticleReferences = async (
     availableBeforeProvider === 0
   ) {
     throw createHydrationError(
-      "OpenAlex khÃ´ng kháº£ dá»¥ng vÃ  khÃ´ng cÃ³ reference cá»¥c bá»™",
+      "OpenAlex không khả dụng v�  không có reference cục bộ",
       502,
       "REFERENCE_PROVIDER_UNAVAILABLE",
     );

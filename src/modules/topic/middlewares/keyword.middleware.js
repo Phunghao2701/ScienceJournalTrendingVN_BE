@@ -1,4 +1,4 @@
-﻿import {
+import {
   checkProjectOwnership,
   validateKeywordIds,
 } from "../services/keyword.service.js";
@@ -20,7 +20,7 @@ export const KEYWORD_CODES = {
   KEYWORD_ALREADY_DELETED: "KEYWORD_ALREADY_DELETED",
   KEYWORD_ALREADY_ACTIVE: "KEYWORD_ALREADY_ACTIVE",
 
-  // Project/Watched specific codes (ÄÃ£ chuáº©n hÃ³a Ä‘á»“ng bá»™)
+  // Project/Watched specific codes (Đã chuẩn hóa đồng bộ)
   PROJECT_INVALID_ID: "PROJECT_INVALID_ID",
   PROJECT_NOT_FOUND: "PROJECT_NOT_FOUND",
 
@@ -30,7 +30,7 @@ export const KEYWORD_CODES = {
 
 /**
  * Validate display_name cho keyword
- * DÃ¹ng cho POST vÃ  PUT trá»±c tiáº¿p vÃ o báº£ng Keyword
+ * Dùng cho POST v�  PUT trực tiếp v� o bảng Keyword
  */
 export const validateKeywordBody = (req, res, next) => {
   const display_name = req.body.display_name?.trim();
@@ -39,35 +39,35 @@ export const validateKeywordBody = (req, res, next) => {
     return res.status(400).json({
       success: false,
       code: KEYWORD_CODES.KEYWORD_INVALID_BODY,
-      message: "TÃªn keyword khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng",
+      message: "Tên keyword không được để trống",
     });
   }
   if (display_name.length < 2) {
     return res.status(400).json({
       success: false,
       code: KEYWORD_CODES.KEYWORD_INVALID_BODY,
-      message: "TÃªn keyword pháº£i cÃ³ Ã­t nháº¥t 2 kÃ½ tá»±",
+      message: "Tên keyword phải có ít nhất 2 ký tự",
     });
   }
   if (display_name.length > 255) {
     return res.status(400).json({
       success: false,
       code: KEYWORD_CODES.KEYWORD_INVALID_BODY,
-      message: "TÃªn keyword khÃ´ng Ä‘Æ°á»£c vÆ°á»£t quÃ¡ 255 kÃ½ tá»±",
+      message: "Tên keyword không được vượt quá 255 ký tự",
     });
   }
   if (/[!@#$%^&*()_+={}\[\]|\\:;"'<>,?\/~`]/.test(display_name)) {
     return res.status(400).json({
       success: false,
       code: KEYWORD_CODES.KEYWORD_INVALID_BODY,
-      message: "TÃªn keyword khÃ´ng Ä‘Æ°á»£c chá»©a kÃ½ tá»± Ä‘áº·c biá»‡t",
+      message: "Tên keyword không được chứa ký tự đặc biệt",
     });
   }
   if (/<[^>]*>/.test(display_name)) {
     return res.status(400).json({
       success: false,
       code: KEYWORD_CODES.KEYWORD_INVALID_BODY,
-      message: "TÃªn keyword khÃ´ng Ä‘Æ°á»£c chá»©a HTML hoáº·c script",
+      message: "Tên keyword không được chứa HTML hoặc script",
     });
   }
 
@@ -76,17 +76,17 @@ export const validateKeywordBody = (req, res, next) => {
 };
 
 /**
- * Validate ID cá»§a báº£ng Keyword chÃ­nh
+ * Validate ID của bảng Keyword chính
  */
 export const validateKeywordId = (req, res, next) => {
   const idParam = req.params.id;
 
-  // CHÃˆN FIX: Kiá»ƒm tra náº¿u ID chá»©a báº¥t ká»³ kÃ½ tá»± chá»¯ hoáº·c kÃ½ tá»± Ä‘áº·c biá»‡t nÃ o (vÃ­ dá»¥: "2dsaf", "abc")
+  // CHÈN FIX: Kiểm tra nếu ID chứa bất kỳ ký tự chữ hoặc ký tự đặc biệt n� o (ví dụ: "2dsaf", "abc")
   if (!/^\d+$/.test(idParam)) {
     return res.status(400).json({
       success: false,
       code: KEYWORD_CODES.KEYWORD_INVALID_ID,
-      message: "ID tá»« Ä‘Æ°á»ng dáº«n khÃ´ng há»£p lá»‡, pháº£i lÃ  sá»‘ nguyÃªn dÆ°Æ¡ng",
+      message: "ID từ đường dẫn không hợp lệ, phải l�  số nguyên dương",
     });
   }
 
@@ -95,7 +95,7 @@ export const validateKeywordId = (req, res, next) => {
     return res.status(400).json({
       success: false,
       code: KEYWORD_CODES.KEYWORD_INVALID_ID,
-      message: "ID pháº£i lá»›n hÆ¡n 0",
+      message: "ID phải lớn hơn 0",
     });
   }
 
@@ -104,7 +104,7 @@ export const validateKeywordId = (req, res, next) => {
 };
 
 /**
- * Middleware validate cÃ¡c tham sá»‘ vÃ  quyá»n cho viá»‡c xÃ³a tá»« khÃ³a theo dÃµi.
+ * Middleware validate các tham số v�  quyền cho việc xóa từ khóa theo dõi.
  */
 export const validateDeleteWatchedKeyword = async (req, res) => {
   const projectId = parseInt(req.params.id);
@@ -114,7 +114,7 @@ export const validateDeleteWatchedKeyword = async (req, res) => {
     return res.status(400).json({
       success: false,
       code: KEYWORD_CODES.PROJECT_INVALID_ID,
-      message: "ID dá»± Ã¡n khÃ´ng há»£p lá»‡",
+      message: "ID dự án không hợp lệ",
     });
   }
 
@@ -122,7 +122,7 @@ export const validateDeleteWatchedKeyword = async (req, res) => {
     return res.status(400).json({
       success: false,
       code: KEYWORD_CODES.KEYWORD_INVALID_ID,
-      message: "ID tá»« khÃ³a khÃ´ng há»£p lá»‡",
+      message: "ID từ khóa không hợp lệ",
     });
   }
 
@@ -135,7 +135,7 @@ export const validateDeleteWatchedKeyword = async (req, res) => {
         success: false,
         code: KEYWORD_CODES.PROJECT_NOT_FOUND,
         message:
-          "KhÃ´ng tÃ¬m tháº¥y dá»± Ã¡n hoáº·c báº¡n khÃ´ng cÃ³ quyá»n truy cáº­p dá»± Ã¡n nÃ y",
+          "Không tìm thấy dự án hoặc bạn không có quyền truy cập dự án n� y",
       });
     }
 
@@ -144,13 +144,13 @@ export const validateDeleteWatchedKeyword = async (req, res) => {
     return res.status(500).json({
       success: false,
       code: KEYWORD_CODES.KEYWORD_SERVER_ERROR,
-      message: "Lá»—i há»‡ thá»‘ng khi xÃ¡c thá»±c quyá»n truy cáº­p dá»± Ã¡n",
+      message: "Lỗi hệ thống khi xác thực quyền truy cập dự án",
     });
   }
 };
 
 /**
- * Middleware validate cÃ¡c tham sá»‘ vÃ  quyá»n cho viá»‡c ghi Ä‘Ã¨ (thay tháº¿) danh sÃ¡ch tá»« khÃ³a theo dÃµi.
+ * Middleware validate các tham số v�  quyền cho việc ghi đè (thay thế) danh sách từ khóa theo dõi.
  */
 export const validateUpdateWatchedKeywords = async (req, res) => {
   const projectId = parseInt(req.params.id);
@@ -159,7 +159,7 @@ export const validateUpdateWatchedKeywords = async (req, res) => {
     return res.status(400).json({
       success: false,
       code: KEYWORD_CODES.PROJECT_INVALID_ID,
-      message: "ID dá»± Ã¡n khÃ´ng há»£p lá»‡",
+      message: "ID dự án không hợp lệ",
     });
   }
 
@@ -169,7 +169,7 @@ export const validateUpdateWatchedKeywords = async (req, res) => {
     return res.status(400).json({
       success: false,
       code: KEYWORD_CODES.KEYWORD_INVALID_BODY,
-      message: "keyword_ids pháº£i lÃ  má»™t máº£ng",
+      message: "keyword_ids phải l�  một mảng",
     });
   }
 
@@ -179,7 +179,7 @@ export const validateUpdateWatchedKeywords = async (req, res) => {
       return res.status(400).json({
         success: false,
         code: KEYWORD_CODES.KEYWORD_INVALID_BODY,
-        message: "CÃ¡c pháº§n tá»­ trong keyword_ids pháº£i lÃ  sá»‘ nguyÃªn dÆ°Æ¡ng",
+        message: "Các phần tử trong keyword_ids phải l�  số nguyên dương",
       });
     }
   }
@@ -193,7 +193,7 @@ export const validateUpdateWatchedKeywords = async (req, res) => {
         success: false,
         code: KEYWORD_CODES.PROJECT_NOT_FOUND,
         message:
-          "KhÃ´ng tÃ¬m tháº¥y dá»± Ã¡n hoáº·c báº¡n khÃ´ng cÃ³ quyá»n truy cáº­p dá»± Ã¡n nÃ y",
+          "Không tìm thấy dự án hoặc bạn không có quyền truy cập dự án n� y",
       });
     }
 
@@ -203,7 +203,7 @@ export const validateUpdateWatchedKeywords = async (req, res) => {
         return res.status(400).json({
           success: false,
           code: KEYWORD_CODES.KEYWORD_NOT_FOUND,
-          message: "Má»™t hoáº·c nhiá»u ID tá»« khÃ³a khÃ´ng tá»“n táº¡i trong há»‡ thá»‘ng",
+          message: "Một hoặc nhiều ID từ khóa không tồn tại trong hệ thống",
         });
       }
     }
@@ -213,13 +213,13 @@ export const validateUpdateWatchedKeywords = async (req, res) => {
     return res.status(500).json({
       success: false,
       code: KEYWORD_CODES.KEYWORD_SERVER_ERROR,
-      message: "Lá»—i há»‡ thá»‘ng khi xÃ¡c thá»±c quyá»n truy cáº­p dá»± Ã¡n",
+      message: "Lỗi hệ thống khi xác thực quyền truy cập dự án",
     });
   }
 };
 
 /**
- * Middleware validate cÃ¡c tham sá»‘ vÃ  quyá»n cho viá»‡c táº¡o má»›i (thÃªm nhiá»u) tá»« khÃ³a theo dÃµi.
+ * Middleware validate các tham số v�  quyền cho việc tạo mới (thêm nhiều) từ khóa theo dõi.
  */
 export const validateCreateWatchedKeyword = async (req, res) => {
   const projectId = parseInt(req.params.id);
@@ -228,7 +228,7 @@ export const validateCreateWatchedKeyword = async (req, res) => {
     return res.status(400).json({
       success: false,
       code: KEYWORD_CODES.PROJECT_INVALID_ID,
-      message: "ID dá»± Ã¡n khÃ´ng há»£p lá»‡",
+      message: "ID dự án không hợp lệ",
     });
   }
 
@@ -238,7 +238,7 @@ export const validateCreateWatchedKeyword = async (req, res) => {
     return res.status(400).json({
       success: false,
       code: KEYWORD_CODES.KEYWORD_INVALID_BODY,
-      message: "keyword_ids pháº£i lÃ  má»™t máº£ng",
+      message: "keyword_ids phải l�  một mảng",
     });
   }
 
@@ -248,7 +248,7 @@ export const validateCreateWatchedKeyword = async (req, res) => {
       return res.status(400).json({
         success: false,
         code: KEYWORD_CODES.KEYWORD_INVALID_BODY,
-        message: "CÃ¡c pháº§n tá»­ trong keyword_ids pháº£i lÃ  sá»‘ nguyÃªn dÆ°Æ¡ng",
+        message: "Các phần tử trong keyword_ids phải l�  số nguyên dương",
       });
     }
   }
@@ -262,7 +262,7 @@ export const validateCreateWatchedKeyword = async (req, res) => {
         success: false,
         code: KEYWORD_CODES.PROJECT_NOT_FOUND,
         message:
-          "KhÃ´ng tÃ¬m tháº¥y dá»± Ã¡n hoáº·c báº¡n khÃ´ng cÃ³ quyá»n truy cáº­p dá»± Ã¡n nÃ y",
+          "Không tìm thấy dự án hoặc bạn không có quyền truy cập dự án n� y",
       });
     }
 
@@ -272,7 +272,7 @@ export const validateCreateWatchedKeyword = async (req, res) => {
         return res.status(400).json({
           success: false,
           code: KEYWORD_CODES.KEYWORD_NOT_FOUND,
-          message: "Má»™t hoáº·c nhiá»u ID tá»« khÃ³a khÃ´ng tá»“n táº¡i trong há»‡ thá»‘ng",
+          message: "Một hoặc nhiều ID từ khóa không tồn tại trong hệ thống",
         });
       }
     }
@@ -282,7 +282,7 @@ export const validateCreateWatchedKeyword = async (req, res) => {
     return res.status(500).json({
       success: false,
       code: KEYWORD_CODES.KEYWORD_SERVER_ERROR,
-      message: "Lá»—i há»‡ thá»‘ng khi xÃ¡c thá»±c quyá»n truy cáº­p dá»± Ã¡n",
+      message: "Lỗi hệ thống khi xác thực quyền truy cập dự án",
     });
   }
 };

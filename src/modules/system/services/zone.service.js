@@ -1,38 +1,38 @@
-﻿import prisma from '../../../config/prisma.js';
+import prisma from '../../../config/prisma.js';
 
 /**
- * Láº¥y danh sÃ¡ch thá»‘ng kÃª sáº£n lÆ°á»£ng bÃ i viáº¿t theo tá»«ng quá»‘c gia (phÃ¢n trang).
+ * Lấy danh sách thống kê sản lượng b� i viết theo từng quốc gia (phân trang).
  *
  * @async
- * @param {Object} params - CÃ¡c tham sá»‘ phÃ¢n trang.
- * @param {number} params.page - Trang hiá»‡n táº¡i.
- * @param {number} params.limit - Sá»‘ lÆ°á»£ng báº£n ghi trÃªn má»—i trang.
- * @returns {Promise<{ countries: Array<Object>, total: number }>} Danh sÃ¡ch cÃ¡c quá»‘c gia cÃ¹ng tá»•ng sá»‘ lÆ°á»£ng báº£n ghi.
+ * @param {Object} params - Các tham số phân trang.
+ * @param {number} params.page - Trang hiện tại.
+ * @param {number} params.limit - Số lượng bản ghi trên mỗi trang.
+ * @returns {Promise<{ countries: Array<Object>, total: number }>} Danh sách các quốc gia cùng tổng số lượng bản ghi.
  */
 export const getCountryStats = async ({ page = 1, limit = 10, year }) => {
   const parsedPage = parseInt(page, 10) || 1;
   const parsedLimit = parseInt(limit, 10) || 10;
   const offset = (parsedPage - 1) * parsedLimit;
 
-  // 1. Äáº¿m tá»•ng sá»‘ quá»‘c gia cÃ³ trong há»‡ thá»‘ng
+  // 1. Đếm tổng số quốc gia có trong hệ thống
   const countQuery = 'SELECT COUNT(*)::integer AS total FROM "Zone" WHERE type = \'COUNTRY\'';
   const countResult = await prisma.$queryRawUnsafe(countQuery);
   const total = countResult[0]?.total || 0;
 
-  // 2. Láº¥y thá»‘ng kÃª chi tiáº¿t sáº£n lÆ°á»£ng bÃ i bÃ¡o theo quá»‘c gia
-  // Táº¡o danh sÃ¡ch giÃ¡ trá»‹ truyá»n vÃ o query Ä‘á»ƒ báº£o máº­t SQL injection
+  // 2. Lấy thống kê chi tiết sản lượng b� i báo theo quốc gia
+  // Tạo danh sách giá trị truyền v� o query để bảo mật SQL injection
   const values = [parsedLimit, offset];
   let yearClause = '';
   
-  // Náº¿u tham sá»‘ lá»c 'year' (nÄƒm xuáº¥t báº£n) Ä‘Æ°á»£c gá»­i lÃªn, ta sáº½ thÃªm Ä‘iá»u kiá»‡n lá»c theo nÄƒm
+  // Nếu tham số lọc 'year' (năm xuất bản) được gửi lên, ta sẽ thêm điều kiện lọc theo năm
   if (year) {
     values.push(Number(year));
-    yearClause = `AND a.publication_year = $${values.length}`; // ThÃªm tham sá»‘ Ä‘á»™ng vÃ o ON clause Ä‘á»ƒ lá»c bÃ i bÃ¡o theo nÄƒm
+    yearClause = `AND a.publication_year = $${values.length}`; // Thêm tham số động v� o ON clause để lọc b� i báo theo năm
   }
 
-  // Thá»±c hiá»‡n LEFT JOIN cÃ¡c báº£ng: Zone -> Journal -> Volume -> Issue -> Article
-  // ThÃªm Ä‘iá»u kiá»‡n 'is_deleted = false' Ä‘á»ƒ loáº¡i bá» cÃ¡c báº£n ghi Ä‘Ã£ bá»‹ xÃ³a má»m.
-  // Äiá»u kiá»‡n lá»c yearClause Ä‘Æ°á»£c Ä‘áº·t trong ON clause Ä‘á»ƒ trÃ¡nh biáº¿n LEFT JOIN thÃ nh INNER JOIN (nháº±m giá»¯ láº¡i cÃ¡c quá»‘c gia cÃ³ 0 sáº£n lÆ°á»£ng).
+  // Thực hiện LEFT JOIN các bảng: Zone -> Journal -> Volume -> Issue -> Article
+  // Thêm điều kiện 'is_deleted = false' để loại bỏ các bản ghi đã bị xóa mềm.
+  // Điều kiện lọc yearClause được đặt trong ON clause để tránh biến LEFT JOIN th� nh INNER JOIN (nhằm giữ lại các quốc gia có 0 sản lượng).
   const statsQuery = `
     SELECT 
       z.zone_id,
@@ -61,17 +61,17 @@ export const getCountryStats = async ({ page = 1, limit = 10, year }) => {
 };
 
 /**
- * Láº¥y thá»‘ng kÃª sáº£n lÆ°á»£ng bÃ i viáº¿t theo phÃ¢n vÃ¹ng (Region), cÃ³ thá»ƒ lá»c theo mÃ£ quá»‘c gia cá»¥ thá»ƒ.
+ * Lấy thống kê sản lượng b� i viết theo phân vùng (Region), có thể lọc theo mã quốc gia cụ thể.
  *
  * @async
- * @param {Object} [params] - Tham sá»‘ lá»c.
- * @param {string} [params.countryCode] - MÃ£ quá»‘c gia (vÃ­ dá»¥: 'US', 'VN') dÃ¹ng Ä‘á»ƒ lá»c.
- * @returns {Promise<Array<Object>>} Danh sÃ¡ch phÃ¢n vÃ¹ng vÃ  sáº£n lÆ°á»£ng bÃ i bÃ¡o.
- * @throws {Error} NÃ©m ra lá»—i 404 náº¿u truyá»n mÃ£ quá»‘c gia nhÆ°ng quá»‘c gia Ä‘Ã³ khÃ´ng tá»“n táº¡i.
+ * @param {Object} [params] - Tham số lọc.
+ * @param {string} [params.countryCode] - Mã quốc gia (ví dụ: 'US', 'VN') dùng để lọc.
+ * @returns {Promise<Array<Object>>} Danh sách phân vùng v�  sản lượng b� i báo.
+ * @throws {Error} Ném ra lỗi 404 nếu truyền mã quốc gia nhưng quốc gia đó không tồn tại.
  */
 export const getRegionStats = async ({ countryCode } = {}) => {
   if (countryCode) {
-    // 1. Kiá»ƒm tra sá»± tá»“n táº¡i cá»§a quá»‘c gia vá»›i mÃ£ Ä‘Ã£ cho
+    // 1. Kiểm tra sự tồn tại của quốc gia với mã đã cho
     const countryCheckQuery = `
       SELECT zone_id, name 
       FROM "Zone" 
@@ -80,14 +80,14 @@ export const getRegionStats = async ({ countryCode } = {}) => {
     const countryCheckResult = await prisma.$queryRawUnsafe(countryCheckQuery, countryCode);
     
     if (countryCheckResult.length === 0) {
-      const error = new Error(`Quá»‘c gia cÃ³ mÃ£ '${countryCode}' khÃ´ng tá»“n táº¡i`);
+      const error = new Error(`Quốc gia có mã '${countryCode}' không tồn tại`);
       error.statusCode = 404;
       throw error;
     }
 
     const countryZoneId = countryCheckResult[0].zone_id;
 
-    // 2. Láº¥y thá»‘ng kÃª theo vÃ¹ng cá»§a quá»‘c gia cá»¥ thá»ƒ
+    // 2. Lấy thống kê theo vùng của quốc gia cụ thể
     const regionStatsQuery = `
       SELECT 
         zr.zone_id,
@@ -110,7 +110,7 @@ export const getRegionStats = async ({ countryCode } = {}) => {
     return statsResult;
   }
 
-  // Láº¥y toÃ n bá»™ phÃ¢n vÃ¹ng (Region) toÃ n cáº§u
+  // Lấy to� n bộ phân vùng (Region) to� n cầu
   const globalRegionStatsQuery = `
     SELECT 
       zr.zone_id,
@@ -134,15 +134,15 @@ export const getRegionStats = async ({ countryCode } = {}) => {
 };
 
 /**
- * Láº¥y danh sÃ¡ch phÃ¢n vÃ¹ng ná»™i bá»™ (Region) cá»§a má»™t quá»‘c gia cá»¥ thá»ƒ kÃ¨m theo thÃ´ng tin chi tiáº¿t cá»§a quá»‘c gia Ä‘Ã³.
+ * Lấy danh sách phân vùng nội bộ (Region) của một quốc gia cụ thể kèm theo thông tin chi tiết của quốc gia đó.
  *
  * @async
- * @param {string} countryCode - MÃ£ quá»‘c gia (vÃ­ dá»¥: 'US', 'VN') dÃ¹ng Ä‘á»ƒ truy váº¥n.
- * @returns {Promise<{ country: Object, regions: Array<Object> }>} ThÃ´ng tin quá»‘c gia vÃ  danh sÃ¡ch phÃ¢n vÃ¹ng kÃ¨m sáº£n lÆ°á»£ng.
- * @throws {Error} NÃ©m ra lá»—i 404 náº¿u quá»‘c gia khÃ´ng tá»“n táº¡i.
+ * @param {string} countryCode - Mã quốc gia (ví dụ: 'US', 'VN') dùng để truy vấn.
+ * @returns {Promise<{ country: Object, regions: Array<Object> }>} Thông tin quốc gia v�  danh sách phân vùng kèm sản lượng.
+ * @throws {Error} Ném ra lỗi 404 nếu quốc gia không tồn tại.
  */
 export const getCountryRegionsStats = async (countryCode) => {
-  // 1. Kiá»ƒm tra sá»± tá»“n táº¡i vÃ  láº¥y thÃ´ng tin chi tiáº¿t cá»§a quá»‘c gia
+  // 1. Kiểm tra sự tồn tại v�  lấy thông tin chi tiết của quốc gia
   const countryCheckQuery = `
     SELECT zone_id, code, name, iso_code, source, created_at
     FROM "Zone" 
@@ -151,14 +151,14 @@ export const getCountryRegionsStats = async (countryCode) => {
   const countryCheckResult = await prisma.$queryRawUnsafe(countryCheckQuery, countryCode);
   
   if (countryCheckResult.length === 0) {
-    const error = new Error(`Quá»‘c gia cÃ³ mÃ£ '${countryCode}' khÃ´ng tá»“n táº¡i`);
+    const error = new Error(`Quốc gia có mã '${countryCode}' không tồn tại`);
     error.statusCode = 404;
     throw error;
   }
 
   const country = countryCheckResult[0];
 
-  // 2. Láº¥y thá»‘ng kÃª theo phÃ¢n vÃ¹ng cá»§a quá»‘c gia Ä‘Ã³
+  // 2. Lấy thống kê theo phân vùng của quốc gia đó
   const regionStatsQuery = `
     SELECT 
       zr.zone_id,
@@ -187,9 +187,9 @@ export const getCountryRegionsStats = async (countryCode) => {
 
 
 /**
- * Kiá»ƒm tra VÃ¹ng (Zone) cÃ³ tá»“n táº¡i trong há»‡ thá»‘ng hay khÃ´ng
- * @param {string|number} id - ID cá»§a Zone cáº§n kiá»ƒm tra
- * @returns {Promise<boolean>} true náº¿u tá»“n táº¡i, false náº¿u khÃ´ng
+ * Kiểm tra Vùng (Zone) có tồn tại trong hệ thống hay không
+ * @param {string|number} id - ID của Zone cần kiểm tra
+ * @returns {Promise<boolean>} true nếu tồn tại, false nếu không
  */
 export const zoneExist = async (id) => {
     try {
@@ -204,7 +204,7 @@ export const zoneExist = async (id) => {
         return result[0]?.exists || false;
 
     } catch (error) {
-        console.error(`[Service Error] Lá»—i khi kiá»ƒm tra zoneExist vá»›i ID ${id}:`, error);
+        console.error(`[Service Error] Lỗi khi kiểm tra zoneExist với ID ${id}:`, error);
         throw error;
     }
 };

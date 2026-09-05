@@ -1,4 +1,4 @@
-﻿import axios from "axios";
+import axios from "axios";
 import redis from '../../../config/redis.js';
 import logger from '../../../utils/logger.js';
 
@@ -17,7 +17,7 @@ const readRedisToken = async (redisClient) => {
   try {
     return await redisClient.get(TOKEN_CACHE_KEY);
   } catch (error) {
-    logger.error("[ORCID Token] KhÃ´ng thá»ƒ Ä‘á»c token tá»« Redis:", error.message);
+    logger.error("[ORCID Token] Không thể đọc token từ Redis:", error.message);
     return null;
   }
 };
@@ -26,7 +26,7 @@ const writeRedisToken = async (redisClient, token, ttlSeconds) => {
   try {
     await redisClient.set(TOKEN_CACHE_KEY, token, "EX", ttlSeconds);
   } catch (error) {
-    logger.error("[ORCID Token] KhÃ´ng thá»ƒ cache token vÃ o Redis:", error.message);
+    logger.error("[ORCID Token] Không thể cache token v� o Redis:", error.message);
   }
 };
 
@@ -37,7 +37,7 @@ export const invalidateOrcidToken = async ({
   try {
     await redisClient.del(TOKEN_CACHE_KEY);
   } catch (error) {
-    logger.error("[ORCID Token] KhÃ´ng thá»ƒ xÃ³a token Redis:", error.message);
+    logger.error("[ORCID Token] Không thể xóa token Redis:", error.message);
   }
 };
 
@@ -68,7 +68,7 @@ export const getOrcidAccessToken = async ({
       const clientSecret = process.env.ORCID_CLIENT_SECRET;
       if (!clientId || !clientSecret) {
         const error = new Error(
-          "Thiáº¿u ORCID_CLIENT_ID hoáº·c ORCID_CLIENT_SECRET",
+          "Thiếu ORCID_CLIENT_ID hoặc ORCID_CLIENT_SECRET",
         );
         error.code = "ORCID_CONFIGURATION_ERROR";
         throw error;
@@ -95,7 +95,7 @@ export const getOrcidAccessToken = async ({
 
       const token = response.data?.access_token;
       if (!token) {
-        const error = new Error("ORCID khÃ´ng tráº£ vá» access token");
+        const error = new Error("ORCID không trả về access token");
         error.code = "ORCID_TOKEN_INVALID_RESPONSE";
         throw error;
       }

@@ -6,22 +6,22 @@ import {
   CROSSREF_WORK_SELECT,
   fetchCrossrefWorksByOrcid,
   mapCrossrefWork,
-} from "../../../services/crossrefApi.service.js";
+} from "../../../modules/author/services/crossrefApi.service.js";
 import {
   fetchOpenAlexData,
   fetchOpenAlexWorksByIds,
   mapOpenAlexWork,
   OPENALEX_AUTHOR_SELECT,
   OPENALEX_WORK_SELECT,
-} from "../../../services/openAlexApi.service.js";
+} from "../../../modules/author/services/openAlexApi.service.js";
 import {
   fetchOrcidData,
   mapOrcidWorks,
-} from "../../../services/orcidApi.service.js";
+} from "../../../modules/author/services/orcidApi.service.js";
 import {
   getOrcidAccessToken,
   resetOrcidTokenMemoryCacheForTests,
-} from "../../../services/orcidToken.service.js";
+} from "../../../modules/auth/services/orcidToken.service.js";
 
 const originalClientId = process.env.ORCID_CLIENT_ID;
 const originalClientSecret = process.env.ORCID_CLIENT_SECRET;

@@ -1,4 +1,4 @@
-﻿import { journalExist } from '../../journal/services/journal.service.js';
+import { journalExist } from '../../journal/services/journal.service.js';
 import { publisherExist } from '../../journal/services/publisher.service.js';
 import { zoneExist } from '../../system/services/zone.service.js';
 
@@ -7,7 +7,7 @@ export const validateCreateJournal = async (request, reply) => {
     const { source_id, publisher_id, country, region, display_name, type, is_open_access, is_oa_diamond, coverage, issn } = request.body;
 
     if (!display_name || typeof display_name !== 'string' || display_name.trim() === '') {
-      return reply.status(400).send({ success: false, code: 'INVALID_DISPLAY_NAME', message: 'display_name lÃ  trÆ°á»ng báº¯t buá»™c vÃ  pháº£i lÃ  chuá»—i khÃ´ng trá»‘ng' });
+      return reply.status(400).send({ success: false, code: 'INVALID_DISPLAY_NAME', message: 'display_name l�  trường bắt buộc v�  phải l�  chuỗi không trống' });
     }
 
     request.body.type = (!type || typeof type !== 'string' || type.trim() === '') ? 'Journal' : type.trim();
@@ -19,37 +19,37 @@ export const validateCreateJournal = async (request, reply) => {
       if (typeof issn === 'string') {
         const issnList = issn.split(',').map(item => item.trim());
         const invalidIssns = issnList.filter(item => !issnRegex.test(item));
-        if (invalidIssns.length > 0) return reply.status(400).send({ success: false, code: 'INVALID_ISSN_FORMAT', message: `Äá»‹nh dáº¡ng ISSN khÃ´ng há»£p lá»‡: ${invalidIssns.join(', ')}. Äá»‹nh dáº¡ng Ä‘Ãºng pháº£i lÃ  XXXX-XXXX` });
+        if (invalidIssns.length > 0) return reply.status(400).send({ success: false, code: 'INVALID_ISSN_FORMAT', message: `Định dạng ISSN không hợp lệ: ${invalidIssns.join(', ')}. Định dạng đúng phải l�  XXXX-XXXX` });
       } else if (Array.isArray(issn)) {
         const invalidIssns = issn.filter(item => typeof item !== 'string' || !issnRegex.test(item.trim()));
-        if (invalidIssns.length > 0) return reply.status(400).send({ success: false, code: 'INVALID_ISSN_ARRAY', message: 'Máº£ng chá»©a má»™t hoáº·c nhiá»u mÃ£ ISSN khÃ´ng Ä‘Ãºng Ä‘á»‹nh dáº¡ng (XXXX-XXXX)' });
+        if (invalidIssns.length > 0) return reply.status(400).send({ success: false, code: 'INVALID_ISSN_ARRAY', message: 'Mảng chứa một hoặc nhiều mã ISSN không đúng định dạng (XXXX-XXXX)' });
       } else {
-        return reply.status(400).send({ success: false, code: 'INVALID_ISSN_TYPE', message: 'issn pháº£i lÃ  chuá»—i (string) hoáº·c máº£ng (array)' });
+        return reply.status(400).send({ success: false, code: 'INVALID_ISSN_TYPE', message: 'issn phải l�  chuỗi (string) hoặc mảng (array)' });
       }
     }
 
     if (publisher_id !== undefined && publisher_id !== null && publisher_id !== '') {
       const publisherExists = await publisherExist(publisher_id);
-      if (!publisherExists) return reply.status(400).send({ success: false, code: 'PUBLISHER_NOT_FOUND', message: 'publisher_id khÃ´ng tá»“n táº¡i trong há»‡ thá»‘ng' });
+      if (!publisherExists) return reply.status(400).send({ success: false, code: 'PUBLISHER_NOT_FOUND', message: 'publisher_id không tồn tại trong hệ thống' });
     } else {
-      return reply.status(400).send({ success: false, code: 'PUBLISHER_REQUIRED', message: 'publisher_id lÃ  trÆ°á»ng báº¯t buá»™c' });
+      return reply.status(400).send({ success: false, code: 'PUBLISHER_REQUIRED', message: 'publisher_id l�  trường bắt buộc' });
     }
 
     if (country !== undefined && country !== null && country !== '') {
       const countryExists = await zoneExist(country);
-      if (!countryExists) return reply.status(400).send({ success: false, code: 'COUNTRY_NOT_FOUND', message: 'country khÃ´ng tá»“n táº¡i trong há»‡ thá»‘ng' });
+      if (!countryExists) return reply.status(400).send({ success: false, code: 'COUNTRY_NOT_FOUND', message: 'country không tồn tại trong hệ thống' });
     } else {
-      return reply.status(400).send({ success: false, code: 'COUNTRY_REQUIRED', message: 'country lÃ  trÆ°á»ng báº¯t buá»™c' });
+      return reply.status(400).send({ success: false, code: 'COUNTRY_REQUIRED', message: 'country l�  trường bắt buộc' });
     }
 
     if (region !== undefined && region !== null && region !== '') {
       const regionExists = await zoneExist(region);
-      if (!regionExists) return reply.status(400).send({ success: false, code: 'REGION_NOT_FOUND', message: 'region khÃ´ng tá»“n táº¡i trong há»‡ thá»‘ng' });
+      if (!regionExists) return reply.status(400).send({ success: false, code: 'REGION_NOT_FOUND', message: 'region không tồn tại trong hệ thống' });
     } else {
-      return reply.status(400).send({ success: false, code: 'REGION_REQUIRED', message: 'region lÃ  trÆ°á»ng báº¯t buá»™c' });
+      return reply.status(400).send({ success: false, code: 'REGION_REQUIRED', message: 'region l�  trường bắt buộc' });
     }
   } catch (error) {
-    return reply.status(500).send({ success: false, code: 'SERVER_VALIDATION_ERROR', message: 'Lá»—i há»‡ thá»‘ng trong quÃ¡ trÃ¬nh kiá»ƒm tra dá»¯ liá»‡u' });
+    return reply.status(500).send({ success: false, code: 'SERVER_VALIDATION_ERROR', message: 'Lỗi hệ thống trong quá trình kiểm tra dữ liệu' });
   }
 };
 
@@ -59,15 +59,15 @@ export const validateUpdateJournal = async (request, reply) => {
 
     if (publisher_id !== undefined) {
       const publisherExists = await publisherExist(publisher_id);
-      if (!publisherExists) return reply.status(400).send({ success: false, code: 'PUBLISHER_NOT_FOUND', message: 'publisher_id khÃ´ng tá»“n táº¡i trong há»‡ thá»‘ng' });
+      if (!publisherExists) return reply.status(400).send({ success: false, code: 'PUBLISHER_NOT_FOUND', message: 'publisher_id không tồn tại trong hệ thống' });
     }
     if (country !== undefined) {
       const countryExists = await zoneExist(country);
-      if (!countryExists) return reply.status(400).send({ success: false, code: 'COUNTRY_NOT_FOUND', message: 'country khÃ´ng tá»“n táº¡i trong há»‡ thá»‘ng' });
+      if (!countryExists) return reply.status(400).send({ success: false, code: 'COUNTRY_NOT_FOUND', message: 'country không tồn tại trong hệ thống' });
     }
     if (region !== undefined) {
       const regionExists = await zoneExist(region);
-      if (!regionExists) return reply.status(400).send({ success: false, code: 'REGION_NOT_FOUND', message: 'region khÃ´ng tá»“n táº¡i trong há»‡ thá»‘ng' });
+      if (!regionExists) return reply.status(400).send({ success: false, code: 'REGION_NOT_FOUND', message: 'region không tồn tại trong hệ thống' });
     }
 
     request.body.type = (!type || typeof type !== 'string' || type.trim() === '') ? 'Journal' : type.trim();
@@ -79,16 +79,16 @@ export const validateUpdateJournal = async (request, reply) => {
       if (typeof issn === 'string') {
         const issnList = issn.split(',').map(item => item.trim());
         const invalidIssns = issnList.filter(item => !issnRegex.test(item));
-        if (invalidIssns.length > 0) return reply.status(400).send({ success: false, code: 'INVALID_ISSN_FORMAT', message: `Äá»‹nh dáº¡ng ISSN khÃ´ng há»£p lá»‡` });
+        if (invalidIssns.length > 0) return reply.status(400).send({ success: false, code: 'INVALID_ISSN_FORMAT', message: `Định dạng ISSN không hợp lệ` });
       } else if (Array.isArray(issn)) {
         const invalidIssns = issn.filter(item => typeof item !== 'string' || !issnRegex.test(item.trim()));
-        if (invalidIssns.length > 0) return reply.status(400).send({ success: false, code: 'INVALID_ISSN_ARRAY', message: 'Máº£ng chá»©a má»™t hoáº·c nhiá»u mÃ£ ISSN khÃ´ng Ä‘Ãºng Ä‘á»‹nh dáº¡ng (XXXX-XXXX)' });
+        if (invalidIssns.length > 0) return reply.status(400).send({ success: false, code: 'INVALID_ISSN_ARRAY', message: 'Mảng chứa một hoặc nhiều mã ISSN không đúng định dạng (XXXX-XXXX)' });
       } else {
-        return reply.status(400).send({ success: false, code: 'INVALID_ISSN_TYPE', message: 'issn pháº£i lÃ  chuá»—i (string) dáº¡ng danh sÃ¡ch phÃ¢n cÃ¡ch báº±ng dáº¥u pháº©y' });
+        return reply.status(400).send({ success: false, code: 'INVALID_ISSN_TYPE', message: 'issn phải l�  chuỗi (string) dạng danh sách phân cách bằng dấu phẩy' });
       }
     }
   } catch (error) {
-    return reply.status(500).send({ success: false, code: 'SERVER_VALIDATION_ERROR', message: 'Lá»—i há»‡ thá»‘ng trong quÃ¡ trÃ¬nh kiá»ƒm tra dá»¯ liá»‡u' });
+    return reply.status(500).send({ success: false, code: 'SERVER_VALIDATION_ERROR', message: 'Lỗi hệ thống trong quá trình kiểm tra dữ liệu' });
   }
 };
 
@@ -96,10 +96,10 @@ export const validateJournalId = async (request, reply) => {
   try {
     const id = request.params.id || request.params.journalId;
     const idNumber = Number(id);
-    if (!Number.isInteger(idNumber) || idNumber <= 0) return reply.status(400).send({ success: false, code: 'INVALID_JOURNAL_ID', message: 'Id khÃ´ng há»£p lá»‡, pháº£i lÃ  sá»‘ nguyÃªn dÆ°Æ¡ng' });
+    if (!Number.isInteger(idNumber) || idNumber <= 0) return reply.status(400).send({ success: false, code: 'INVALID_JOURNAL_ID', message: 'Id không hợp lệ, phải l�  số nguyên dương' });
 
-    if (!(await journalExist(idNumber))) return reply.status(404).send({ success: false, code: 'JOURNAL_NOT_FOUND', message: `KhÃ´ng tÃ¬m tháº¥y journal nÃ o vá»›i id ${idNumber}` });
+    if (!(await journalExist(idNumber))) return reply.status(404).send({ success: false, code: 'JOURNAL_NOT_FOUND', message: `Không tìm thấy journal n� o với id ${idNumber}` });
   } catch (error) {
-    return reply.status(400).send({ success: false, code: 'INVALID_JOURNAL_ID', message: 'Id khÃ´ng há»£p lá»‡, pháº£i lÃ  sá»‘ nguyÃªn dÆ°Æ¡ng' });
+    return reply.status(400).send({ success: false, code: 'INVALID_JOURNAL_ID', message: 'Id không hợp lệ, phải l�  số nguyên dương' });
   }
 };

@@ -1,10 +1,10 @@
-﻿import prisma from '../../../config/prisma.js';
+import prisma from '../../../config/prisma.js';
 
 /**
- * Láº¥y danh sÃ¡ch cÃ¡c lÄ©nh vá»±c lá»›n (Subject Area) trong há»‡ thá»‘ng.
+ * Lấy danh sách các lĩnh vực lớn (Subject Area) trong hệ thống.
  *
  * @async
- * @returns {Promise<Array<Object>>} Danh sÃ¡ch cÃ¡c subject areas.
+ * @returns {Promise<Array<Object>>} Danh sách các subject areas.
  */
 export const getSubjectAreas = async () => {
   const query = `
@@ -20,12 +20,12 @@ export const getSubjectAreas = async () => {
 };
 
 /**
- * Láº¥y danh sÃ¡ch chuyÃªn ngÃ nh háº¹p (Subject Category), cÃ³ há»— trá»£ lá»c theo Subject Area.
+ * Lấy danh sách chuyên ng� nh hẹp (Subject Category), có hỗ trợ lọc theo Subject Area.
  *
  * @async
- * @param {Object} params - Tham sá»‘ lá»c.
- * @param {string} [params.subjectAreaId] - ID cá»§a lÄ©nh vá»±c lá»›n cáº§n lá»c.
- * @returns {Promise<Array<Object>>} Danh sÃ¡ch chuyÃªn ngÃ nh háº¹p.
+ * @param {Object} params - Tham số lọc.
+ * @param {string} [params.subjectAreaId] - ID của lĩnh vực lớn cần lọc.
+ * @returns {Promise<Array<Object>>} Danh sách chuyên ng� nh hẹp.
  */
 export const getSubjectCategories = async ({ subjectAreaId } = {}) => {
   let query = `
@@ -49,34 +49,34 @@ export const getSubjectCategories = async ({ subjectAreaId } = {}) => {
 };
 
 /**
- * Láº¥y lá»‹ch sá»­ xáº¿p háº¡ng (ranking) cá»§a má»™t journal cá»¥ thá»ƒ kÃ¨m theo bá»™ lá»c Ä‘á»™ng.
+ * Lấy lịch sử xếp hạng (ranking) của một journal cụ thể kèm theo bộ lọc động.
  *
  * @async
- * @param {string} journalId - ID cá»§a journal cáº§n láº¥y lá»‹ch sá»­ ranking.
- * @param {Object} [filters] - CÃ¡c bá»™ lá»c bá»• sung.
- * @param {number|string} [filters.year] - NÄƒm cáº§n lá»c.
- * @param {string} [filters.metric_code] - MÃ£ chá»‰ sá»‘ (SJR, H_INDEX, RANK...).
- * @param {string} [filters.quartile] - PhÃ¢n háº¡ng cáº§n lá»c (Q1, Q2, Q3, Q4).
- * @param {string} [filters.source] - Nguá»“n dá»¯ liá»‡u (SCIMAGO, SCOPUS, WOS).
- * @returns {Promise<Array<Object>>} Danh sÃ¡ch lá»‹ch sá»­ xáº¿p háº¡ng Ä‘Ã£ Ä‘á»‹nh dáº¡ng.
- * @throws {Error} Lá»—i 404 náº¿u journal khÃ´ng tá»“n táº¡i.
+ * @param {string} journalId - ID của journal cần lấy lịch sử ranking.
+ * @param {Object} [filters] - Các bộ lọc bổ sung.
+ * @param {number|string} [filters.year] - Năm cần lọc.
+ * @param {string} [filters.metric_code] - Mã chỉ số (SJR, H_INDEX, RANK...).
+ * @param {string} [filters.quartile] - Phân hạng cần lọc (Q1, Q2, Q3, Q4).
+ * @param {string} [filters.source] - Nguồn dữ liệu (SCIMAGO, SCOPUS, WOS).
+ * @returns {Promise<Array<Object>>} Danh sách lịch sử xếp hạng đã định dạng.
+ * @throws {Error} Lỗi 404 nếu journal không tồn tại.
  */
 export const getJournalRankings = async (journalId, filters = {}) => {
-  // 1. Kiá»ƒm tra xem journal cÃ³ tá»“n táº¡i trong há»‡ thá»‘ng khÃ´ng
+  // 1. Kiểm tra xem journal có tồn tại trong hệ thống không
   const journalCheck = await prisma.$queryRawUnsafe(
     'SELECT 1 FROM "Journal" WHERE journal_id = $1',
     journalId
   );
 
   if (journalCheck.length === 0) {
-    const error = new Error('Táº¡p chÃ­ khÃ´ng tá»“n táº¡i');
+    const error = new Error('Tạp chí không tồn tại');
     error.statusCode = 404;
     throw error;
   }
 
   const rankingSourceSql = `'SCIMAGO'::text`;
 
-  // 2. XÃ¢y dá»±ng cÃ¢u truy váº¥n Ä‘á»™ng láº¥y rankings
+  // 2. Xây dựng câu truy vấn động lấy rankings
   let query = `
     SELECT 
       jr.journal_ranking_id::text AS journal_ranking_id,
@@ -128,7 +128,7 @@ export const getJournalRankings = async (journalId, filters = {}) => {
 
   const res = await prisma.$queryRawUnsafe(query, ...values);
 
-  // 3. Äá»‹nh dáº¡ng láº¡i trÆ°á»ng value dá»±a theo metric_type vÃ  nhÃ³m theo nÄƒm
+  // 3. Định dạng lại trường value dựa theo metric_type v�  nhóm theo năm
   const list = res.map(row => {
     let value = null;
     if (row.metric_type === 'QUARTILE') {
@@ -171,12 +171,12 @@ export const getJournalRankings = async (journalId, filters = {}) => {
 };
 
 /**
- * Láº¥y danh sÃ¡ch Volume, há»— trá»£ lá»c theo journal_id.
+ * Lấy danh sách Volume, hỗ trợ lọc theo journal_id.
  *
  * @async
- * @param {Object} [params] - Tham sá»‘ lá»c.
- * @param {string|number} [params.journalId] - ID cá»§a journal cáº§n lá»c.
- * @returns {Promise<Array<Object>>} Danh sÃ¡ch Volume.
+ * @param {Object} [params] - Tham số lọc.
+ * @param {string|number} [params.journalId] - ID của journal cần lọc.
+ * @returns {Promise<Array<Object>>} Danh sách Volume.
  */
 export const getVolumes = async ({ journalId, page = 1, limit = 10 } = {}) => {
   const pageNum = Math.max(1, parseInt(page, 10) || 1);
@@ -235,12 +235,12 @@ export const getVolumes = async ({ journalId, page = 1, limit = 10 } = {}) => {
 };
 
 /**
- * Láº¥y danh sÃ¡ch Issue, há»— trá»£ lá»c theo volume_id.
+ * Lấy danh sách Issue, hỗ trợ lọc theo volume_id.
  *
  * @async
- * @param {Object} [params] - Tham sá»‘ lá»c.
- * @param {string|number} [params.volumeId] - ID cá»§a volume cáº§n lá»c.
- * @returns {Promise<Array<Object>>} Danh sÃ¡ch Issue.
+ * @param {Object} [params] - Tham số lọc.
+ * @param {string|number} [params.volumeId] - ID của volume cần lọc.
+ * @returns {Promise<Array<Object>>} Danh sách Issue.
  */
 export const getIssues = async ({ volumeId, page = 1, limit = 10 } = {}) => {
   const pageNum = Math.max(1, parseInt(page, 10) || 1);

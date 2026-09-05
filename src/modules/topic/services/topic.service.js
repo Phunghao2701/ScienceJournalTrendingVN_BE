@@ -1,4 +1,4 @@
-﻿import prisma from '../../../config/prisma.js';
+import prisma from '../../../config/prisma.js';
 import logger from '../../../utils/logger.js';
 import {
     buildArticleFilter,
@@ -6,11 +6,11 @@ import {
 } from '../../article/services/articleFilter.service.js';
 
 /**
- * TÃ¬m Topic theo ID.
+ * Tìm Topic theo ID.
  *
  * @async
- * @param {number|string} topicId - ID cá»§a topic cáº§n tra cá»©u.
- * @returns {Promise<Object|null>} Äá»‘i tÆ°á»£ng topic hoáº·c null náº¿u khÃ´ng tÃ¬m tháº¥y.
+ * @param {number|string} topicId - ID của topic cần tra cứu.
+ * @returns {Promise<Object|null>} Đối tượng topic hoặc null nếu không tìm thấy.
  */
 export const getTopicById = async (topicId) => {
     const query = `
@@ -33,12 +33,12 @@ export const getTopicById = async (topicId) => {
 };
 
 /**
- * Kiá»ƒm tra xem cÃ³ Topic nÃ o khÃ¡c Ä‘ang hoáº¡t Ä‘á»™ng trÃ¹ng láº·p display_name khÃ´ng.
+ * Kiểm tra xem có Topic n� o khác đang hoạt động trùng lặp display_name không.
  * 
  * @async
- * @param {string} displayName - TÃªn cáº§n kiá»ƒm tra.
- * @param {number|string} [excludeId=null] - ID cáº§n loáº¡i trá»« (trong trÆ°á»ng há»£p update).
- * @returns {Promise<{ duplicateName: boolean }>} Äá»‘i tÆ°á»£ng chá»©a káº¿t quáº£ trÃ¹ng láº·p.
+ * @param {string} displayName - Tên cần kiểm tra.
+ * @param {number|string} [excludeId=null] - ID cần loại trừ (trong trường hợp update).
+ * @returns {Promise<{ duplicateName: boolean }>} Đối tượng chứa kết quả trùng lặp.
  */
 export const checkDuplicateTopic = async (displayName, excludeId = null) => {
     try {
@@ -54,21 +54,21 @@ export const checkDuplicateTopic = async (displayName, excludeId = null) => {
             duplicateName: resName.length > 0
         };
     } catch (error) {
-        logger.error("Lá»—i khi kiá»ƒm tra trÃ¹ng láº·p Topic:", error.message);
+        logger.error("Lỗi khi kiểm tra trùng lặp Topic:", error.message);
         throw error;
     }
 };
 
 /**
- * Táº¡o má»›i má»™t Topic.
+ * Tạo mới một Topic.
  * 
  * @async
- * @param {Object} data - Dá»¯ liá»‡u táº¡o.
- * @param {string} data.display_name - TÃªn hiá»ƒn thá»‹.
- * @param {number} [data.score] - Äiá»ƒm Ä‘Ã¡nh giÃ¡ (máº·c Ä‘á»‹nh 0).
+ * @param {Object} data - Dữ liệu tạo.
+ * @param {string} data.display_name - Tên hiển thị.
+ * @param {number} [data.score] - Điểm đánh giá (mặc định 0).
  * @param {number|string} [data.subject_area_id] - ID Subject Area.
  * @param {number|string} [data.subject_category_id] - ID Subject Category.
- * @returns {Promise<Object>} Tráº£ vá» Ä‘á»‘i tÆ°á»£ng vá»«a táº¡o.
+ * @returns {Promise<Object>} Trả về đối tượng vừa tạo.
  */
 export const createTopic = async (data) => {
     try {
@@ -94,17 +94,17 @@ export const createTopic = async (data) => {
         );
         return result[0];
     } catch (error) {
-        logger.error("Lá»—i khi táº¡o má»›i Topic:", error.message);
+        logger.error("Lỗi khi tạo mới Topic:", error.message);
         throw error;
     }
 };
 
 /**
- * Láº¥y danh sÃ¡ch Topic há»— trá»£ tÃ¬m kiáº¿m, phÃ¢n trang, lá»c vÃ  sáº¯p xáº¿p.
- * Chá»‰ láº¥y báº£n ghi chÆ°a bá»‹ xÃ³a má»m (is_deleted = false).
+ * Lấy danh sách Topic hỗ trợ tìm kiếm, phân trang, lọc v�  sắp xếp.
+ * Chỉ lấy bản ghi chưa bị xóa mềm (is_deleted = false).
  * 
  * @async
- * @param {Object} params - Tham sá»‘ Ä‘áº§u vÃ o.
+ * @param {Object} params - Tham số đầu v� o.
  * @returns {Promise<{ items: Array<Object>, total: number }>}
  */
 export const getTopics = async ({
@@ -129,35 +129,35 @@ export const getTopics = async ({
         `;
         const queryParams = [];
 
-        // Lá»c theo subject_area_id
+        // Lọc theo subject_area_id
         if (subject_area_id !== undefined && subject_area_id !== null && subject_area_id.toString().trim() !== "") {
             queryParams.push(BigInt(subject_area_id));
             baseQuery += ` AND t.subject_area_id = $${queryParams.length}`;
         }
 
-        // Lá»c theo subject_category_id
+        // Lọc theo subject_category_id
         if (subject_category_id !== undefined && subject_category_id !== null && subject_category_id.toString().trim() !== "") {
             queryParams.push(BigInt(subject_category_id));
             baseQuery += ` AND t.subject_category_id = $${queryParams.length}`;
         }
 
-        // TÃ¬m kiáº¿m theo display_name
+        // Tìm kiếm theo display_name
         if (search !== undefined && search !== null && search.toString().trim() !== "") {
             queryParams.push(`%${search.toString().trim()}%`);
             baseQuery += ` AND t.display_name ILIKE $${queryParams.length}`;
         }
 
-        // Äáº¿m tá»•ng sá»‘ báº£n ghi
+        // Đếm tổng số bản ghi
         const countQuery = `SELECT COUNT(*)::integer AS total ${baseQuery}`;
         const countRes = await prisma.$queryRawUnsafe(countQuery, ...queryParams);
         const total = countRes[0]?.total || 0;
 
-        // Sáº¯p xáº¿p
+        // Sắp xếp
         const allowedSortFields = ["topic_id", "display_name", "score"];
         const sortField = allowedSortFields.includes(sort_by) ? sort_by : "display_name";
         const sortDir = sort_order.toLowerCase() === "desc" ? "DESC" : "ASC";
 
-        // PhÃ¢n trang
+        // Phân trang
         queryParams.push(limitNum, offset);
         const dataQuery = `
             SELECT 
@@ -180,23 +180,23 @@ export const getTopics = async ({
             total
         };
     } catch (error) {
-        logger.error("Lá»—i khi láº¥y danh sÃ¡ch Topic:", error.message);
+        logger.error("Lỗi khi lấy danh sách Topic:", error.message);
         throw error;
     }
 };
 
 /**
- * Láº¥y danh sÃ¡ch bÃ i bÃ¡o thuá»™c má»™t topic (qua primary_topic hoáº·c Sub_Topic).
+ * Lấy danh sách b� i báo thuộc một topic (qua primary_topic hoặc Sub_Topic).
  *
- * Luá»“ng JOIN:
- *   - Article.primary_topic = topic_id  (bÃ i bÃ¡o cÃ³ primary topic trÃ¹ng)
- *   - Sub_Topic(article_id, topic_id)   (bÃ i bÃ¡o Ä‘Æ°á»£c gáº¯n sub-topic)
+ * Luồng JOIN:
+ *   - Article.primary_topic = topic_id  (b� i báo có primary topic trùng)
+ *   - Sub_Topic(article_id, topic_id)   (b� i báo được gắn sub-topic)
  *
  * @async
- * @param {number} topicId - ID cá»§a topic.
- * @param {number} limit   - Sá»‘ bÃ i tá»‘i Ä‘a tráº£ vá».
- * @param {number} offset  - Vá»‹ trÃ­ báº¯t Ä‘áº§u (phÃ¢n trang).
- * @returns {Promise<Array<Object>>} Danh sÃ¡ch bÃ i bÃ¡o.
+ * @param {number} topicId - ID của topic.
+ * @param {number} limit   - Số b� i tối đa trả về.
+ * @param {number} offset  - Vị trí bắt đầu (phân trang).
+ * @returns {Promise<Array<Object>>} Danh sách b� i báo.
  */
 export const getArticlesByTopicId = async (topicId, limit = 10, offset = 0, { scope = 'all', sortBy = 'publication_year', sortOrder = 'desc' } = {}) => {
     const articleFilter = buildArticleFilter({ scope });
@@ -267,11 +267,11 @@ export const getArticlesByTopicId = async (topicId, limit = 10, offset = 0, { sc
 };
 
 /**
- * Äáº¿m tá»•ng sá»‘ bÃ i bÃ¡o thuá»™c má»™t topic.
+ * Đếm tổng số b� i báo thuộc một topic.
  *
  * @async
- * @param {number} topicId - ID cá»§a topic.
- * @returns {Promise<number>} Tá»•ng sá»‘ bÃ i bÃ¡o.
+ * @param {number} topicId - ID của topic.
+ * @returns {Promise<number>} Tổng số b� i báo.
  */
 export const countArticlesByTopicId = async (topicId, { scope = 'all' } = {}) => {
     const articleFilter = buildArticleFilter({ scope });
@@ -294,7 +294,7 @@ export const countArticlesByTopicId = async (topicId, { scope = 'all' } = {}) =>
 
 export const createSubTopicArticleRelationships = async (articleId, topicIds, primaryTopicId) => {
     try {
-        // 1. Kiá»ƒm tra Ä‘áº§u vÃ o, náº¿u máº£ng rá»—ng thÃ¬ thoÃ¡t sá»›m
+        // 1. Kiểm tra đầu v� o, nếu mảng rỗng thì thoát sớm
         if (!topicIds || topicIds.length === 0) {
             return;
         }
@@ -310,7 +310,7 @@ export const createSubTopicArticleRelationships = async (articleId, topicIds, pr
         ];
 
         if (uniqueTopicIds.length === 0) {
-            logger.info('KhÃ´ng cÃ³ chá»§ Ä‘á» phá»¥ nÃ o há»£p lá»‡ Ä‘á»ƒ thÃªm (hoáº·c Ä‘Ã£ bá»‹ trÃ¹ng vá»›i Chá»§ Ä‘á» chÃ­nh).');
+            logger.info('Không có chủ đề phụ n� o hợp lệ để thêm (hoặc đã bị trùng với Chủ đề chính).');
             return;
         }
 
@@ -324,12 +324,12 @@ export const createSubTopicArticleRelationships = async (articleId, topicIds, pr
         await prisma.$queryRawUnsafe(query, articleId, uniqueTopicIds);
 
         logger.info(
-            `ÄÃ£ táº¡o ${uniqueTopicIds.length} quan há»‡ chá»§ Ä‘á» phá»¥ - bÃ i bÃ¡o`
+            `Đã tạo ${uniqueTopicIds.length} quan hệ chủ đề phụ - b� i báo`
         );
 
     } catch (error) {
         logger.error(
-            'Lá»—i khi táº¡o quan há»‡ chá»§ Ä‘á» phá»¥ - bÃ i bÃ¡o:',
+            'Lỗi khi tạo quan hệ chủ đề phụ - b� i báo:',
             error
         );
         throw error;
@@ -337,17 +337,17 @@ export const createSubTopicArticleRelationships = async (articleId, topicIds, pr
 };
 
 /**
- * Cáº­p nháº­t toÃ n bá»™ má»‘i quan há»‡ chá»§ Ä‘á» phá»¥ cho bÃ i bÃ¡o (Chuáº©n RESTful PUT)
- * - BÆ°á»›c 1: XÃ³a toÃ n bá»™ quan há»‡ chá»§ Ä‘á» phá»¥ cÅ© cá»§a bÃ i bÃ¡o nÃ y
- * - BÆ°á»›c 2: Gá»i láº¡i hÃ m create Ä‘á»ƒ chÃ¨n danh sÃ¡ch má»›i sáº¡ch sáº½
- * * @param {number|string} articleId - ID cá»§a bÃ i bÃ¡o cáº§n cáº­p nháº­t
- * @param {number[]} topicIds - Máº£ng cÃ¡c ID chá»§ Ä‘á» phá»¥ má»›i (vÃ­ dá»¥: [3, 4, 5])
- * @param {number|string|null} primaryTopicId - ID chá»§ Ä‘á» chÃ­nh Ä‘á»ƒ Ä‘á»‘i chiáº¿u lá»c trÃ¹ng
+ * Cập nhật to� n bộ mối quan hệ chủ đề phụ cho b� i báo (Chuẩn RESTful PUT)
+ * - Bước 1: Xóa to� n bộ quan hệ chủ đề phụ cũ của b� i báo n� y
+ * - Bước 2: Gọi lại h� m create để chèn danh sách mới sạch sẽ
+ * * @param {number|string} articleId - ID của b� i báo cần cập nhật
+ * @param {number[]} topicIds - Mảng các ID chủ đề phụ mới (ví dụ: [3, 4, 5])
+ * @param {number|string|null} primaryTopicId - ID chủ đề chính để đối chiếu lọc trùng
  */
 export const updateSubTopicArticleRelationships = async (articleId, topicIds, primaryTopicId) => {
     try {
         if (!articleId) {
-            throw new Error('Thiáº¿u articleId khi gá»i hÃ m updateSubTopicArticleRelationships');
+            throw new Error('Thiếu articleId khi gọi h� m updateSubTopicArticleRelationships');
         }
 
         const deleteQuery = `
@@ -358,10 +358,10 @@ export const updateSubTopicArticleRelationships = async (articleId, topicIds, pr
 
         await createSubTopicArticleRelationships(articleId, topicIds, primaryTopicId);
 
-        logger.info(`ÄÃ£ cáº­p nháº­t lÃ m má»›i toÃ n bá»™ quan há»‡ chá»§ Ä‘á» phá»¥ cho bÃ i bÃ¡o ID: ${articleId}`);
+        logger.info(`Đã cập nhật l� m mới to� n bộ quan hệ chủ đề phụ cho b� i báo ID: ${articleId}`);
 
     } catch (error) {
-        logger.error(`Lá»—i khi cáº­p nháº­t quan há»‡ chá»§ Ä‘á» phá»¥ cho bÃ i bÃ¡o ID ${articleId}:`, error);
+        logger.error(`Lỗi khi cập nhật quan hệ chủ đề phụ cho b� i báo ID ${articleId}:`, error);
         throw error;
     }
 };
@@ -372,23 +372,23 @@ export const topicExists = async (topicId) => {
         const res = await prisma.$queryRawUnsafe(queryText, topicId);
         return res.length > 0;
     } catch (error) {
-        logger.error('Lá»—i khi kiá»ƒm tra tá»“n táº¡i cá»§a chá»§ Ä‘á»:', error);
+        logger.error('Lỗi khi kiểm tra tồn tại của chủ đề:', error);
         throw error;
     }
 }
 
 /**
- * Cáº­p nháº­t thÃ´ng tin Topic.
- * Dynamic update â€” chá»‰ cáº­p nháº­t cÃ¡c field Ä‘Æ°á»£c gá»­i lÃªn.
+ * Cập nhật thông tin Topic.
+ * Dynamic update — chỉ cập nhật các field được gửi lên.
  *
  * @async
- * @param {number|string} id - ID cá»§a Topic cáº§n cáº­p nháº­t.
- * @param {Object} data - Dá»¯ liá»‡u cáº§n cáº­p nháº­t.
- * @param {string} [data.display_name] - TÃªn topic má»›i.
- * @param {number} [data.score] - Äiá»ƒm Ä‘Ã¡nh giÃ¡.
+ * @param {number|string} id - ID của Topic cần cập nhật.
+ * @param {Object} data - Dữ liệu cần cập nhật.
+ * @param {string} [data.display_name] - Tên topic mới.
+ * @param {number} [data.score] - Điểm đánh giá.
  * @param {number|string} [data.subject_area_id] - ID Subject Area.
  * @param {number|string} [data.subject_category_id] - ID Subject Category.
- * @returns {Promise<Object|null>} Tráº£ vá» Topic sau cáº­p nháº­t, hoáº·c null náº¿u khÃ´ng thÃ nh cÃ´ng.
+ * @returns {Promise<Object|null>} Trả về Topic sau cập nhật, hoặc null nếu không th� nh công.
  */
 export const updateTopic = async (id, data) => {
     try {
@@ -406,7 +406,7 @@ export const updateTopic = async (id, data) => {
         }
 
         if (updateParts.length === 0) {
-            return null; // KhÃ´ng cÃ³ gÃ¬ Ä‘á»ƒ cáº­p nháº­t
+            return null; // Không có gì để cập nhật
         }
 
         values.push(BigInt(id));
@@ -420,17 +420,17 @@ export const updateTopic = async (id, data) => {
         const result = await prisma.$queryRawUnsafe(query, ...values);
         return result.length > 0 ? result[0] : null;
     } catch (error) {
-        logger.error(`Lá»—i khi cáº­p nháº­t Topic ID ${id}:`, error.message);
+        logger.error(`Lỗi khi cập nhật Topic ID ${id}:`, error.message);
         throw error;
     }
 };
 
 /**
- * XÃ³a má»m má»™t Topic (Ä‘áº·t is_deleted = true).
+ * Xóa mềm một Topic (đặt is_deleted = true).
  *
  * @async
- * @param {number|string} id - ID cá»§a Topic cáº§n xÃ³a má»m.
- * @returns {Promise<Object|null>} Tráº£ vá» thÃ´ng tin Topic Ä‘Ã£ xÃ³a má»m, hoáº·c null.
+ * @param {number|string} id - ID của Topic cần xóa mềm.
+ * @returns {Promise<Object|null>} Trả về thông tin Topic đã xóa mềm, hoặc null.
  */
 export const deleteTopic = async (id) => {
     try {
@@ -443,17 +443,17 @@ export const deleteTopic = async (id) => {
         const result = await prisma.$queryRawUnsafe(query, BigInt(id));
         return result.length > 0 ? result[0] : null;
     } catch (error) {
-        logger.error(`Lá»—i khi xÃ³a má»m Topic ID ${id}:`, error.message);
+        logger.error(`Lỗi khi xóa mềm Topic ID ${id}:`, error.message);
         throw error;
     }
 };
 
 /**
- * KhÃ´i phá»¥c má»™t Topic Ä‘Ã£ bá»‹ xÃ³a má»m (Ä‘áº·t is_deleted = false).
+ * Khôi phục một Topic đã bị xóa mềm (đặt is_deleted = false).
  *
  * @async
- * @param {number|string} id - ID cá»§a Topic cáº§n khÃ´i phá»¥c.
- * @returns {Promise<Object|null>} Tráº£ vá» thÃ´ng tin Topic Ä‘Ã£ khÃ´i phá»¥c, hoáº·c null.
+ * @param {number|string} id - ID của Topic cần khôi phục.
+ * @returns {Promise<Object|null>} Trả về thông tin Topic đã khôi phục, hoặc null.
  */
 export const restoreTopic = async (id) => {
     try {
@@ -466,17 +466,17 @@ export const restoreTopic = async (id) => {
         const result = await prisma.$queryRawUnsafe(query, BigInt(id));
         return result.length > 0 ? result[0] : null;
     } catch (error) {
-        logger.error(`Lá»—i khi khÃ´i phá»¥c Topic ID ${id}:`, error.message);
+        logger.error(`Lỗi khi khôi phục Topic ID ${id}:`, error.message);
         throw error;
     }
 };
 
 /**
- * Kiá»ƒm tra xem Topic cÃ³ Ä‘ang bá»‹ xÃ³a má»m (is_deleted = true) hay khÃ´ng.
+ * Kiểm tra xem Topic có đang bị xóa mềm (is_deleted = true) hay không.
  *
  * @async
- * @param {number|string} id - ID cá»§a Topic cáº§n kiá»ƒm tra.
- * @returns {Promise<boolean>} Tráº£ vá» true náº¿u Topic Ä‘Ã£ bá»‹ xÃ³a má»m, ngÆ°á»£c láº¡i false.
+ * @param {number|string} id - ID của Topic cần kiểm tra.
+ * @returns {Promise<boolean>} Trả về true nếu Topic đã bị xóa mềm, ngược lại false.
  */
 export const topicIsDeleted = async (id) => {
     try {
@@ -484,7 +484,7 @@ export const topicIsDeleted = async (id) => {
         const result = await prisma.$queryRawUnsafe(query, BigInt(id));
         return result.length > 0;
     } catch (error) {
-        logger.error(`Lá»—i khi kiá»ƒm tra tráº¡ng thÃ¡i xÃ³a má»m cá»§a Topic vá»›i ID ${id}:`, error.message);
+        logger.error(`Lỗi khi kiểm tra trạng thái xóa mềm của Topic với ID ${id}:`, error.message);
         throw error;
     }
 };

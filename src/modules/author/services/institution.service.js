@@ -25,8 +25,8 @@ export const getInstitutionById = async (institutionId) => {
 };
 
 /**
- * Láº¥y danh sÃ¡ch cÆ¡ sá»Ÿ giÃ¡o dá»¥c Viá»‡t Nam (Institution), há»— trá»£ tÃ¬m kiáº¿m vÃ  phÃ¢n trang.
- * Scope cá»‘ Ä‘á»‹nh: country_code='VN' vÃ  type='education', khá»›p Ä‘Ãºng quy táº¯c
+ * Láº¥y danh sÃ¡ch cÆ¡ sá»Ÿ giÃ¡o dá»¥c Viá»‡t Nam (Institution), há»— trá»£ tÃ¬m kiáº¿m vÃ�  phÃ¢n trang.
+ * Scope cá»‘ Ä‘á»‹nh: country_code='VN' vÃ�  type='education', khá»›p Ä‘Ãºng quy táº¯c
  * scope=vn_universities Ä‘Ã£ dÃ¹ng cho Article (docs/researches/paper-vn-affiliation-scope.md).
  * @param {Object} params
  * @returns {Promise<Object>}

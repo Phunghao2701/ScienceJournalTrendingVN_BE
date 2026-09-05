@@ -27,7 +27,7 @@ export const validateCreateProject = (req, res, next) => {
     return res.status(400).json({
       success: false,
       code: "INVALID_SUBJECT_CATEGORY_IDS",
-      message: 'subject_category_ids phải là một mảng các ID'
+      message: 'subject_category_ids phải l�  một mảng các ID'
     });
   }
 
@@ -35,7 +35,7 @@ export const validateCreateProject = (req, res, next) => {
     return res.status(400).json({
       success: false,
       code: "INVALID_JOURNAL_IDS",
-      message: 'journal_ids phải là một mảng các ID'
+      message: 'journal_ids phải l�  một mảng các ID'
     });
   }
 
@@ -57,7 +57,7 @@ export const validateUpdateProject = (req, res, next) => {
     return res.status(400).json({
       success: false,
       code: "INVALID_SUBJECT_CATEGORY_IDS",
-      message: 'subject_category_ids phải là một mảng các ID'
+      message: 'subject_category_ids phải l�  một mảng các ID'
     });
   }
 
@@ -65,7 +65,7 @@ export const validateUpdateProject = (req, res, next) => {
     return res.status(400).json({
       success: false,
       code: "INVALID_JOURNAL_IDS",
-      message: 'journal_ids phải là một mảng các ID'
+      message: 'journal_ids phải l�  một mảng các ID'
     });
   }
 

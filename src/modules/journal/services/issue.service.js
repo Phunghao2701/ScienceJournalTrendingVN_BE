@@ -1,13 +1,13 @@
-﻿import prisma from '../../../config/prisma.js';
+import prisma from '../../../config/prisma.js';
 import logger from '../../../utils/logger.js';
 
 /**
- * Láº¥y danh sÃ¡ch Issue, há»— trá»£ lá»c theo volume_id hoáº·c journal_id vÃ  phÃ¢n trang.
- * @param {object} params - CÃ¡c tham sá»‘ lá»c vÃ  phÃ¢n trang.
- * @param {number} [params.page=1] - Trang hiá»‡n táº¡i.
- * @param {number} [params.limit=10] - Sá»‘ lÆ°á»£ng káº¿t quáº£ má»—i trang.
- * @param {string|number} [params.volume_id] - Lá»c theo Volume ID.
- * @param {string|number} [params.journal_id] - Lá»c theo Journal ID.
+ * Lấy danh sách Issue, hỗ trợ lọc theo volume_id hoặc journal_id v�  phân trang.
+ * @param {object} params - Các tham số lọc v�  phân trang.
+ * @param {number} [params.page=1] - Trang hiện tại.
+ * @param {number} [params.limit=10] - Số lượng kết quả mỗi trang.
+ * @param {string|number} [params.volume_id] - Lọc theo Volume ID.
+ * @param {string|number} [params.journal_id] - Lọc theo Journal ID.
  * @returns {Promise<{items: Array, pagination: object}>}
  */
 export const getIssues = async ({ page = 1, limit = 10, volume_id, journal_id }) => {
@@ -21,7 +21,7 @@ export const getIssues = async ({ page = 1, limit = 10, volume_id, journal_id })
             whereClauses.push(`i.volume_id = $${values.length}`);
         }
 
-        // ThÃªm logic lá»c theo journal_id
+        // Thêm logic lọc theo journal_id
         if (journal_id) {
             values.push(Number(journal_id));
             whereClauses.push(`v.journal_id = $${values.length}`);
@@ -64,13 +64,13 @@ export const getIssues = async ({ page = 1, limit = 10, volume_id, journal_id })
             }
         };
     } catch (error) {
-        logger.error('[Issue Service] Lá»—i khi láº¥y danh sÃ¡ch Issue:', error);
+        logger.error('[Issue Service] Lỗi khi lấy danh sách Issue:', error);
         throw error;
     }
 };
 
 /**
- * Kiá»ƒm tra sá»± tá»“n táº¡i cá»§a má»™t Issue.
+ * Kiểm tra sự tồn tại của một Issue.
  */
 export const issueExist = async (id) => {
     try {
@@ -78,13 +78,13 @@ export const issueExist = async (id) => {
         const result = await prisma.$queryRawUnsafe(query, BigInt(id));
         return result.length > 0;
     } catch (error) {
-        logger.error(`Lá»—i khi kiá»ƒm tra tá»“n táº¡i cá»§a Issue vá»›i ID ${id}:`, error.message);
+        logger.error(`Lỗi khi kiểm tra tồn tại của Issue với ID ${id}:`, error.message);
         throw error;
     }
 };
 
 /**
- * Kiá»ƒm tra xem Issue cÃ³ Ä‘ang bá»‹ xÃ³a má»m hay khÃ´ng.
+ * Kiểm tra xem Issue có đang bị xóa mềm hay không.
  */
 export const issueIsDeleted = async (id) => {
     try {
@@ -92,13 +92,13 @@ export const issueIsDeleted = async (id) => {
         const result = await prisma.$queryRawUnsafe(query, BigInt(id));
         return result.length > 0;
     } catch (error) {
-        logger.error(`Lá»—i khi kiá»ƒm tra tráº¡ng thÃ¡i xÃ³a má»m cá»§a Issue ID ${id}:`, error.message);
+        logger.error(`Lỗi khi kiểm tra trạng thái xóa mềm của Issue ID ${id}:`, error.message);
         throw error;
     }
 };
 
 /**
- * Kiá»ƒm tra trÃ¹ng láº·p Issue trong cÃ¹ng Volume.
+ * Kiểm tra trùng lặp Issue trong cùng Volume.
  */
 export const checkDuplicateIssue = async (volume_id, issue_number, excludeId = null) => {
     try {
@@ -111,13 +111,13 @@ export const checkDuplicateIssue = async (volume_id, issue_number, excludeId = n
         const result = await prisma.$queryRawUnsafe(query, ...params);
         return result.length > 0;
     } catch (error) {
-        logger.error("Lá»—i khi kiá»ƒm tra trÃ¹ng láº·p issue:", error.message);
+        logger.error("Lỗi khi kiểm tra trùng lặp issue:", error.message);
         throw error;
     }
 };
 
 /**
- * Táº¡o má»›i má»™t Issue.
+ * Tạo mới một Issue.
  */
 export const createIssue = async (data) => {
     try {
@@ -131,13 +131,13 @@ export const createIssue = async (data) => {
         const result = await prisma.$queryRawUnsafe(query, ...values);
         return result[0];
     } catch (error) {
-        logger.error("Lá»—i khi táº¡o má»›i Issue:", error.message);
+        logger.error("Lỗi khi tạo mới Issue:", error.message);
         throw error;
     }
 };
 
 /**
- * Láº¥y thÃ´ng tin chi tiáº¿t má»™t Issue.
+ * Lấy thông tin chi tiết một Issue.
  */
 export const getIssueById = async (id) => {
     try {
@@ -152,13 +152,13 @@ export const getIssueById = async (id) => {
         const result = await prisma.$queryRawUnsafe(query, BigInt(id));
         return result[0] || null;
     } catch (error) {
-        logger.error(`Lá»—i khi láº¥y chi tiáº¿t Issue ID ${id}:`, error.message);
+        logger.error(`Lỗi khi lấy chi tiết Issue ID ${id}:`, error.message);
         throw error;
     }
 };
 
 /**
- * Cáº­p nháº­t thÃ´ng tin Issue.
+ * Cập nhật thông tin Issue.
  */
 export const updateIssue = async (id, data) => {
     try {
@@ -183,13 +183,13 @@ export const updateIssue = async (id, data) => {
         const result = await prisma.$queryRawUnsafe(query, ...values);
         return result[0] || null;
     } catch (error) {
-        logger.error(`Lá»—i khi cáº­p nháº­t Issue ID ${id}:`, error.message);
+        logger.error(`Lỗi khi cập nhật Issue ID ${id}:`, error.message);
         throw error;
     }
 };
 
 /**
- * XÃ³a má»m má»™t Issue.
+ * Xóa mềm một Issue.
  */
 export const deleteIssue = async (id) => {
     try {
@@ -201,13 +201,13 @@ export const deleteIssue = async (id) => {
         const result = await prisma.$queryRawUnsafe(query, BigInt(id));
         return result[0] || null;
     } catch (error) {
-        logger.error(`Lá»—i khi xÃ³a má»m Issue ID ${id}:`, error.message);
+        logger.error(`Lỗi khi xóa mềm Issue ID ${id}:`, error.message);
         throw error;
     }
 };
 
 /**
- * KhÃ´i phá»¥c má»™t Issue Ä‘Ã£ bá»‹ xÃ³a má»m.
+ * Khôi phục một Issue đã bị xóa mềm.
  */
 export const restoreIssue = async (id) => {
     try {
@@ -219,7 +219,7 @@ export const restoreIssue = async (id) => {
         const result = await prisma.$queryRawUnsafe(query, BigInt(id));
         return result[0] || null;
     } catch (error) {
-        logger.error(`Lá»—i khi khÃ´i phá»¥c Issue ID ${id}:`, error.message);
+        logger.error(`Lỗi khi khôi phục Issue ID ${id}:`, error.message);
         throw error;
     }
 };

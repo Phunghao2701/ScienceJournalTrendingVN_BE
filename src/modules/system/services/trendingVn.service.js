@@ -1,4 +1,5 @@
-﻿import pool from "../../../config/database.js";
+import prisma from '../../../config/prisma.js';
+import pool from "../../../config/database.js";
 import { getOrSetCache, buildCacheKey } from "../../../utils/cache.js";
 
 const clampInt = (value, fallback, min, max) => {
@@ -17,7 +18,7 @@ const groupRowsByJournal = (rows) => {
 };
 
 /**
- * Top Journals - C├ích A.
+ * Top Journals - C+�ch A.
  *
  * Definition:
  * - Use articles in the latest N-year publication window, default 2 years.

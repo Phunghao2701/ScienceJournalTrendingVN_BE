@@ -1,4 +1,4 @@
-﻿import prisma from '../../../config/prisma.js';
+import prisma from '../../../config/prisma.js';
 import logger from '../../../utils/logger.js';
 import {
   buildArticleFilter,
@@ -6,19 +6,19 @@ import {
 } from "../../article/services/articleFilter.service.js";
 
 /**
- * Láº¥y danh sÃ¡ch tá»« khÃ³a thá»‹nh hÃ nh trong má»™t project.
+ * Lấy danh sách từ khóa thịnh h� nh trong một project.
  *
- * LÆ°u Ã½: `sort_by=score` sáº¯p xáº¿p theo `avg_score` (Ä‘iá»ƒm relevance trung bÃ¬nh cá»§a
- * `Keyword_Article.score`, tÄ©nh theo thá»i gian) â€” Ä‘Ã¢y KHÃ”NG pháº£i trending_score
- * (khÃ´ng cÃ³ current/previous window, khÃ´ng cÃ³ smoothing/z-score nhÆ°
- * `entityQuery` trong `articleAnalysis.service.js`). TrÆ°á»ng `avg_score` chá»‰ nÃªn
- * hiá»ƒu lÃ  "Ä‘á»™ liÃªn quan", khÃ´ng pháº£i "Ä‘ang tÄƒng trÆ°á»Ÿng".
+ * Lưu ý: `sort_by=score` sắp xếp theo `avg_score` (điểm relevance trung bình của
+ * `Keyword_Article.score`, tĩnh theo thời gian) — đây KHÔNG phải trending_score
+ * (không có current/previous window, không có smoothing/z-score như
+ * `entityQuery` trong `articleAnalysis.service.js`). Trường `avg_score` chỉ nên
+ * hiểu l�  "độ liên quan", không phải "đang tăng trưởng".
  *
- * @param {number|string} projectId - ID cá»§a project cáº§n truy váº¥n
- * @param {Object} queryParams - Tham sá»‘ lá»c/phan trang
- * @param {number|string} [queryParams.limit=20] - Sá»‘ káº¿t quáº£ tá»‘i Ä‘a
- * @param {string} [queryParams.sort_by='count'] - `count` hoáº·c `score` (`score` = relevance, khÃ´ng pháº£i trending)
- * @returns {Promise<Object>} Káº¿t quáº£ gá»“m tá»•ng `total`, `sort_by` vÃ  máº£ng `keywords`
+ * @param {number|string} projectId - ID của project cần truy vấn
+ * @param {Object} queryParams - Tham số lọc/phan trang
+ * @param {number|string} [queryParams.limit=20] - Số kết quả tối đa
+ * @param {string} [queryParams.sort_by='count'] - `count` hoặc `score` (`score` = relevance, không phải trending)
+ * @returns {Promise<Object>} Kết quả gồm tổng `total`, `sort_by` v�  mảng `keywords`
  */
 export const getTrendingKeywords = async (projectId, queryParams) => {
   const limit = Math.min(parseInt(queryParams.limit) || 20, 100);
@@ -66,15 +66,15 @@ export const getTrendingKeywords = async (projectId, queryParams) => {
 };
 
 /**
- * Láº¥y danh sÃ¡ch bÃ i bÃ¡o liÃªn quan Ä‘áº¿n cÃ¡c tá»« khÃ³a Ä‘Æ°á»£c theo dÃµi trong project.
+ * Lấy danh sách b� i báo liên quan đến các từ khóa được theo dõi trong project.
  *
  * @param {number|string} projectId - ID project
- * @param {number|string} userId - ID ngÆ°á»i dÃ¹ng thá»±c hiá»‡n truy váº¥n (dÃ¹ng Ä‘á»ƒ kiá»ƒm tra sá»Ÿ há»¯u)
+ * @param {number|string} userId - ID người dùng thực hiện truy vấn (dùng để kiểm tra sở hữu)
  * @param {Object} queryParams
- * @param {number|string} [queryParams.page=1] - Trang káº¿t quáº£
- * @param {number|string} [queryParams.limit=10] - Sá»‘ pháº§n tá»­ trÃªn má»—i trang
- * @returns {Promise<Object>} Object phÃ¢n trang: { page, limit, total, total_pages, data }
- *  - `data` lÃ  máº£ng article objects `{ article_id, title, publication_year, doi, matched_keywords }`
+ * @param {number|string} [queryParams.page=1] - Trang kết quả
+ * @param {number|string} [queryParams.limit=10] - Số phần tử trên mỗi trang
+ * @returns {Promise<Object>} Object phân trang: { page, limit, total, total_pages, data }
+ *  - `data` l�  mảng article objects `{ article_id, title, publication_year, doi, matched_keywords }`
  */
 export const getWatchedKeywordArticles = async (
   projectId,
@@ -92,7 +92,7 @@ export const getWatchedKeywordArticles = async (
 
   if (!projectCheck.length) {
     const error = new Error(
-      "Project khÃ´ng tá»“n táº¡i hoáº·c khÃ´ng thuá»™c quyá»n sá»Ÿ há»¯u",
+      "Project không tồn tại hoặc không thuộc quyền sở hữu",
     );
     error.statusCode = 404;
     throw error;
@@ -169,11 +169,11 @@ export const getWatchedKeywordArticles = async (
 };
 
 /**
- * XÃ¡c thá»±c xem má»™t danh sÃ¡ch `keyword_id` cÃ³ tá»“n táº¡i trong báº£ng `Keyword` hay khÃ´ng.
- * Tráº£ vá» `true` khi táº¥t cáº£ id há»£p lá»‡, ngÆ°á»£c láº¡i `false`.
+ * Xác thực xem một danh sách `keyword_id` có tồn tại trong bảng `Keyword` hay không.
+ * Trả về `true` khi tất cả id hợp lệ, ngược lại `false`.
  *
- * @param {Array<number|string>} keywordIds - Máº£ng id cáº§n kiá»ƒm tra
- * @returns {Promise<boolean>} `true` náº¿u táº¥t cáº£ id tá»“n táº¡i
+ * @param {Array<number|string>} keywordIds - Mảng id cần kiểm tra
+ * @returns {Promise<boolean>} `true` nếu tất cả id tồn tại
  */
 export const validateKeywordIds = async (keywordIds) => {
   if (!keywordIds || keywordIds.length === 0) return true;
@@ -190,23 +190,23 @@ export const validateKeywordIds = async (keywordIds) => {
 };
 
 /**
- * Äá»“ng bá»™ danh sÃ¡ch tá»« khÃ³a Ä‘Æ°á»£c theo dÃµi (Project_Keyword) cho má»™t project.
- * - Bá» qua náº¿u `keywordIds` rá»—ng.
- * - Chá»‰ insert nhá»¯ng keyword má»›i vÃ  tá»“n táº¡i.
+ * Đồng bộ danh sách từ khóa được theo dõi (Project_Keyword) cho một project.
+ * - Bỏ qua nếu `keywordIds` rỗng.
+ * - Chỉ insert những keyword mới v�  tồn tại.
  *
  * @param {number|string} projectId - ID project
- * @param {Array<number|string>} keywordIds - Máº£ng keyword_id cáº§n Ä‘á»“ng bá»™
- * @returns {Promise<boolean>} `true` náº¿u Ä‘á»“ng bá»™ thÃ nh cÃ´ng
- * @throws {Error} NÃ©m lá»—i khi DB transaction gáº·p sá»± cá»‘
+ * @param {Array<number|string>} keywordIds - Mảng keyword_id cần đồng bộ
+ * @returns {Promise<boolean>} `true` nếu đồng bộ th� nh công
+ * @throws {Error} Ném lỗi khi DB transaction gặp sự cố
  */
 export const syncWatchedKeywords = async (projectId, keywordIds) => {
   if (!keywordIds || keywordIds.length === 0) return true;
 
   return await prisma.$transaction(async (tx) => {
-    // 1. Loáº¡i bá» duplicate tá»« input
+    // 1. Loại bỏ duplicate từ input
     const uniqueIds = [...new Set(keywordIds)];
 
-    // 2. Láº¥y danh sÃ¡ch keywords Ä‘Ã£ tá»“n táº¡i cho project nÃ y
+    // 2. Lấy danh sách keywords đã tồn tại cho project n� y
     const existingResult = await tx.$queryRawUnsafe(
       `SELECT keyword_id FROM "Project_Keyword" WHERE project_id = $1`,
       projectId
@@ -215,14 +215,14 @@ export const syncWatchedKeywords = async (projectId, keywordIds) => {
       existingResult.map((row) => Number(row.keyword_id)),
     );
 
-    // 3. Lá»c ra keywords má»›i (chÆ°a tá»“n táº¡i)
+    // 3. Lọc ra keywords mới (chưa tồn tại)
     const newKeywordIds = uniqueIds.filter((id) => !existingIds.has(id));
 
     if (newKeywordIds.length === 0) {
-      return true; // KhÃ´ng cÃ³ keywords má»›i Ä‘á»ƒ thÃªm
+      return true; // Không có keywords mới để thêm
     }
 
-    // 4. Validate keywords tá»“n táº¡i trong báº£ng Keyword
+    // 4. Validate keywords tồn tại trong bảng Keyword
     const validationResult = await tx.$queryRawUnsafe(
       `SELECT keyword_id FROM "Keyword" WHERE keyword_id = ANY($1::bigint[])`,
       newKeywordIds
@@ -231,7 +231,7 @@ export const syncWatchedKeywords = async (projectId, keywordIds) => {
       validationResult.map((row) => Number(row.keyword_id)),
     );
 
-    // 5. Chá»‰ INSERT nhá»¯ng keywords há»£p lá»‡
+    // 5. Chỉ INSERT những keywords hợp lệ
     const idsToInsert = newKeywordIds.filter((id) => validIds.has(id));
 
     if (idsToInsert.length > 0) {
@@ -248,42 +248,42 @@ export const syncWatchedKeywords = async (projectId, keywordIds) => {
 };
 
 /**
- * Ghi Ä‘Ã¨ (thay tháº¿ toÃ n bá»™) danh sÃ¡ch tá»« khÃ³a Ä‘Æ°á»£c theo dÃµi cho má»™t project.
- * - XÃ³a táº¥t cáº£ tá»« khÃ³a Ä‘ang theo dÃµi hiá»‡n táº¡i cá»§a project.
- * - ThÃªm má»›i danh sÃ¡ch `keywordIds` truyá»n vÃ o.
+ * Ghi đè (thay thế to� n bộ) danh sách từ khóa được theo dõi cho một project.
+ * - Xóa tất cả từ khóa đang theo dõi hiện tại của project.
+ * - Thêm mới danh sách `keywordIds` truyền v� o.
  *
  * @param {number|string} projectId - ID project
- * @param {Array<number|string>} keywordIds - Máº£ng keyword_id cáº§n cáº­p nháº­t
- * @returns {Promise<boolean>} `true` náº¿u cáº­p nháº­t thÃ nh cÃ´ng
- * @throws {Error} NÃ©m lá»—i khi DB transaction gáº·p sá»± cá»‘
+ * @param {Array<number|string>} keywordIds - Mảng keyword_id cần cập nhật
+ * @returns {Promise<boolean>} `true` nếu cập nhật th� nh công
+ * @throws {Error} Ném lỗi khi DB transaction gặp sự cố
  */
 export const replaceWatchedKeywords = async (projectId, keywordIds) => {
   return await prisma.$transaction(async (tx) => {
-    // 1. XÃ³a táº¥t cáº£ cÃ¡c liÃªn káº¿t tá»« khÃ³a cÅ© cá»§a project
+    // 1. Xóa tất cả các liên kết từ khóa cũ của project
     await tx.$executeRawUnsafe(
       `DELETE FROM "Project_Keyword" WHERE project_id = $1`,
       projectId
     );
 
-    // Náº¿u khÃ´ng cÃ³ keyword nÃ o truyá»n lÃªn, tá»©c lÃ  chá»‰ muá»‘n xÃ³a sáº¡ch -> Commit luÃ´n
+    // Nếu không có keyword n� o truyền lên, tức l�  chỉ muốn xóa sạch -> Commit luôn
     if (!keywordIds || keywordIds.length === 0) {
       return true;
     }
 
-    // 2. Loáº¡i bá» duplicate tá»« input
+    // 2. Loại bỏ duplicate từ input
     const uniqueIds = [...new Set(keywordIds)];
 
-    // 3. Validate keywords tá»“n táº¡i trong báº£ng Keyword
+    // 3. Validate keywords tồn tại trong bảng Keyword
     const validationResult = await tx.$queryRawUnsafe(
       `SELECT keyword_id FROM "Keyword" WHERE keyword_id = ANY($1::bigint[])`,
       uniqueIds
     );
     const validIds = new Set(validationResult.map(row => Number(row.keyword_id)));
 
-    // 4. Lá»c ra nhá»¯ng keywords há»£p lá»‡
+    // 4. Lọc ra những keywords hợp lệ
     const idsToInsert = uniqueIds.filter(id => validIds.has(id));
     
-    // 5. Insert danh sÃ¡ch keywords há»£p lá»‡ má»›i
+    // 5. Insert danh sách keywords hợp lệ mới
     if (idsToInsert.length > 0) {
       for (const kwId of idsToInsert) {
         await tx.$executeRawUnsafe(
@@ -298,17 +298,17 @@ export const replaceWatchedKeywords = async (projectId, keywordIds) => {
 };
 
 /**
- * ThÃªm danh sÃ¡ch tá»« khÃ³a vÃ o danh sÃ¡ch theo dÃµi cá»§a dá»± Ã¡n.
- * Náº¿u cÃ³ Báº¤T Ká»² tá»« khÃ³a nÃ o trong danh sÃ¡ch Ä‘Ã£ Ä‘Æ°á»£c theo dÃµi, sáº½ khÃ´ng thÃªm tá»« khÃ³a nÃ o vÃ  bÃ¡o lá»—i.
+ * Thêm danh sách từ khóa v� o danh sách theo dõi của dự án.
+ * Nếu có BẤT KỲ từ khóa n� o trong danh sách đã được theo dõi, sẽ không thêm từ khóa n� o v�  báo lỗi.
  *
- * @param {number|string} projectId - ID dá»± Ã¡n
- * @param {Array<number|string>} keywordIds - Máº£ng cÃ¡c ID tá»« khÃ³a
- * @returns {Promise<Object>} Object chá»©a tráº¡ng thÃ¡i success, sá»‘ lÆ°á»£ng thÃªm thÃ nh cÃ´ng, hoáº·c danh sÃ¡ch ID bá»‹ trÃ¹ng
+ * @param {number|string} projectId - ID dự án
+ * @param {Array<number|string>} keywordIds - Mảng các ID từ khóa
+ * @returns {Promise<Object>} Object chứa trạng thái success, số lượng thêm th� nh công, hoặc danh sách ID bị trùng
  */
 export const addWatchedKeywords = async (projectId, keywordIds) => {
   if (!keywordIds || keywordIds.length === 0) return { success: true, insertedCount: 0 };
   
-  // 1. Kiá»ƒm tra xem cÃ³ keyword nÃ o Ä‘Ã£ tá»“n táº¡i trong project nÃ y chÆ°a
+  // 1. Kiểm tra xem có keyword n� o đã tồn tại trong project n� y chưa
   const existingCheck = await prisma.$queryRawUnsafe(
     `SELECT keyword_id FROM "Project_Keyword" WHERE project_id = $1 AND keyword_id = ANY($2::int[])`,
     projectId, keywordIds
@@ -319,8 +319,8 @@ export const addWatchedKeywords = async (projectId, keywordIds) => {
     return { success: false, existingIds };
   }
 
-  // 2. Náº¿u khÃ´ng trÃ¹ng cÃ¡i nÃ o, tiáº¿n hÃ nh thÃªm táº¥t cáº£
-  // DÃ¹ng transaction Ä‘á»ƒ Ä‘áº£m báº£o an toÃ n náº¿u thÃªm nhiá»u
+  // 2. Nếu không trùng cái n� o, tiến h� nh thêm tất cả
+  // Dùng transaction để đảm bảo an to� n nếu thêm nhiều
   return await prisma.$transaction(async (tx) => {
     let insertedCount = 0;
     for (const kwId of keywordIds) {
@@ -335,11 +335,11 @@ export const addWatchedKeywords = async (projectId, keywordIds) => {
 };
 
 /**
- * Kiá»ƒm tra quyá»n sá»Ÿ há»¯u project cá»§a user.
+ * Kiểm tra quyền sở hữu project của user.
  *
  * @param {number|string} projectId - ID project
  * @param {number|string} userId - ID user
- * @returns {Promise<boolean>} `true` náº¿u user lÃ  chá»§ project
+ * @returns {Promise<boolean>} `true` nếu user l�  chủ project
  */
 export const checkProjectOwnership = async (projectId, userId) => {
   const result = await prisma.$queryRawUnsafe(
@@ -350,11 +350,11 @@ export const checkProjectOwnership = async (projectId, userId) => {
 };
 
 /**
- * XÃ³a má»™t tá»« khÃ³a khá»i danh sÃ¡ch theo dÃµi cá»§a dá»± Ã¡n (xÃ³a trong Project_Keyword).
+ * Xóa một từ khóa khỏi danh sách theo dõi của dự án (xóa trong Project_Keyword).
  *
- * @param {number|string} projectId - ID dá»± Ã¡n
- * @param {number|string} keywordId - ID tá»« khÃ³a cáº§n xÃ³a
- * @returns {Promise<boolean>} `true` náº¿u xÃ³a thÃ nh cÃ´ng, `false` náº¿u tá»« khÃ³a khÃ´ng tá»“n táº¡i trong danh sÃ¡ch
+ * @param {number|string} projectId - ID dự án
+ * @param {number|string} keywordId - ID từ khóa cần xóa
+ * @returns {Promise<boolean>} `true` nếu xóa th� nh công, `false` nếu từ khóa không tồn tại trong danh sách
  */
 export const removeWatchedKeyword = async (projectId, keywordId) => {
   const result = await prisma.$queryRawUnsafe(
@@ -366,17 +366,17 @@ export const removeWatchedKeyword = async (projectId, keywordId) => {
 };
 
 /**
- * ThÃªm (vÃ  upsert) cÃ¡c tá»« khÃ³a rá»“i gÃ¡n vÃ o má»™t bÃ i bÃ¡o cÃ¹ng vá»›i `score`.
- * Há»— trá»£ hai dáº¡ng `keywordsInput`:
- * - Array of strings: `["kw1", "kw2"]` (Ä‘iá»ƒm dÃ¹ng `options.score` hoáº·c 0)
+ * Thêm (v�  upsert) các từ khóa rồi gán v� o một b� i báo cùng với `score`.
+ * Hỗ trợ hai dạng `keywordsInput`:
+ * - Array of strings: `["kw1", "kw2"]` (điểm dùng `options.score` hoặc 0)
  * - Object mapping: `{ "Colorectal cancer": 0.25, "demo 2": 0.25 }`
  *
- * Tráº£ vá» máº£ng cÃ¡c báº£n ghi `Keyword` Ä‘Ã£ Ä‘Æ°á»£c upsert.
+ * Trả về mảng các bản ghi `Keyword` đã được upsert.
  *
- * @param {number|string} articleId - ID bÃ i bÃ¡o
- * @param {Array<string>|Object<string, number>} keywordsInput - Dá»¯ liá»‡u tá»« khÃ³a
- * @param {Object} [options] - Tuá»³ chá»n, vÃ­ dá»¥ `{ score: number }` cho dáº¡ng array
- * @returns {Promise<Array>} Máº£ng cÃ¡c báº£n ghi `Keyword` (rows returned from INSERT ... RETURNING)
+ * @param {number|string} articleId - ID b� i báo
+ * @param {Array<string>|Object<string, number>} keywordsInput - Dữ liệu từ khóa
+ * @param {Object} [options] - Tuỳ chọn, ví dụ `{ score: number }` cho dạng array
+ * @returns {Promise<Array>} Mảng các bản ghi `Keyword` (rows returned from INSERT ... RETURNING)
  */
 export const addKeywordsToArticle = async (
   articleId,
@@ -467,13 +467,13 @@ export const addKeywordsToArticle = async (
 };
 
 /**
- * Cáº­p nháº­t toÃ n bá»™ danh sÃ¡ch tá»« khÃ³a cá»§a má»™t bÃ i bÃ¡o (thay tháº¿ hoÃ n toÃ n).
- * - XÃ³a má»‘i quan há»‡ cÅ© trong `Keyword_Article`
- * - Gá»i `addKeywordsToArticle` Ä‘á»ƒ upsert vÃ  chÃ¨n quan há»‡ má»›i
+ * Cập nhật to� n bộ danh sách từ khóa của một b� i báo (thay thế ho� n to� n).
+ * - Xóa mối quan hệ cũ trong `Keyword_Article`
+ * - Gọi `addKeywordsToArticle` để upsert v�  chèn quan hệ mới
  *
- * @param {number|string} articleId - ID bÃ i bÃ¡o
- * @param {Array<string>|Object<string, number>} keywordsInput - Dá»¯ liá»‡u tá»« khÃ³a (giá»‘ng `addKeywordsToArticle`)
- * @returns {Promise<Array>} Máº£ng cÃ¡c báº£n ghi `Keyword` Ä‘Ã£ Ä‘Æ°á»£c gÃ¡n
+ * @param {number|string} articleId - ID b� i báo
+ * @param {Array<string>|Object<string, number>} keywordsInput - Dữ liệu từ khóa (giống `addKeywordsToArticle`)
+ * @returns {Promise<Array>} Mảng các bản ghi `Keyword` đã được gán
  */
 export const updateKeywordsToArticle = async (articleId, keywordsInput) => {
   try {
@@ -489,21 +489,21 @@ export const updateKeywordsToArticle = async (articleId, keywordsInput) => {
     );
 
     logger.info(
-      `ÄÃ£ lÃ m má»›i toÃ n bá»™ danh sÃ¡ch tá»« khÃ³a cho bÃ i bÃ¡o ID: ${articleId}`,
+      `Đã l� m mới to� n bộ danh sách từ khóa cho b� i báo ID: ${articleId}`,
     );
     return updatedKeywords;
   } catch (error) {
     logger.error(
-      `Lá»—i khi cáº­p nháº­t danh sÃ¡ch tá»« khÃ³a cho bÃ i bÃ¡o ID ${articleId}:`,
+      `Lỗi khi cập nhật danh sách từ khóa cho b� i báo ID ${articleId}:`,
       error,
     );
     throw error;
   }
 };
 
-//*********Nhá»¯ng API liÃªn quan tÆ°Æ¡ng tÃ¡c trá»±c tiáº¿p tá»›i Table Keyword */
+//*********Những API liên quan tương tác trực tiếp tới Table Keyword */
 /**
- * Láº¥y keyword theo ID
+ * Lấy keyword theo ID
  * @param {number} id - keyword_id
  * @returns {Promise<Object>} keyword object
  */
@@ -514,7 +514,7 @@ export const getKeywordById = async (id) => {
     id
   );
   if (!rows.length) {
-    const error = new Error("Keyword khÃ´ng tá»“n táº¡i");
+    const error = new Error("Keyword không tồn tại");
     error.statusCode = 404;
     error.code = "KEYWORD_NOT_FOUND";
     throw error;
@@ -551,17 +551,17 @@ export const getAllKeywords = async ({ page = 1, limit = 10, search = "" }) => {
 };
 
 /**
- * Láº¥y danh sÃ¡ch bÃ i bÃ¡o liÃªn quan Ä‘áº¿n má»™t keyword theo ID.
- * Public â€” khÃ´ng cáº§n auth.
+ * Lấy danh sách b� i báo liên quan đến một keyword theo ID.
+ * Public — không cần auth.
  *
- * @param {number} keywordId - ID cá»§a keyword
+ * @param {number} keywordId - ID của keyword
  * @param {Object} params - { page, limit, sortBy, sortOrder }
  * @returns {Promise<{data: Array, pagination: Object}>}
  */
 export const getArticlesByKeyword = async (keywordId, { page = 1, limit = 10, sortBy = 'publication_year', sortOrder = 'desc', scope = 'all' } = {}) => {
   const offset = (page - 1) * limit;
 
-  // Chá»‰ cho phÃ©p sort há»£p lá»‡ Ä‘á»ƒ trÃ¡nh SQL injection
+  // Chỉ cho phép sort hợp lệ để tránh SQL injection
   const articleFilter = buildArticleFilter({ scope });
   const { column, sortOrder: safeOrder } = normalizeArticleSort(sortBy, sortOrder, {
     allowedColumns: {
@@ -653,9 +653,9 @@ export const getArticlesByKeyword = async (keywordId, { page = 1, limit = 10, so
 
 
 /**
- * Táº¡o má»›i má»™t keyword
- * @param {string} display_name - TÃªn keyword
- * @returns {Promise<Object>} keyword vá»«a táº¡o
+ * Tạo mới một keyword
+ * @param {string} display_name - Tên keyword
+ * @returns {Promise<Object>} keyword vừa tạo
  */
 export const createKeyword = async (display_name) => {
   const duplicateCheck = await prisma.$queryRawUnsafe(
@@ -667,13 +667,13 @@ export const createKeyword = async (display_name) => {
   if (duplicateCheck.length > 0) {
     if (duplicateCheck[0].is_deleted) {
       const error = new Error(
-        "Keyword nÃ y Ä‘Ã£ bá»‹ xÃ³a trÆ°á»›c Ä‘Ã³, vui lÃ²ng sá»­ dá»¥ng API Restore Ä‘á»ƒ khÃ´i phá»¥c",
+        "Keyword n� y đã bị xóa trước đó, vui lòng sử dụng API Restore để khôi phục",
       );
       error.statusCode = 409;
       error.code = "KEYWORD_ALREADY_DELETED";
       throw error;
     }
-    const error = new Error("Keyword Ä‘Ã£ tá»“n táº¡i");
+    const error = new Error("Keyword đã tồn tại");
     error.statusCode = 409;
     error.code = "KEYWORD_DUPLICATE";
     throw error;
@@ -688,10 +688,10 @@ export const createKeyword = async (display_name) => {
 };
 
 /**
- * Cáº­p nháº­t keyword theo ID
+ * Cập nhật keyword theo ID
  * @param {number} id - keyword_id
- * @param {string} display_name - TÃªn keyword má»›i
- * @returns {Promise<Object>} keyword sau khi cáº­p nháº­t
+ * @param {string} display_name - Tên keyword mới
+ * @returns {Promise<Object>} keyword sau khi cập nhật
  */
 export const updateKeyword = async (id, display_name) => {
   const existing = await prisma.$queryRawUnsafe(
@@ -700,7 +700,7 @@ export const updateKeyword = async (id, display_name) => {
     id
   );
   if (!existing.length) {
-    const error = new Error("Keyword khÃ´ng tá»“n táº¡i");
+    const error = new Error("Keyword không tồn tại");
     error.statusCode = 404;
     error.code = "KEYWORD_NOT_FOUND";
     throw error;
@@ -713,7 +713,7 @@ export const updateKeyword = async (id, display_name) => {
     display_name, id
   );
   if (duplicateCheck.length > 0) {
-    const error = new Error("Keyword Ä‘Ã£ tá»“n táº¡i");
+    const error = new Error("Keyword đã tồn tại");
     error.statusCode = 409;
     error.code = "KEYWORD_DUPLICATE";
     throw error;
@@ -731,7 +731,7 @@ export const updateKeyword = async (id, display_name) => {
 /**
  * Soft delete keyword theo ID
  * @param {number} id - keyword_id
- * @returns {Promise<Object>} keyword sau khi xÃ³a
+ * @returns {Promise<Object>} keyword sau khi xóa
  */
 export const deleteKeyword = async (id) => {
   const existing = await prisma.$queryRawUnsafe(
@@ -740,13 +740,13 @@ export const deleteKeyword = async (id) => {
     id
   );
   if (!existing.length) {
-    const error = new Error("Keyword khÃ´ng tá»“n táº¡i");
+    const error = new Error("Keyword không tồn tại");
     error.statusCode = 404;
     error.code = "KEYWORD_NOT_FOUND";
     throw error;
   }
   if (existing[0].is_deleted) {
-    const error = new Error("Keyword Ä‘Ã£ bá»‹ xÃ³a trÆ°á»›c Ä‘Ã³");
+    const error = new Error("Keyword đã bị xóa trước đó");
     error.statusCode = 400;
     error.code = "KEYWORD_ALREADY_DELETED";
     throw error;
@@ -762,7 +762,7 @@ export const deleteKeyword = async (id) => {
 };
 
 /**
- * Restore keyword Ä‘Ã£ bá»‹ soft delete
+ * Restore keyword đã bị soft delete
  * @param {number} id - keyword_id
  * @returns {Promise<Object>} keyword sau khi restore
  */
@@ -773,13 +773,13 @@ export const restoreKeyword = async (id) => {
     id
   );
   if (!existing.length) {
-    const error = new Error("Keyword khÃ´ng tá»“n táº¡i");
+    const error = new Error("Keyword không tồn tại");
     error.statusCode = 404;
     error.code = "KEYWORD_NOT_FOUND";
     throw error;
   }
   if (!existing[0].is_deleted) {
-    const error = new Error("Keyword nÃ y Ä‘ang active, khÃ´ng cáº§n restore");
+    const error = new Error("Keyword n� y đang active, không cần restore");
     error.statusCode = 400;
     error.code = "KEYWORD_ALREADY_ACTIVE";
     throw error;

@@ -32,13 +32,13 @@ export const getUserProjects = async (userId) => {
 };
 
 /**
- * Láº¥y chi tiáº¿t má»™t project bao gá»“m cáº¥u hÃ¬nh Subject Area, Subject Categories vÃ  Journals
+ * Láº¥y chi tiáº¿t má»™t project bao gá»“m cáº¥u hÃ¬nh Subject Area, Subject Categories vÃ�  Journals
  * @param {string|number} projectId
  * @param {string} userId
  * @returns {Promise<Object|null>}
  */
 export const getProjectById = async (projectId, userId) => {
-  // 1. Láº¥y thÃ´ng tin chung cá»§a project vÃ  Subject Area tÆ°Æ¡ng á»©ng
+  // 1. Láº¥y thÃ´ng tin chung cá»§a project vÃ�  Subject Area tÆ°Æ¡ng á»©ng
   const projectResult = await prisma.$queryRawUnsafe(
     `SELECT p.project_id, p.title, p.user_id, p.subject_area, p.created_at,
             sa.display_name as subject_area_name, sa.description as subject_area_description
@@ -72,7 +72,7 @@ export const getProjectById = async (projectId, userId) => {
     projectId
   );
 
-  // 4. Láº¥y danh sÃ¡ch keyword mÃ  project Ä‘ang theo dÃµi
+  // 4. Láº¥y danh sÃ¡ch keyword mÃ�  project Ä‘ang theo dÃµi
   const keywordsResult = await prisma.$queryRawUnsafe(
     `SELECT k.keyword_id, k.display_name
      FROM "Project_Keyword" pk
@@ -121,12 +121,12 @@ const validateIdsExist = async (ids, tableName, idColumnName) => {
 };
 
 /**
- * Táº¡o má»™t dá»± Ã¡n má»›i vÃ  thiáº¿t láº­p cÃ¡c liÃªn káº¿t chuyÃªn ngÃ nh / táº¡p chÃ­ tÆ°Æ¡ng á»©ng
+ * Táº¡o má»™t dá»± Ã¡n má»›i vÃ�  thiáº¿t láº­p cÃ¡c liÃªn káº¿t chuyÃªn ngÃ� nh / táº¡p chÃ­ tÆ°Æ¡ng á»©ng
  * @param {Object} projectData - ThÃ´ng tin dá»± Ã¡n cáº§n táº¡o
  * @param {string} projectData.userId - ID cá»§a ngÆ°á»i dÃ¹ng sá»Ÿ há»¯u dá»± Ã¡n
  * @param {string} projectData.title - TiÃªu Ä‘á» cá»§a dá»± Ã¡n
  * @param {number|string} [projectData.subject_area] - ID cá»§a lÄ©nh vá»±c nghiÃªn cá»©u chÃ­nh
- * @param {Array<number|string>} [projectData.subject_category_ids] - Danh sÃ¡ch ID danh má»¥c chuyÃªn ngÃ nh liÃªn káº¿t
+ * @param {Array<number|string>} [projectData.subject_category_ids] - Danh sÃ¡ch ID danh má»¥c chuyÃªn ngÃ� nh liÃªn káº¿t
  * @param {Array<number|string>} [projectData.journal_ids] - Danh sÃ¡ch ID táº¡p chÃ­ liÃªn káº¿t
  * @returns {Promise<Object>} Tráº£ vá» thÃ´ng tin cÆ¡ báº£n cá»§a project vá»«a Ä‘Æ°á»£c táº¡o
  * @throws {Error} NÃ©m lá»—i náº¿u Subject Area, Subject Category hoáº·c Journal khÃ´ng tá»“n táº¡i
@@ -161,7 +161,7 @@ export const createProject = async ({ userId, title, subject_area, subject_categ
 
   // 4. Báº¯t Ä‘áº§u transaction Ä‘á»ƒ lÆ°u dá»¯ liá»‡u
   return await prisma.$transaction(async (tx) => {
-    // ThÃªm báº£n ghi vÃ o báº£ng Project
+    // ThÃªm báº£n ghi vÃ� o báº£ng Project
     const projectInsertResult = await tx.$queryRawUnsafe(
       `INSERT INTO "Project" (user_id, title, subject_area) 
        VALUES ($1, $2, $3) 
@@ -171,7 +171,7 @@ export const createProject = async ({ userId, title, subject_area, subject_categ
     const newProject = projectInsertResult[0];
     const projectId = newProject.project_id;
 
-    // ThÃªm cÃ¡c liÃªn káº¿t vÃ o báº£ng trung gian Subject_Category_Project
+    // ThÃªm cÃ¡c liÃªn káº¿t vÃ� o báº£ng trung gian Subject_Category_Project
     if (subject_category_ids.length > 0) {
       const uniqueCategoryIds = [...new Set(subject_category_ids)];
       for (const catId of uniqueCategoryIds) {
@@ -182,7 +182,7 @@ export const createProject = async ({ userId, title, subject_area, subject_categ
       }
     }
 
-    // ThÃªm cÃ¡c liÃªn káº¿t vÃ o báº£ng trung gian Project_Journal
+    // ThÃªm cÃ¡c liÃªn káº¿t vÃ� o báº£ng trung gian Project_Journal
     if (journal_ids.length > 0) {
       const uniqueJournalIds = [...new Set(journal_ids)];
       for (const journalId of uniqueJournalIds) {
@@ -198,19 +198,19 @@ export const createProject = async ({ userId, title, subject_area, subject_categ
 };
 
 /**
- * Cáº­p nháº­t thÃ´ng tin cá»§a dá»± Ã¡n, bao gá»“m cáº­p nháº­t liÃªn káº¿t chuyÃªn ngÃ nh vÃ  táº¡p chÃ­
+ * Cáº­p nháº­t thÃ´ng tin cá»§a dá»± Ã¡n, bao gá»“m cáº­p nháº­t liÃªn káº¿t chuyÃªn ngÃ� nh vÃ�  táº¡p chÃ­
  * @param {string|number} projectId - ID cá»§a dá»± Ã¡n cáº§n cáº­p nháº­t
  * @param {string} userId - ID cá»§a ngÆ°á»i dÃ¹ng sá»Ÿ há»¯u dá»± Ã¡n (Ä‘á»ƒ xÃ¡c thá»±c quyá»n)
  * @param {Object} updateData - Dá»¯ liá»‡u cáº­p nháº­t
  * @param {string} [updateData.title] - TiÃªu Ä‘á» má»›i cá»§a dá»± Ã¡n
  * @param {number|string} [updateData.subject_area] - ID má»›i cá»§a lÄ©nh vá»±c nghiÃªn cá»©u chÃ­nh
- * @param {Array<number|string>} [updateData.subject_category_ids] - Danh sÃ¡ch ID danh má»¥c chuyÃªn ngÃ nh má»›i
+ * @param {Array<number|string>} [updateData.subject_category_ids] - Danh sÃ¡ch ID danh má»¥c chuyÃªn ngÃ� nh má»›i
  * @param {Array<number|string>} [updateData.journal_ids] - Danh sÃ¡ch ID táº¡p chÃ­ má»›i
- * @returns {Promise<boolean|null>} Tráº£ vá» true náº¿u cáº­p nháº­t thÃ nh cÃ´ng, null náº¿u dá»± Ã¡n khÃ´ng tá»“n táº¡i hoáº·c khÃ´ng thuá»™c sá»Ÿ há»¯u cá»§a user
+ * @returns {Promise<boolean|null>} Tráº£ vá» true náº¿u cáº­p nháº­t thÃ� nh cÃ´ng, null náº¿u dá»± Ã¡n khÃ´ng tá»“n táº¡i hoáº·c khÃ´ng thuá»™c sá»Ÿ há»¯u cá»§a user
  * @throws {Error} NÃ©m lá»—i náº¿u Subject Area, Subject Category hoáº·c Journal má»›i khÃ´ng tá»“n táº¡i
  */
 export const updateProject = async (projectId, userId, { title, subject_area, subject_category_ids, journal_ids }) => {
-  // 1. Kiá»ƒm tra xem project cÃ³ tá»“n táº¡i vÃ  thuá»™c sá»Ÿ há»¯u cá»§a user khÃ´ng
+  // 1. Kiá»ƒm tra xem project cÃ³ tá»“n táº¡i vÃ�  thuá»™c sá»Ÿ há»¯u cá»§a user khÃ´ng
   const projectCheck = await prisma.$queryRawUnsafe(
     `SELECT 1 FROM "Project" WHERE project_id = $1 AND user_id = $2`,
     projectId, userId
@@ -219,7 +219,7 @@ export const updateProject = async (projectId, userId, { title, subject_area, su
     return null;
   }
 
-  // 2. Kiá»ƒm tra sá»± tá»“n táº¡i cá»§a subject_area náº¿u Ä‘Æ°á»£c truyá»n vÃ o
+  // 2. Kiá»ƒm tra sá»± tá»“n táº¡i cá»§a subject_area náº¿u Ä‘Æ°á»£c truyá»n vÃ� o
   if (subject_area) {
     const areaCheck = await prisma.$queryRawUnsafe(
       `SELECT 1 FROM "Subject_Area" WHERE subject_area_id = $1`,
@@ -230,7 +230,7 @@ export const updateProject = async (projectId, userId, { title, subject_area, su
     }
   }
 
-  // 3. Kiá»ƒm tra sá»± tá»“n táº¡i cá»§a táº¥t cáº£ subject_category_ids náº¿u Ä‘Æ°á»£c truyá»n vÃ o
+  // 3. Kiá»ƒm tra sá»± tá»“n táº¡i cá»§a táº¥t cáº£ subject_category_ids náº¿u Ä‘Æ°á»£c truyá»n vÃ� o
   if (subject_category_ids && subject_category_ids.length > 0) {
     const categoriesValid = await validateIdsExist(subject_category_ids, 'Subject_Category', 'subject_category_id');
     if (!categoriesValid) {
@@ -238,7 +238,7 @@ export const updateProject = async (projectId, userId, { title, subject_area, su
     }
   }
 
-  // 4. Kiá»ƒm tra sá»± tá»“n táº¡i cá»§a táº¥t cáº£ journal_ids náº¿u Ä‘Æ°á»£c truyá»n vÃ o
+  // 4. Kiá»ƒm tra sá»± tá»“n táº¡i cá»§a táº¥t cáº£ journal_ids náº¿u Ä‘Æ°á»£c truyá»n vÃ� o
   if (journal_ids && journal_ids.length > 0) {
     const journalsValid = await validateIdsExist(journal_ids, 'Journal', 'journal_id');
     if (!journalsValid) {
@@ -257,7 +257,7 @@ export const updateProject = async (projectId, userId, { title, subject_area, su
       title, subject_area ?? null, projectId, userId
     );
 
-    // Cáº­p nháº­t quan há»‡ Subject Category náº¿u máº£ng Ä‘Æ°á»£c truyá»n vÃ o
+    // Cáº­p nháº­t quan há»‡ Subject Category náº¿u máº£ng Ä‘Æ°á»£c truyá»n vÃ� o
     if (subject_category_ids) {
       // XÃ³a cÃ¡c quan há»‡ cÅ©
       await tx.$executeRawUnsafe(`DELETE FROM "Subject_Category_Project" WHERE project_id = $1`, projectId);
@@ -274,7 +274,7 @@ export const updateProject = async (projectId, userId, { title, subject_area, su
       }
     }
 
-    // Cáº­p nháº­t quan há»‡ Journal náº¿u máº£ng Ä‘Æ°á»£c truyá»n vÃ o
+    // Cáº­p nháº­t quan há»‡ Journal náº¿u máº£ng Ä‘Æ°á»£c truyá»n vÃ� o
     if (journal_ids) {
       // XÃ³a cÃ¡c quan há»‡ cÅ©
       await tx.$executeRawUnsafe(`DELETE FROM "Project_Journal" WHERE project_id = $1`, projectId);
@@ -303,7 +303,7 @@ export const updateProject = async (projectId, userId, { title, subject_area, su
  */
 export const deleteProject = async (projectId, userId) => {
   return await prisma.$transaction(async (tx) => {
-    // 1. Kiá»ƒm tra xem project cÃ³ tá»“n táº¡i vÃ  thuá»™c sá»Ÿ há»¯u cá»§a user hay khÃ´ng
+    // 1. Kiá»ƒm tra xem project cÃ³ tá»“n táº¡i vÃ�  thuá»™c sá»Ÿ há»¯u cá»§a user hay khÃ´ng
     const checkResult = await tx.$queryRawUnsafe(
       `SELECT 1 FROM "Project" WHERE project_id = $1 AND user_id = $2`,
       projectId, userId
@@ -385,19 +385,19 @@ export const getCategoryIdsByProjectId = async (projectId) => {
 };
 
 /**
- * Láº¥y danh sÃ¡ch cÃ¡c bÃ i viáº¿t liÃªn quan dá»±a trÃªn máº£ng ID táº¡p chÃ­ HOáº¶C máº£ng ID danh má»¥c thuá»™c dá»± Ã¡n.
- * Æ¯u tiÃªn cÃ¡c bÃ i viáº¿t thá»a mÃ£n cáº£ hai Ä‘iá»u kiá»‡n, sáº¯p xáº¿p theo nÄƒm xuáº¥t báº£n má»›i nháº¥t.
+ * Láº¥y danh sÃ¡ch cÃ¡c bÃ� i viáº¿t liÃªn quan dá»±a trÃªn máº£ng ID táº¡p chÃ­ HOáº¶C máº£ng ID danh má»¥c thuá»™c dá»± Ã¡n.
+ * Æ¯u tiÃªn cÃ¡c bÃ� i viáº¿t thá»a mÃ£n cáº£ hai Ä‘iá»u kiá»‡n, sáº¯p xáº¿p theo nÄƒm xuáº¥t báº£n má»›i nháº¥t.
  *
  * @async
  * @param {Array<number|string>} journalIds - Máº£ng chá»©a cÃ¡c ID cá»§a táº¡p chÃ­ thuá»™c dá»± Ã¡n.
  * @param {Array<number|string>} categoryIds - Máº£ng chá»©a cÃ¡c ID cá»§a danh má»¥c thuá»™c dá»± Ã¡n.
  * @param {Object} options - Cáº¥u hÃ¬nh tÃ¹y chá»n cho dá»¯ liá»‡u.
- * @param {number} [options.limit=5] - Sá»‘ lÆ°á»£ng bÃ i viáº¿t giá»›i háº¡n láº¥y ra.
- * @returns {Promise<Array<{article_id: (number|string), title: string, abstract: string, publication_year: number, doi: string, journal_name: string}>>} Danh sÃ¡ch bÃ i viáº¿t gá»£i Ã½.
+ * @param {number} [options.limit=5] - Sá»‘ lÆ°á»£ng bÃ� i viáº¿t giá»›i háº¡n láº¥y ra.
+ * @returns {Promise<Array<{article_id: (number|string), title: string, abstract: string, publication_year: number, doi: string, journal_name: string}>>} Danh sÃ¡ch bÃ� i viáº¿t gá»£i Ã½.
  */
 export const getRelatedArticles = async (journalIds, categoryIds, { limit = 5 }) => {
     try {
-        // PhÃ²ng há» trÆ°á»ng há»£p máº£ng truyá»n vÃ o bá»‹ rá»—ng Ä‘á»ƒ trÃ¡nh lá»—i SQL ANY()
+        // PhÃ²ng há» trÆ°á»ng há»£p máº£ng truyá»n vÃ� o bá»‹ rá»—ng Ä‘á»ƒ trÃ¡nh lá»—i SQL ANY()
         const finalJournalIds = journalIds.length > 0 ? journalIds : [-1];
         const finalCategoryIds = categoryIds.length > 0 ? categoryIds : [-1];
 
@@ -408,7 +408,7 @@ export const getRelatedArticles = async (journalIds, categoryIds, { limit = 5 })
                 a.abstract,
                 a.publication_year,
                 a.doi,
-                j.display_name AS journal_name, -- Láº¥y ra tÃªn táº¡p chÃ­ tÆ°Æ¡ng á»©ng nhÆ° yÃªu cáº§u bÃ i toÃ¡n
+                j.display_name AS journal_name, -- Láº¥y ra tÃªn táº¡p chÃ­ tÆ°Æ¡ng á»©ng nhÆ° yÃªu cáº§u bÃ� i toÃ¡n
                 COALESCE(
                     (
                         SELECT JSON_AGG(
@@ -430,12 +430,12 @@ export const getRelatedArticles = async (journalIds, categoryIds, { limit = 5 })
             JOIN "Issue" i ON a.issue_id = i.issue_id
             JOIN "Volume" v ON i.volume_id = v.volume_id
             JOIN "Journal" j ON v.journal_id = j.journal_id
-            -- Káº¿t ná»‘i sang báº£ng danh má»¥c Ä‘á»ƒ kiá»ƒm tra chuyÃªn ngÃ nh háº¹p
+            -- Káº¿t ná»‘i sang báº£ng danh má»¥c Ä‘á»ƒ kiá»ƒm tra chuyÃªn ngÃ� nh háº¹p
             LEFT JOIN "Journal_Subject_Category" jc ON j.journal_id = jc.journal_id
-            -- Äiá»u kiá»‡n lá»c Ä‘á»™ng "Hoáº·c/VÃ ": Thá»a mÃ£n táº¡p chÃ­ HOáº¶C thá»a mÃ£n chuyÃªn ngÃ nh Ä‘á»u láº¥y
+            -- Äiá»u kiá»‡n lá»c Ä‘á»™ng "Hoáº·c/VÃ� ": Thá»a mÃ£n táº¡p chÃ­ HOáº¶C thá»a mÃ£n chuyÃªn ngÃ� nh Ä‘á»u láº¥y
             WHERE v.journal_id = ANY($1) 
                OR jc.subject_category_id = ANY($2) 
-            -- Sáº¯p xáº¿p: Æ¯u tiÃªn bÃ i viáº¿t má»›i xuáº¥t báº£n nháº¥t, tiáº¿p theo lÃ  bÃ i táº¡o má»›i nháº¥t trong DB
+            -- Sáº¯p xáº¿p: Æ¯u tiÃªn bÃ� i viáº¿t má»›i xuáº¥t báº£n nháº¥t, tiáº¿p theo lÃ�  bÃ� i táº¡o má»›i nháº¥t trong DB
             ORDER BY a.publication_year DESC, a.article_id DESC
             LIMIT $3;
         `;
@@ -445,7 +445,7 @@ export const getRelatedArticles = async (journalIds, categoryIds, { limit = 5 })
         return res; 
         
     } catch (error) {
-        logger.error('Lá»—i khi láº¥y bÃ i viáº¿t liÃªn quan táº¡i Service:', error);
+        logger.error('Lá»—i khi láº¥y bÃ� i viáº¿t liÃªn quan táº¡i Service:', error);
         throw error;
     }
 };
@@ -460,7 +460,7 @@ export const getRelatedArticles = async (journalIds, categoryIds, { limit = 5 })
  */
 export const getProjectAnalytics = async (projectId, userId) => {
     try {
-        // 1. XÃ¡c thá»±c sá»± tá»“n táº¡i vÃ  quyá»n sá»Ÿ há»¯u dá»± Ã¡n
+        // 1. XÃ¡c thá»±c sá»± tá»“n táº¡i vÃ�  quyá»n sá»Ÿ há»¯u dá»± Ã¡n
         const projectCheck = await prisma.$queryRawUnsafe(
             `SELECT 1 FROM "Project" WHERE project_id = $1 AND user_id = $2`,
             Number(projectId), userId

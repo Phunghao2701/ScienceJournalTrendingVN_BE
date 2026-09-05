@@ -1,4 +1,4 @@
-﻿import pool from '../../../config/database.js';
+import pool from '../../../config/database.js';
 import logger from '../../../utils/logger.js';
 import {
   extractOrcidId,
@@ -186,7 +186,7 @@ const upsertAuthor = async (
     if (existing.is_deleted) {
       if (isTarget) {
         const error = new Error(
-          "TÃ¡c giáº£ mang ORCID nÃ y Ä‘ang á»Ÿ tráº¡ng thÃ¡i Ä‘Ã£ xÃ³a",
+          "Tác giả mang ORCID n� y đang ở trạng thái đã xóa",
         );
         error.statusCode = 409;
         error.code = "ORCID_AUTHOR_DELETED";
@@ -1123,7 +1123,7 @@ const persistArticleBundle = async (
   const row = result.rows[0];
   if (!row) {
     const error = new Error(
-      "KhÃ´ng thá»ƒ táº¡o hoáº·c cáº­p nháº­t bÃ i bÃ¡o do xung Ä‘á»™t Ä‘á»“ng thá»i",
+      "Không thể tạo hoặc cập nhật b� i báo do xung đột đồng thời",
     );
     error.code = "ARTICLE_CONCURRENT_CONFLICT";
     throw error;
@@ -2468,7 +2468,7 @@ const persistResolvedArticle = async (
   const row = result.rows[0];
   if (!row) {
     const error = new Error(
-      "KhÃ´ng thá»ƒ táº¡o hoáº·c cáº­p nháº­t bÃ i bÃ¡o do xung Ä‘á»™t Ä‘á»“ng thá»i",
+      "Không thể tạo hoặc cập nhật b� i báo do xung đột đồng thời",
     );
     error.code = "ARTICLE_CONCURRENT_CONFLICT";
     throw error;
@@ -2838,7 +2838,7 @@ const persistResolvedChunk = async (client, items, dimensions) => {
 
   if (result.rows.length !== items.length) {
     const error = new Error(
-      "KhÃ´ng thá»ƒ táº¡o hoáº·c cáº­p nháº­t Ä‘áº§y Ä‘á»§ chunk bÃ i bÃ¡o",
+      "Không thể tạo hoặc cập nhật đầy đủ chunk b� i báo",
     );
     error.code = "ARTICLE_CHUNK_CONCURRENT_CONFLICT";
     throw error;
@@ -2851,7 +2851,7 @@ const persistResolvedChunk = async (client, items, dimensions) => {
     const row = rowsByIndex.get(scanIndex);
     if (!row) {
       const error = new Error(
-        `Thiáº¿u káº¿t quáº£ lÆ°u cho article táº¡i vá»‹ trÃ­ ${scanIndex}`,
+        `Thiếu kết quả lưu cho article tại vị trí ${scanIndex}`,
       );
       error.code = "ARTICLE_CHUNK_RESULT_MISSING";
       throw error;
@@ -2914,7 +2914,7 @@ const persistItemsIndividually = async (
         `ROLLBACK TO SAVEPOINT ${savepoint}; RELEASE SAVEPOINT ${savepoint}`,
       );
       logger.error(
-        `[ORCID Scan] KhÃ´ng thá»ƒ lÆ°u article táº¡i vá»‹ trÃ­ ${scanIndex}:`,
+        `[ORCID Scan] Không thể lưu article tại vị trí ${scanIndex}:`,
         error,
       );
     }
@@ -2978,7 +2978,7 @@ const persistResolvedItems = async (
         `ROLLBACK TO SAVEPOINT ${chunkSavepoint}; RELEASE SAVEPOINT ${chunkSavepoint}`,
       );
       logger.warn(
-        `[ORCID Scan] Bulk chunk ${chunkStart / ARTICLE_CHUNK_SIZE} lá»—i; chuyá»ƒn sang lÆ°u tá»«ng article`,
+        `[ORCID Scan] Bulk chunk ${chunkStart / ARTICLE_CHUNK_SIZE} lỗi; chuyển sang lưu từng article`,
         {
           code: error.code || "ARTICLE_CHUNK_FAILED",
           item_count: activeItems.length,
@@ -3341,7 +3341,7 @@ export const persistOrcidScanBatched = async (
     if (sourceArticles.length && successfulBatches === 0) {
       throw (
         lastBatchError ||
-        new Error("KhÃ´ng thá»ƒ lÆ°u dá»¯ liá»‡u ORCID theo batch")
+        new Error("Không thể lưu dữ liệu ORCID theo batch")
       );
     }
 

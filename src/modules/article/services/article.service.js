@@ -1,4 +1,4 @@
-﻿import prisma from '../../../config/prisma.js';
+import prisma from '../../../config/prisma.js';
 import logger from '../../../utils/logger.js';
 import {
     buildArticleFilter,
@@ -7,12 +7,12 @@ import {
 } from './articleFilter.service.js';
 
 /**
- * TÃ¬m cÃ¡c bÃ i bÃ¡o cÃ³ chá»©a cÃ¡c keyword ngÆ°á»i dÃ¹ng nháº­p vÃ o trÃªn toÃ n há»‡ thá»‘ng
- * Luá»“ng JOIN trong DB: Article â†’ Keyword_Article â†’ Keyword
- * @param {string[]} keywords - Máº£ng tÃªn keyword (vÃ­ dá»¥: ["Machine Learning", "Deep Learning"])
- * @param {number} limit - Sá»‘ bÃ i tá»‘i Ä‘a tráº£ vá»
- * @param {number} offset - Vá»‹ trÃ­ báº¯t Ä‘áº§u (dÃ¹ng cho phÃ¢n trang)
- * @returns {Array} Danh sÃ¡ch bÃ i bÃ¡o kÃ¨m keyword matched
+ * Tìm các b� i báo có chứa các keyword người dùng nhập v� o trên to� n hệ thống
+ * Luồng JOIN trong DB: Article → Keyword_Article → Keyword
+ * @param {string[]} keywords - Mảng tên keyword (ví dụ: ["Machine Learning", "Deep Learning"])
+ * @param {number} limit - Số b� i tối đa trả về
+ * @param {number} offset - Vị trí bắt đầu (dùng cho phân trang)
+ * @returns {Array} Danh sách b� i báo kèm keyword matched
  */
 export const getArticlesByKeywords = async (keywords, limit = 20, offset = 0, params = {}) => {
     const filter = buildArticleFilter(params);
@@ -49,10 +49,10 @@ export const getArticlesByKeywords = async (keywords, limit = 20, offset = 0, pa
 };
 
 /**
- * Äáº¿m sá»‘ bÃ i bÃ¡o khá»›p vá»›i danh sÃ¡ch tá»« khÃ³a (case-insensitive).
+ * Đếm số b� i báo khớp với danh sách từ khóa (case-insensitive).
  *
- * @param {string[]} keywords - Máº£ng tÃªn keyword (sáº½ Ä‘Æ°á»£c so sÃ¡nh báº±ng LOWER)
- * @returns {Promise<number>} Tá»•ng sá»‘ bÃ i bÃ¡o khá»›p
+ * @param {string[]} keywords - Mảng tên keyword (sẽ được so sánh bằng LOWER)
+ * @returns {Promise<number>} Tổng số b� i báo khớp
  */
 export const countArticlesByKeywords = async (keywords, params = {}) => {
     const filter = buildArticleFilter(params);
@@ -79,7 +79,7 @@ export const countArticlesByKeywords = async (keywords, params = {}) => {
 };
 
 /**
- * Äáº¿m tá»•ng sá»‘ bÃ i bÃ¡o cÃ´ng khai theo cÃ¹ng bá»™ lá»c vá»›i trang Article List.
+ * Đếm tổng số b� i báo công khai theo cùng bộ lọc với trang Article List.
  * @param {Object} params
  */
 export const countAllArticles = async (params = {}) => {
@@ -99,9 +99,9 @@ export const countAllArticles = async (params = {}) => {
 };
 
 /**
- * Äáº¿m tá»•ng sá»‘ bÃ i bÃ¡o chÆ°a bá»‹ xÃ³a trong há»‡ thá»‘ng.
+ * Đếm tổng số b� i báo chưa bị xóa trong hệ thống.
  *
- * @returns {Promise<number>} Tá»•ng sá»‘ bÃ i bÃ¡o
+ * @returns {Promise<number>} Tổng số b� i báo
  */
 export const getTotalArticles = async () => {
     try {
@@ -109,7 +109,7 @@ export const getTotalArticles = async () => {
         const result = await prisma.$queryRawUnsafe(query);
         return parseInt(result[0].total, 10);
     } catch (error) {
-        logger.error('Lá»—i khi Ä‘áº¿m tá»•ng sá»‘ bÃ i bÃ¡o:', error);
+        logger.error('Lỗi khi đếm tổng số b� i báo:', error);
         throw error;
     }
 };
@@ -138,20 +138,20 @@ export const getArticleListStats = async (params = {}) => {
             topicsCount: 0,
         };
     } catch (error) {
-        logger.error('Lá»—i khi láº¥y thá»‘ng kÃª bÃ i bÃ¡o:', error);
+        logger.error('Lỗi khi lấy thống kê b� i báo:', error);
         throw error;
     }
 };
 
 /**
- * Láº¥y danh sÃ¡ch bÃ i bÃ¡o cÃ´ng khai cho Article List Page.
- * Há»— trá»£ search, filter, sort vÃ  JOIN metadata tá»« Issue â†’ Volume â†’ Journal â†’ Topic.
+ * Lấy danh sách b� i báo công khai cho Article List Page.
+ * Hỗ trợ search, filter, sort v�  JOIN metadata từ Issue → Volume → Journal → Topic.
  *
- * @param {Object|number} [firstParam={}] - Object params hoáº·c legacy numeric limit
+ * @param {Object|number} [firstParam={}] - Object params hoặc legacy numeric limit
  * @param {number} [offsetParam=0]
  * @param {string} [sortByParam='created_at']
  * @param {string} [sortOrderParam='DESC']
- * @returns {Promise<Array>} Máº£ng bÃ i bÃ¡o Ä‘Ã£ enrich metadata
+ * @returns {Promise<Array>} Mảng b� i báo đã enrich metadata
  */
 export const getAllArticles = async (firstParam = {}, offsetParam = 0, sortByParam = 'created_at', sortOrderParam = 'DESC') => {
     try {
@@ -254,17 +254,17 @@ export const getAllArticles = async (firstParam = {}, offsetParam = 0, sortByPar
         return result;
 
     } catch (error) {
-        logger.error('Lá»—i khi láº¥y táº¥t cáº£ bÃ i bÃ¡o (getAllArticles Service):', error);
+        logger.error('Lỗi khi lấy tất cả b� i báo (getAllArticles Service):', error);
         throw error;
     }
 };
 
 /**
- * Láº¥y thÃ´ng tin chi tiáº¿t má»™t bÃ i bÃ¡o theo `article_id`.
- * LÆ°u Ã½: Tráº£ vá» cáº£ bÃ i bÃ¡o Ä‘Ã£ bá»‹ xÃ³a má»m (is_deleted = true).
+ * Lấy thông tin chi tiết một b� i báo theo `article_id`.
+ * Lưu ý: Trả về cả b� i báo đã bị xóa mềm (is_deleted = true).
  *
- * @param {number|string} articleId - ID bÃ i bÃ¡o
- * @returns {Promise<Object|null>} Báº£n ghi bÃ i bÃ¡o hoáº·c `null` náº¿u khÃ´ng tá»“n táº¡i
+ * @param {number|string} articleId - ID b� i báo
+ * @returns {Promise<Object|null>} Bản ghi b� i báo hoặc `null` nếu không tồn tại
  */
 export const getArticleAnalytics = async (params = {}) => {
     try {
@@ -393,7 +393,7 @@ export const getArticleAnalytics = async (params = {}) => {
             ],
         };
     } catch (error) {
-        logger.error('Lá»—i khi láº¥y analytics bÃ i bÃ¡o:', error);
+        logger.error('Lỗi khi lấy analytics b� i báo:', error);
         throw error;
     }
 };
@@ -553,7 +553,7 @@ export const getArticleById = async (articleId) => {
             topics: topicsResult,
         };
     } catch (error) {
-        logger.error('Lá»—i khi láº¥y thÃ´ng tin bÃ i bÃ¡o theo ID:', error);
+        logger.error('Lỗi khi lấy thông tin b� i báo theo ID:', error);
         throw error;
     }
 };
@@ -661,16 +661,16 @@ export const getArticleReferences = async (articleId, { limit = 50, offset = 0 }
 };
 
 /**
- * Táº¡o má»›i má»™t báº£n ghi bÃ i bÃ¡o (dá»¯ liá»‡u thÃ´) vÃ  tráº£ vá» record vá»«a táº¡o.
+ * Tạo mới một bản ghi b� i báo (dữ liệu thô) v�  trả về record vừa tạo.
  *
- * @param {Object} articleData - Dá»¯ liá»‡u bÃ i bÃ¡o
- * @param {string} articleData.title - TiÃªu Ä‘á» (báº¯t buá»™c)
- * @param {number} articleData.publication_year - NÄƒm xuáº¥t báº£n (báº¯t buá»™c)
+ * @param {Object} articleData - Dữ liệu b� i báo
+ * @param {string} articleData.title - Tiêu đề (bắt buộc)
+ * @param {number} articleData.publication_year - Năm xuất bản (bắt buộc)
  * @param {number} [articleData.issue_id]
  * @param {string} [articleData.abstract]
  * @param {string} [articleData.doi]
  * @param {number|null} [articleData.primary_topic]
- * @returns {Promise<Object>} Báº£n ghi bÃ i bÃ¡o vá»«a táº¡o
+ * @returns {Promise<Object>} Bản ghi b� i báo vừa tạo
  */
 export const createArticle = async (articleData) => {
     try {
@@ -722,16 +722,16 @@ export const createArticle = async (articleData) => {
 };
 
 /**
- * Cáº­p nháº­t thÃ´ng tin cá»‘t lÃµi cá»§a bÃ i bÃ¡o (Táº§ng Service)
+ * Cập nhật thông tin cốt lõi của b� i báo (Tầng Service)
  * @param {Object} params 
- * @param {number|string} params.article_id - ID bÃ i bÃ¡o cáº§n update (Báº¯t buá»™c)
- * @param {Object} params.updateData - Object chá»©a cÃ¡c trÆ°á»ng muá»‘n thay Ä‘á»•i tá»« req.body
- * @returns {Promise<Object|null>} Báº£n ghi sau khi update thÃ nh cÃ´ng
+ * @param {number|string} params.article_id - ID b� i báo cần update (Bắt buộc)
+ * @param {Object} params.updateData - Object chứa các trường muốn thay đổi từ req.body
+ * @returns {Promise<Object|null>} Bản ghi sau khi update th� nh công
  */
 export const updateArticle = async ({ article_id, ...updateData }) => {
     try {
         if (!article_id) {
-            throw new Error('Thiáº¿u article_id khi gá»i hÃ m updateArticle Service.');
+            throw new Error('Thiếu article_id khi gọi h� m updateArticle Service.');
         }
 
         const currentQuery = `SELECT * FROM "Article" WHERE "article_id" = $1;`;
@@ -750,7 +750,7 @@ export const updateArticle = async ({ article_id, ...updateData }) => {
         if (title !== undefined) {
             const trimmedTitle = String(title).trim();
             if (trimmedTitle === '') {
-                throw new Error('VALIDATION_ERROR: TiÃªu Ä‘á» khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng.');
+                throw new Error('VALIDATION_ERROR: Tiêu đề không được để trống.');
             }
             if (trimmedTitle !== currentArticle.title) {
                 fieldsToSet.push('title');
@@ -761,7 +761,7 @@ export const updateArticle = async ({ article_id, ...updateData }) => {
         if (publication_year !== undefined) {
             const yearNum = Number(publication_year);
             if (isNaN(yearNum) || yearNum <= 0) {
-                throw new Error('VALIDATION_ERROR: NÄƒm xuáº¥t báº£n pháº£i lÃ  sá»‘ dÆ°Æ¡ng há»£p lá»‡.');
+                throw new Error('VALIDATION_ERROR: Năm xuất bản phải l�  số dương hợp lệ.');
             }
             if (yearNum !== currentArticle.publication_year) {
                 fieldsToSet.push('publication_year');
@@ -786,12 +786,12 @@ export const updateArticle = async ({ article_id, ...updateData }) => {
 
         if (issue_id !== undefined) {
             if (String(currentArticle.issue_id) === String(issue_id)) {
-                throw new Error('VALIDATION_ERROR: KhÃ´ng thá»ƒ cáº­p nháº­t cÃ¹ng má»™t mÃ£ issue.');
+                throw new Error('VALIDATION_ERROR: Không thể cập nhật cùng một mã issue.');
             }
             
-            const issueExistsResult = await issueExists(issue_id);
-            if (!issueExistsResult) {
-                throw new Error('VALIDATION_ERROR: MÃ£ Issue ID khÃ´ng tá»“n táº¡i trÃªn há»‡ thá»‘ng.');
+            const issueExistsRes = await prisma.$queryRawUnsafe('SELECT 1 FROM "Issue" WHERE issue_id = $1 LIMIT 1', issue_id);
+            if (issueExistsRes.length === 0) {
+                throw new Error('VALIDATION_ERROR: Mã Issue ID không tồn tại trên hệ thống.');
             }
 
             fieldsToSet.push('issue_id');
@@ -806,12 +806,12 @@ export const updateArticle = async ({ article_id, ...updateData }) => {
                 }
             } else {
                 if (String(currentArticle.primary_topic) === String(primary_topic)) {
-                    throw new Error('VALIDATION_ERROR: KhÃ´ng thá»ƒ cáº­p nháº­t cÃ¹ng giÃ¡ trá»‹ Primary Topic.');
+                    throw new Error('VALIDATION_ERROR: Không thể cập nhật cùng giá trị Primary Topic.');
                 }
 
-                const isTopicExists = await topicExists(primary_topic);
-                if (!isTopicExists) {
-                    throw new Error('VALIDATION_ERROR: Primary topic khÃ´ng tá»“n táº¡i trÃªn há»‡ thá»‘ng.');
+                const topicExistsRes = await prisma.$queryRawUnsafe('SELECT 1 FROM "Topic" WHERE topic_id = $1 LIMIT 1', primary_topic);
+                if (topicExistsRes.length === 0) {
+                    throw new Error('VALIDATION_ERROR: Primary topic không tồn tại trên hệ thống.');
                 }
 
                 fieldsToSet.push('primary_topic');
@@ -827,7 +827,7 @@ export const updateArticle = async ({ article_id, ...updateData }) => {
             .map((field, index) => `"${field}" = $${index + 2}`)
             .join(', ');
 
-        // 6. Thá»±c thi cÃ¢u lá»‡nh UPDATE xuá»‘ng Postgres
+        // 6. Thực thi câu lệnh UPDATE xuống Postgres
         const query = `
             UPDATE "Article"
             SET ${setClause}
@@ -848,19 +848,19 @@ export const updateArticle = async ({ article_id, ...updateData }) => {
         return result[0] || null;
 
     } catch (error) {
-        throw error; // QuÄƒng lá»—i lÃªn Ä‘á»ƒ Controller báº¯t láº¥y vÃ  tráº£ vá» res.status
+        throw error; // Quăng lỗi lên để Controller bắt lấy v�  trả về res.status
     }
 };
 
 /**
- * XÃ³a má»m má»™t báº£n ghi bÃ i bÃ¡o dá»±a trÃªn ID (Chuyá»ƒn is_deleted thÃ nh TRUE).
+ * Xóa mềm một bản ghi b� i báo dựa trên ID (Chuyển is_deleted th� nh TRUE).
  *
- * @param {number|string} articleId - ID cá»§a bÃ i bÃ¡o cáº§n xÃ³a má»m
- * @returns {Promise<Object|null>} Báº£n ghi bÃ i bÃ¡o sau khi Ä‘Æ°á»£c cáº­p nháº­t xÃ³a má»m, hoáº·c null náº¿u khÃ´ng tÃ¬m tháº¥y
+ * @param {number|string} articleId - ID của b� i báo cần xóa mềm
+ * @returns {Promise<Object|null>} Bản ghi b� i báo sau khi được cập nhật xóa mềm, hoặc null nếu không tìm thấy
  */
 export const deleteArticle = async (articleId) => {
     try {
-        // Kiá»ƒm tra Ä‘áº§u vÃ o báº¯t buá»™c
+        // Kiểm tra đầu v� o bắt buộc
         if (!articleId) {
             throw new Error('Article ID is required for deletion.');
         }
@@ -876,8 +876,8 @@ export const deleteArticle = async (articleId) => {
 
         const result = await prisma.$queryRawUnsafe(query, ...values);
 
-        // Náº¿u cáº­p nháº­t thÃ nh cÃ´ng, result[0] sáº½ chá»©a thÃ´ng tin bÃ i bÃ¡o kÃ¨m theo is_deleted = true
-        // Náº¿u bÃ i bÃ¡o Ä‘Ã£ bá»‹ xÃ³a má»m tá»« trÆ°á»›c hoáº·c khÃ´ng tá»“n táº¡i, result[0] sáº½ lÃ  undefined
+        // Nếu cập nhật th� nh công, result[0] sẽ chứa thông tin b� i báo kèm theo is_deleted = true
+        // Nếu b� i báo đã bị xóa mềm từ trước hoặc không tồn tại, result[0] sẽ l�  undefined
         return result[0] || null;
 
     } catch (error) {
@@ -887,14 +887,14 @@ export const deleteArticle = async (articleId) => {
 };
 
 /**
- * KhÃ´i phá»¥c má»™t bÃ i bÃ¡o Ä‘Ã£ bá»‹ xÃ³a má»m (Chuyá»ƒn is_deleted thÃ nh FALSE).
+ * Khôi phục một b� i báo đã bị xóa mềm (Chuyển is_deleted th� nh FALSE).
  *
- * @param {number|string} articleId - ID cá»§a bÃ i bÃ¡o cáº§n khÃ´i phá»¥c
- * @returns {Promise<Object|null>} Báº£n ghi bÃ i bÃ¡o sau khi khÃ´i phá»¥c, hoáº·c null náº¿u khÃ´ng tÃ¬m tháº¥y
+ * @param {number|string} articleId - ID của b� i báo cần khôi phục
+ * @returns {Promise<Object|null>} Bản ghi b� i báo sau khi khôi phục, hoặc null nếu không tìm thấy
  */
 export const restoreArticle = async (articleId) => {
     try {
-        // Kiá»ƒm tra Ä‘áº§u vÃ o báº¯t buá»™c
+        // Kiểm tra đầu v� o bắt buộc
         if (!articleId) {
             throw new Error('Article ID is required for restoration.');
         }
@@ -910,8 +910,8 @@ export const restoreArticle = async (articleId) => {
 
         const result = await prisma.$queryRawUnsafe(query, ...values);
 
-        // Náº¿u cáº­p nháº­t thÃ nh cÃ´ng, result[0] sáº½ chá»©a thÃ´ng tin bÃ i bÃ¡o kÃ¨m theo is_deleted = false
-        // Náº¿u bÃ i bÃ¡o khÃ´ng bá»‹ xÃ³a hoáº·c khÃ´ng tá»“n táº¡i, result[0] sáº½ lÃ  undefined
+        // Nếu cập nhật th� nh công, result[0] sẽ chứa thông tin b� i báo kèm theo is_deleted = false
+        // Nếu b� i báo không bị xóa hoặc không tồn tại, result[0] sẽ l�  undefined
         return result[0] || null;
 
     } catch (error) {
@@ -921,11 +921,11 @@ export const restoreArticle = async (articleId) => {
 };
 
 /**
- * Kiá»ƒm tra sá»± tá»“n táº¡i cá»§a má»™t bÃ i bÃ¡o dá»±a trÃªn `article_id`.
- * HÃ m nÃ y sáº½ tráº£ vá» `true` náº¿u bÃ i bÃ¡o tá»“n táº¡i (báº¥t ká»ƒ Ä‘Ã£ bá»‹ xÃ³a má»m hay chÆ°a), vÃ  `false` náº¿u khÃ´ng tÃ¬m tháº¥y.
+ * Kiểm tra sự tồn tại của một b� i báo dựa trên `article_id`.
+ * H� m n� y sẽ trả về `true` nếu b� i báo tồn tại (bất kể đã bị xóa mềm hay chưa), v�  `false` nếu không tìm thấy.
  *
- * @param {number|string} articleId - ID cá»§a bÃ i bÃ¡o cáº§n kiá»ƒm tra
- * @returns {Promise<boolean>} `true` náº¿u bÃ i bÃ¡o tá»“n táº¡i, `false` náº¿u khÃ´ng tÃ¬m tháº¥y
+ * @param {number|string} articleId - ID của b� i báo cần kiểm tra
+ * @returns {Promise<boolean>} `true` nếu b� i báo tồn tại, `false` nếu không tìm thấy
  */
 export const articleExists = async (articleId) => {
     try {

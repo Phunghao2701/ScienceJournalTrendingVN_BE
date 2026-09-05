@@ -1,7 +1,7 @@
 /**
  * Kiểm tra định dạng của một chuỗi email có hợp lệ hay không
  * @param {string} email - Chuỗi email cần kiểm tra
- * @returns {boolean} Trả về true nếu định dạng hợp lệ, ngược lại là false
+ * @returns {boolean} Trả về true nếu định dạng hợp lệ, ngược lại l�  false
  */
 const isValidEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
