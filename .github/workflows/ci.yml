@@ -94,8 +94,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/leduycoder/scientificjournalsystem-vietnam-be:latest
-            ghcr.io/leduycoder/scientificjournalsystem-vietnam-be:${{ github.sha }}
+            ghcr.io/phunghao2701/scientificjournalsystem-vietnam-be:latest
+            ghcr.io/phunghao2701/scientificjournalsystem-vietnam-be:${{ github.sha }}
 
   deploy:
     name: Deploy to VPS
