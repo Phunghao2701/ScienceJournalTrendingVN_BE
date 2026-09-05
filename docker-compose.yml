@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  backend:
-    image: ghcr.io/leduycoder/scientificjournalsystem-be:latest
-    container_name: researchpulse_backend
+  vietnam-backend:
+    image: ghcr.io/phunghao2701/scientificjournalsystem-vietnam-be:latest
+    container_name: researchpulse_backend_vn
     restart: unless-stopped
 
     ports:
