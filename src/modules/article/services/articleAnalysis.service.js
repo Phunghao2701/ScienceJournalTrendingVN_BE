@@ -1,4 +1,4 @@
-﻿import prisma from '../../../config/prisma.js';
+import prisma from '../../../config/prisma.js';
 import { buildArticleFilter } from './articleFilter.service.js';
 
 const DEFAULT_WINDOW_YEARS = 2;
@@ -230,7 +230,7 @@ const entityQuery = (filter, entity, window, limit, ranking = 'top') => {
       JOIN "Institution_Author" ia ON ia."author_id" = aa."author_id" AND ia."year" = fa."publication_year"
       JOIN "Institution" inst ON inst."institution_id" = ia."institution_id" AND COALESCE(inst."is_deleted", false) = false
       WHERE fa."publication_year" BETWEEN $${prepared.comparisonFrom} AND $${prepared.currentTo}
-        ${filter.scope === 'vn_universities' ? 'AND UPPER(TRIM(inst."country_code")) = \'VN\' AND LOWER(TRIM(inst."type")) = \'education\'' : ''}
+        ${filter.scope === 'vn_universities' ? 'AND inst."country_code" = \'VN\' AND inst."type" = \'education\'' : ''}
     `,
     authors: `
       SELECT DISTINCT
@@ -255,20 +255,21 @@ const entityQuery = (filter, entity, window, limit, ranking = 'top') => {
     `,
     topics: `
       SELECT DISTINCT
-        fa."article_id",
-        fa."publication_year",
+        at."article_id",
+        at."publication_year",
         t."topic_id"::text AS "entity_id",
         t."display_name"
-      FROM filtered_articles fa
-      JOIN (
-        SELECT "article_id", "topic_id" FROM "Sub_Topic"
-        UNION
-        SELECT "article_id", "primary_topic" AS "topic_id"
-        FROM "Article"
-        WHERE "primary_topic" IS NOT NULL
-      ) article_topics ON article_topics."article_id" = fa."article_id"
-      JOIN "Topic" t ON t."topic_id" = article_topics."topic_id" AND COALESCE(t."is_deleted", false) = false
-      WHERE fa."publication_year" BETWEEN $${prepared.comparisonFrom} AND $${prepared.currentTo}
+      FROM (
+        SELECT fa."article_id", fa."publication_year", fa."primary_topic" AS "topic_id"
+        FROM filtered_articles fa
+        WHERE fa."primary_topic" IS NOT NULL
+        UNION ALL
+        SELECT st."article_id", fa."publication_year", st."topic_id"
+        FROM filtered_articles fa
+        JOIN "Sub_Topic" st ON st."article_id" = fa."article_id"
+      ) at
+      JOIN "Topic" t ON t."topic_id" = at."topic_id" AND COALESCE(t."is_deleted", false) = false
+      WHERE at."publication_year" BETWEEN $${prepared.comparisonFrom} AND $${prepared.currentTo}
     `,
     keywords: `
       SELECT DISTINCT
@@ -474,7 +475,7 @@ export const getArticleAnalysis = async (params = {}) => {
       JOIN "Institution_Author" ia ON ia."author_id" = var."author_id" AND ia."year" = var."publication_year"
       JOIN "Institution" inst ON inst."institution_id" = ia."institution_id"
         AND COALESCE(inst."is_deleted", false) = false
-        ${filter.scope === 'vn_universities' ? 'AND UPPER(TRIM(inst."country_code")) = \'VN\' AND LOWER(TRIM(inst."type")) = \'education\'' : ''}
+        ${filter.scope === 'vn_universities' ? 'AND inst."country_code" = \'VN\' AND inst."type" = \'education\'' : ''}
     ),
     institution_totals AS (
       SELECT COUNT(DISTINCT "institution_id")::integer AS "institutions"

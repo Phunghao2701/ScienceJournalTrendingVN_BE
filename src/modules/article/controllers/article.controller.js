@@ -1,4 +1,5 @@
 import * as articleService from '../services/article.service.js';
+import { getArticleListData, getArticleAnalyticsData, getArticleAnalysisData } from '../services/articleDiscoveryCache.service.js';
 import { hydrateArticleReferences as hydrateReferencesService } from '../services/articleReferenceHydration.service.js';
 import { getArticleAnalysis as getArticleAnalysisService } from '../services/articleAnalysis.service.js';
 import * as commentService from '../services/comment.service.js';
@@ -6,6 +7,7 @@ import { createAuthorArticleRelationships, updateAuthorArticleRelationships } fr
 import { addKeywordsToArticle, updateKeywordsToArticle } from '../../topic/services/keyword.service.js';
 import { createSubTopicArticleRelationships } from '../../topic/services/topic.service.js';
 import logger from '../../../utils/logger.js';
+import { buildCacheKey, getOrSetCache } from '../../../utils/cache.js';
 import { createLog } from '../../system/services/log.service.js';
 
 // --- ARTICLE ACTIONS ---
@@ -72,17 +74,8 @@ export const getArticles = async (request, reply) => {
       scope: request.query.scope || "all", countryId: request.query.country_id || request.query.country,
     };
 
-    const [articles, total] = await Promise.all([
-      articleService.getAllArticles(serviceParams),
-      articleService.countAllArticles(serviceParams),
-    ]);
-
-    let stats = { totalArticles: 0, openAccessCount: 0, authorsCount: 0, topicsCount: 0 };
-    try {
-      stats = await articleService.getArticleListStats(serviceParams);
-    } catch (statsError) {
-      logger.error("Lỗi riêng lẻ khi lấy stats:", statsError);
-    }
+    const { articles, total: cachedTotal, stats } = await getArticleListData(serviceParams);
+    const total = Number(stats?.totalArticles) || cachedTotal || 0;
 
     return reply.status(200).send({
       success: true, code: "ARTICLES_GET_SUCCESS", message: "Lấy danh sách b� i báo th� nh công!",
@@ -110,7 +103,7 @@ export const getArticleAnalytics = async (request, reply) => {
       scope: request.query.scope || "all", countryId: request.query.country_id || request.query.country,
     };
 
-    const analytics = await articleService.getArticleAnalytics(params);
+    const analytics = await getArticleAnalyticsData(params);
     return reply.status(200).send({ success: true, code: "ARTICLE_ANALYTICS_SUCCESS", message: "Lấy analytics b� i báo th� nh công!", data: analytics });
   } catch (error) {
     logger.error("Lỗi khi lấy analytics b� i báo:", error);
@@ -137,7 +130,7 @@ export const getArticleAnalysis = async (request, reply) => {
       limit: request.query.limit,
     };
 
-    const analysis = await getArticleAnalysisService(params);
+    const analysis = await getArticleAnalysisData(params);
     return reply.status(200).send({ success: true, code: "ARTICLE_ANALYSIS_SUCCESS", message: "Lay analysis bai bao thanh cong!", data: analysis });
   } catch (error) {
     logger.error("Loi khi lay analysis bai bao:", error);
@@ -158,7 +151,11 @@ export const getArticle = async (request, reply) => {
 export const getArticleById = async (request, reply) => {
   try {
     const { id } = request.params;
-    const article = await articleService.getArticleById(id);
+    const cacheKey = buildCacheKey(`detail:${id}`, {}, "article");
+    const article = await getOrSetCache(cacheKey, () => articleService.getArticleById(id), {
+      freshTtlSeconds: 15 * 60,
+      staleTtlSeconds: 24 * 60 * 60,
+    });
 
     if (!article) return reply.status(404).send({ success: false, code: "ARTICLE_NOT_FOUND", message: "B� i báo không tồn tại!" });
     if (article.is_deleted === true) return reply.status(410).send({ success: false, code: "ARTICLE_DELETED", message: "B� i báo n� y đã bị xóa khỏi hệ thống!" });
@@ -181,7 +178,17 @@ export const getArticleCitingWorks = async (request, reply) => {
   try {
     const { id } = request.params;
     const { limit, page, offset } = getPaginationParams(request, 20);
-    const [items, total] = await Promise.all([articleService.getArticleCitingWorks(id, { limit, offset }), articleService.countArticleCitingWorks(id)]);
+    const cacheKey = buildCacheKey(`citing:${id}`, { limit, offset }, "article");
+    const { items, total } = await getOrSetCache(cacheKey, async () => {
+      const [cItems, cTotal] = await Promise.all([
+        articleService.getArticleCitingWorks(id, { limit, offset }),
+        articleService.countArticleCitingWorks(id)
+      ]);
+      return { items: cItems, total: cTotal };
+    }, {
+      freshTtlSeconds: 15 * 60,
+      staleTtlSeconds: 24 * 60 * 60,
+    });
     return reply.status(200).send({ success: true, code: "ARTICLE_CITING_WORKS_GET_SUCCESS", message: "Lấy danh sách b� i báo trích dẫn th� nh công!", data: { items, pagination: { total, page, limit, offset, total_pages: Math.ceil(total / limit) } } });
   } catch (error) {
     return reply.status(500).send({ success: false, code: "INTERNAL_SERVER_ERROR", message: "Có lỗi xảy ra ở Server!" });
@@ -191,7 +198,11 @@ export const getArticleCitingWorks = async (request, reply) => {
 export const getArticleCitingWorksAnalytics = async (request, reply) => {
   try {
     const { id } = request.params;
-    const analytics = await articleService.getArticleCitingWorksAnalytics(id);
+    const cacheKey = buildCacheKey(`citing-analytics:${id}`, {}, "article");
+    const analytics = await getOrSetCache(cacheKey, () => articleService.getArticleCitingWorksAnalytics(id), {
+      freshTtlSeconds: 15 * 60,
+      staleTtlSeconds: 24 * 60 * 60,
+    });
     return reply.status(200).send({ success: true, code: "ARTICLE_CITING_WORKS_ANALYTICS_GET_SUCCESS", message: "Lấy thống kê b� i báo trích dẫn th� nh công!", data: analytics });
   } catch (error) {
     return reply.status(500).send({ success: false, code: "INTERNAL_SERVER_ERROR", message: "Có lỗi xảy ra ở Server!" });

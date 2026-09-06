@@ -191,9 +191,13 @@ export const getJournals = async ({
     LIMIT $${values.length + 1} OFFSET $${values.length + 2}
   `;
 
+  const countFromSql = (yearNum || whereClauses.some(c => c.includes("latest_sjr")))
+    ? fromSql
+    : 'FROM "Journal" j';
+
   const countQuery = `
-    SELECT COUNT(DISTINCT j.journal_id)::integer AS total
-    ${fromSql}
+    SELECT COUNT(*)::integer AS total
+    ${countFromSql}
     ${whereSql}
   `;
 

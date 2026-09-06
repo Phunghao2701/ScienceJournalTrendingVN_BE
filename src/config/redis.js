@@ -1,4 +1,4 @@
-import Redis from "ioredis";
+﻿import Redis from "ioredis";
 import dotenv from "dotenv";
 import logger from "../utils/logger.js";
 
@@ -14,11 +14,15 @@ const redis = new Redis(process.env.REDIS_URL || "redis://127.0.0.1:6379", {
 });
 
 redis.on("connect", () => {
-  logger.db("Kết nối tới Redis th� nh công");
+  logger.db("Ket noi toi Redis thanh cong");
 });
 
+let redisErrorLogged = false;
 redis.on("error", (err) => {
-  logger.error("Kết nối tới Redis thất bại!", err);
+  if (!redisErrorLogged) {
+    logger.warn("Redis tam thoi khong kha dung, bo qua cache.");
+    redisErrorLogged = true;
+  }
 });
 
 export default redis;
