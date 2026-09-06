@@ -1,16 +1,12 @@
-name: CI/CD - Vietnam BE
+name: CI/CD - Main
 
 on:
   push:
     branches:
-      - dev
       - main
-      - duy/refactor/contructor
   pull_request:
     branches:
-      - dev
       - main
-      - duy/refactor/contructor
 
 jobs:
   build-and-test:
@@ -68,6 +64,7 @@ jobs:
   docker:
     name: Build & Push Docker Image
     needs: build-and-test
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
 
     permissions:
@@ -100,6 +97,7 @@ jobs:
   deploy:
     name: Deploy to VPS
     needs: docker
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
 
     steps:
