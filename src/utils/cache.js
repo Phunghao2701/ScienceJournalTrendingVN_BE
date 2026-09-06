@@ -67,6 +67,7 @@ export const createCache = ({
   disabled = () => false,
 } = {}) => {
   const inFlight = new Map();
+  const memoryCache = new Map();
 
   const refresh = (key, fetchFn, cacheOptions) => {
     if (inFlight.has(key)) return inFlight.get(key);
@@ -74,14 +75,28 @@ export const createCache = ({
     const refreshPromise = Promise.resolve()
       .then(fetchFn)
       .then(async (data) => {
-        const payload = JSON.stringify({
-          version: CACHE_ENVELOPE_VERSION,
-          cachedAt: now(),
-          data,
-        });
+        const cachedAt = now();
+        memoryCache.set(key, { cachedAt, data });
+        if (memoryCache.size > 500) {
+          const firstKey = memoryCache.keys().next().value;
+          memoryCache.delete(firstKey);
+        }
+
+        let payload;
+        try {
+          payload = JSON.stringify({
+            version: CACHE_ENVELOPE_VERSION,
+            cachedAt,
+            data,
+          }, (_, v) => (typeof v === 'bigint' ? v.toString() : v));
+        } catch (jsonErr) {
+          cacheLogger.error(`Lỗi serialize cache cho key "${key}"`, jsonErr);
+        }
 
         try {
-          await client.set(key, payload, "EX", cacheOptions.staleTtlSeconds);
+          if (client && client.status === "ready" && payload) {
+            await client.set(key, payload, "EX", cacheOptions.staleTtlSeconds);
+          }
         } catch (err) {
           cacheLogger.error(`Ghi cache Redis thất bại cho key "${key}"`, err);
         }
@@ -101,30 +116,52 @@ export const createCache = ({
 
     const cacheOptions = normalizeCacheOptions(options);
 
-    try {
-      const cached = await client.get(key);
-      if (cached) {
-        const parsed = JSON.parse(cached);
-
-        // Backward compatibility for values written before the SWR envelope.
-        if (parsed?.version !== CACHE_ENVELOPE_VERSION || !("data" in parsed)) {
-          return parsed;
-        }
-
-        const ageSeconds = Math.max(0, now() - Number(parsed.cachedAt || 0)) / 1000;
-        if (ageSeconds <= cacheOptions.freshTtlSeconds) return parsed.data;
-
-        // Serve stale immediately and refresh without blocking this request.
-        void refresh(key, fetchFn, cacheOptions).catch((err) => {
-          cacheLogger.error(`L� m mới cache Redis thất bại cho key "${key}"`, err);
-        });
-        return parsed.data;
+    // 1. Kiểm tra bộ nhớ RAM trước (< 1ms)
+    const mem = memoryCache.get(key);
+    if (mem) {
+      const ageSeconds = Math.max(0, now() - mem.cachedAt) / 1000;
+      if (ageSeconds <= cacheOptions.freshTtlSeconds) {
+        return mem.data;
       }
-    } catch (err) {
-      cacheLogger.error(`Đọc cache Redis thất bại cho key "${key}"`, err);
+      // Phục vụ stale data ngay lập tức và làm mới trong background
+      void refresh(key, fetchFn, cacheOptions).catch((err) => {
+        cacheLogger.error(`Làm mới cache thất bại cho key "${key}"`, err);
+      });
+      return mem.data;
     }
 
-    // Coalesce concurrent cold misses so only one expensive query runs.
+    // 2. Kiểm tra Redis nếu client sẵn sàng
+    if (client) {
+      const isReady = client.status === undefined || client.status === "ready";
+      if (isReady) {
+        try {
+          const cached = await client.get(key);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed?.version !== CACHE_ENVELOPE_VERSION || !("data" in parsed)) {
+              memoryCache.set(key, { cachedAt: now(), data: parsed });
+              return parsed;
+            }
+
+            const ageSeconds = Math.max(0, now() - Number(parsed.cachedAt || 0)) / 1000;
+            memoryCache.set(key, { cachedAt: Number(parsed.cachedAt || now()), data: parsed.data });
+
+            if (ageSeconds <= cacheOptions.freshTtlSeconds) {
+              return parsed.data;
+            }
+
+            void refresh(key, fetchFn, cacheOptions).catch((err) => {
+              cacheLogger.error(`Làm mới cache Redis thất bại cho key "${key}"`, err);
+            });
+            return parsed.data;
+          }
+        } catch (err) {
+          cacheLogger.error(`Đọc cache Redis thất bại cho key "${key}"`, err);
+        }
+      }
+    }
+
+    // 3. Cold miss: gộp các request đồng thời qua refresh
     return refresh(key, fetchFn, cacheOptions);
   };
 

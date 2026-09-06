@@ -1,4 +1,4 @@
-import pkg from "pg";
+﻿import pkg from "pg";
 import dotenv from "dotenv";
 import logger from "../utils/logger.js";
 
@@ -6,30 +6,28 @@ dotenv.config();
 
 const { Pool } = pkg;
 
-// Kiểm tra xem database đang trỏ tới localhost/127.0.0.1 hay không (Local Development Mode).
-// Mục đích: Tránh lỗi kết nối SSL khi chạy database PostgreSQL cục bộ (vì local thường không c� i đặt SSL).
-const isLocal = process.env.POSTGRES_URL && (process.env.POSTGRES_URL.includes("localhost") || process.env.POSTGRES_URL.includes("127.0.0.1") || process.env.POSTGRES_URL.includes("100.121.61.95"));
+const url = process.env.POSTGRES_URL || "";
+const isLocalOrPrivate =
+  url.includes("localhost") ||
+  url.includes("127.0.0.1") ||
+  url.includes("100.") ||
+  url.includes("192.168.") ||
+  url.includes("10.") ||
+  url.includes("172.");
 
 const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL,
-
-  // Nếu l�  local DB thì tắt SSL, ngược lại (Supabase/Production) thì bật cấu hình rejectUnauthorized: false
-  ssl: isLocal ? false : {
-    rejectUnauthorized: false,
-  },
-
-  // Pool config
-  max: 20, // Số lượng kết nối tối đa trong pool
-  idleTimeoutMillis: 30000, // Đóng các kết nối không dùng sau 30 giây
-  connectionTimeoutMillis: 10000, // Timeout kết nối
+  connectionString: url,
+  ssl: (!isLocalOrPrivate && url.includes("supabase.com")) ? { rejectUnauthorized: false } : false,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
 });
 
-// Kiểm tra kết nối khi khởi động server
 pool.query("SELECT NOW()", (err, res) => {
   if (err) {
-    logger.error("Kết nối tới PostgreSQL thất bại!", err);
+    logger.error("Ket noi toi PostgreSQL that bai!", err);
   } else {
-    logger.db(`Kết nối tới PostgreSQL th� nh công lúc: ${res.rows[0].now}`);
+    logger.db(`Ket noi toi PostgreSQL thanh cong luc: ${res.rows[0].now}`);
   }
 });
 

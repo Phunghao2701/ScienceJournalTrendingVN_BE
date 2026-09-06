@@ -199,7 +199,7 @@ export const getAllArticles = async (firstParam = {}, offsetParam = 0, sortByPar
                 LEFT JOIN "Journal" j ON j."journal_id" = v."journal_id" AND COALESCE(j."is_deleted", false) = false
                 WHERE ${filter.whereSql}
                 ORDER BY ${column} ${order} NULLS LAST, a."article_id" DESC
-                LIMIT ${limitIndex} OFFSET ${offsetIndex}
+                LIMIT $${limitIndex} OFFSET $${offsetIndex}
             )
             SELECT
                 a."article_id"::text,
@@ -372,13 +372,23 @@ export const getArticleAnalytics = async (params = {}) => {
             LIMIT 10;
         `;
 
-        const totals = await prisma.$queryRawUnsafe(totalsQuery, ...filter.values);
-        const years = await prisma.$queryRawUnsafe(yearQuery, ...filter.values);
-        const publishers = await prisma.$queryRawUnsafe(publisherQuery, ...filter.values);
-        const authors = await prisma.$queryRawUnsafe(authorQuery, ...filter.values);
-        const topics = await prisma.$queryRawUnsafe(topicQuery, ...filter.values);
-        const institutions = await prisma.$queryRawUnsafe(institutionQuery, ...filter.values);
-        const keywords = await prisma.$queryRawUnsafe(keywordQuery, ...filter.values);
+        const [
+            totals,
+            years,
+            publishers,
+            authors,
+            topics,
+            institutions,
+            keywords,
+        ] = await Promise.all([
+            prisma.$queryRawUnsafe(totalsQuery, ...filter.values),
+            prisma.$queryRawUnsafe(yearQuery, ...filter.values),
+            prisma.$queryRawUnsafe(publisherQuery, ...filter.values),
+            prisma.$queryRawUnsafe(authorQuery, ...filter.values),
+            prisma.$queryRawUnsafe(topicQuery, ...filter.values),
+            prisma.$queryRawUnsafe(institutionQuery, ...filter.values),
+            prisma.$queryRawUnsafe(keywordQuery, ...filter.values),
+        ]);
 
         const totalRow = totals[0] || {};
         return {

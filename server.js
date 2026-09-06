@@ -12,6 +12,8 @@ import {
 } from "./src/modules/author/services/orcidScanWorker.service.js";
 import { closeOrcidScanQueue } from "./src/modules/author/services/orcidScanQueue.service.js";
 
+import { warmArticleDiscoveryCache } from "./src/modules/article/services/articleDiscoveryCache.service.js";
+
 dotenv.config();
 const PORT = process.env.PORT || 5000;
 
@@ -20,8 +22,15 @@ const startServer = async () => {
 
   try {
     await app.listen({ port: PORT, host: '0.0.0.0' });
-    console.log(`ðŸš€ Server Ä‘ang cháº¡y trÃªn: http://localhost:${PORT}`);
-    startOrcidScanWorker();
+    console.log(`🚀 Server đang chạy trên: http://localhost:${PORT}`);
+    // Warmup in-memory cache in background
+    warmArticleDiscoveryCache()
+      .then((res) => {
+        if (!res.skipped) {
+          console.log(`⚡ Discovery cache warmed up in ${res.durationMs}ms`);
+        }
+      })
+      .catch((err) => console.error("Cache warmup error:", err));
   } catch (err) {
     app.log.error(err);
     process.exit(1);

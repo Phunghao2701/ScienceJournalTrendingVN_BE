@@ -1,4 +1,4 @@
-﻿import * as articleService from "./article.service.js";
+import * as articleService from "./article.service.js";
 import { getArticleAnalysis } from "./articleAnalysis.service.js";
 import { buildCacheKey, getOrSetCache } from '../../../utils/cache.js';
 import logger from '../../../utils/logger.js';
@@ -55,18 +55,15 @@ const cached = (name, params, fetchFn) => {
 };
 
 export const getArticleListData = (params = {}) => cached("list", params, async () => {
-  const [articles, total] = await Promise.all([
+  const [articles, stats] = await Promise.all([
     articleService.getAllArticles(params),
-    articleService.countAllArticles(params),
+    articleService.getArticleListStats(params).catch((error) => {
+      logger.error("Lỗi khi lấy stats cho article discovery cache:", error);
+      return { totalArticles: 0, openAccessCount: 0, authorsCount: 0, topicsCount: 0 };
+    }),
   ]);
 
-  let stats = { totalArticles: 0, openAccessCount: 0, authorsCount: 0, topicsCount: 0 };
-  try {
-    stats = await articleService.getArticleListStats(params);
-  } catch (error) {
-    logger.error("Lá»—i khi láº¥y stats cho article discovery cache:", error);
-  }
-
+  const total = Number(stats?.totalArticles) || articles.length || 0;
   return { articles, total, stats };
 });
 
@@ -84,8 +81,7 @@ export const getArticleAnalysisData = (params = {}) => cached(
 
 export const warmArticleDiscoveryCache = async () => {
   if (
-    !process.env.REDIS_URL
-    || process.env.CACHE_ENABLED === "false"
+    process.env.CACHE_ENABLED === "false"
     || process.env.CACHE_WARMUP_ENABLED === "false"
   ) {
     return { skipped: true, durationMs: 0 };
@@ -94,6 +90,7 @@ export const warmArticleDiscoveryCache = async () => {
   const startedAt = Date.now();
   await getArticleListData(DEFAULT_ARTICLE_DISCOVERY_PARAMS);
   await getArticleAnalyticsData({ search: "", scope: "vn_universities" });
+  await getArticleAnalysisData({ search: "", scope: "vn_universities", limit: 10 });
 
   return { skipped: false, durationMs: Date.now() - startedAt };
 };

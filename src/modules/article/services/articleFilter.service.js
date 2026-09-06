@@ -16,7 +16,7 @@ export const ARTICLE_SORT_COLUMNS = Object.freeze({
 export const normalizeArticleScope = (scope = ARTICLE_SCOPES.ALL) => {
   const normalized = String(scope || ARTICLE_SCOPES.ALL).trim().toLowerCase();
   if (!Object.values(ARTICLE_SCOPES).includes(normalized)) {
-    const error = new Error("Tham số 'scope' phải l�  'all' hoặc 'vn_universities'.");
+    const error = new Error("Tham số 'scope' phải l�  'all' hoặc 'vn_universities'.");
     error.statusCode = 400;
     error.code = 'INVALID_SCOPE';
     throw error;
@@ -31,7 +31,7 @@ export const normalizeAccessFilter = ({ access, isOpenAccess } = {}) => {
     if (normalized === 'oa') return true;
     if (normalized === 'closed') return false;
 
-    const error = new Error("Tham số 'access' phải l�  'oa' hoặc 'closed'.");
+    const error = new Error("Tham số 'access' phải l�  'oa' hoặc 'closed'.");
     error.statusCode = 400;
     error.code = 'INVALID_ACCESS';
     throw error;
@@ -46,7 +46,7 @@ export const normalizeAccessFilter = ({ access, isOpenAccess } = {}) => {
   if (['true', '1', 'oa'].includes(normalized)) return true;
   if (['false', '0', 'closed'].includes(normalized)) return false;
 
-  const error = new Error("Tham số 'is_open_access' phải l�  boolean, 'oa', hoặc 'closed'.");
+  const error = new Error("Tham số 'is_open_access' phải l�  boolean, 'oa', hoặc 'closed'.");
   error.statusCode = 400;
   error.code = 'INVALID_ACCESS';
   throw error;
@@ -82,7 +82,7 @@ export const normalizeArticleSort = (sortBy = 'created_at', sortOrder = 'DESC', 
 export const normalizeSortOrder = (sortOrder = 'DESC') => {
   const order = String(sortOrder || 'DESC').trim().toUpperCase();
   if (!['ASC', 'DESC'].includes(order)) {
-    const error = new Error("Tham số 'sortOrder' phải l�  'asc' hoặc 'desc'.");
+    const error = new Error("Tham số 'sortOrder' phải l�  'asc' hoặc 'desc'.");
     error.statusCode = 400;
     error.code = 'INVALID_SORT_ORDER';
     throw error;
@@ -101,7 +101,7 @@ export const toOptionalPositiveInteger = (value, fieldName) => {
 
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed <= 0) {
-    const error = new Error(`Tham số '${fieldName}' phải l�  số nguyên dương.`);
+    const error = new Error(`Tham số '${fieldName}' phải l�  số nguyên dương.`);
     error.statusCode = 400;
     error.code = 'INVALID_ENTITY_ID';
     throw error;
@@ -287,14 +287,12 @@ export const buildArticleFilter = ({
     where.push(`EXISTS (
       SELECT 1
       FROM "Author_Article" scope_aa
-      JOIN "Author" scope_author ON scope_author."author_id" = scope_aa."author_id"
-        AND COALESCE(scope_author."is_deleted", false) = false
       JOIN "Institution_Author" scope_ia ON scope_ia."author_id" = scope_aa."author_id"
       JOIN "Institution" scope_inst ON scope_inst."institution_id" = scope_ia."institution_id"
         AND COALESCE(scope_inst."is_deleted", false) = false
       WHERE scope_aa."article_id" = ${articleAlias}."article_id"
         AND scope_ia."year" = ${articleAlias}."publication_year"
-        AND UPPER(TRIM(scope_inst."country_code")) = 'VN'
+        AND scope_inst."country_code" = 'VN'
     )`);
   }
 

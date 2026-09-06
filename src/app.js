@@ -123,6 +123,7 @@ const buildApp = async () => {
   app.register(volumeRoutes, { prefix: '/api/v1/volumes' });
   app.register(publisherRoutes, { prefix: '/api/v1/publishers' });
   app.register(authorRoutes, { prefix: '/api/v1/author' });
+  app.register(authorRoutes, { prefix: '/api/v1/authors' });
   app.register(institutionRoutes, { prefix: '/api/v1/institution' });
   app.register(orcidRoutes, { prefix: '/api/v1/orcid' });
   app.register(projectRoutes, { prefix: '/api/v1/projects' });
