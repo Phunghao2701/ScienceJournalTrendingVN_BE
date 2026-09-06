@@ -1,7 +1,30 @@
 import prisma from '../../../config/prisma.js';
+import redis from '../../../config/redis.js';
 
 const ACTIVE_STATUSES = ["queued", "running"];
 const TERMINAL_STATUSES = ["completed", "partial", "failed"];
+
+const JOB_CACHE_PREFIX = "orcid:job:";
+const TERMINAL_CACHE_TTL = 3600; // 1 hour
+const ACTIVE_CACHE_TTL = 5; // 5 seconds
+
+const getCachedJob = async (jobId) => {
+  try {
+    const data = await redis.get(`${JOB_CACHE_PREFIX}${jobId}`);
+    return data ? JSON.parse(data) : null;
+  } catch {
+    return null;
+  }
+};
+
+const setCachedJob = async (job) => {
+  if (!job?.job_id) return;
+  try {
+    const isTerminal = TERMINAL_STATUSES.includes(job.status);
+    const ttl = isTerminal ? TERMINAL_CACHE_TTL : ACTIVE_CACHE_TTL;
+    await redis.set(`${JOB_CACHE_PREFIX}${job.job_id}`, JSON.stringify(job), "EX", ttl);
+  } catch {}
+};
 
 const activeJobQuery = `
   SELECT *
@@ -36,11 +59,12 @@ export const createOrReuseOrcidScanJob = async (
   { orcid, requestedBy },
   { databasePool = null } = {},
 ) => {
-  const existing = await prisma.$queryRawUnsafe(activeJobQuery, [
+  const existing = await prisma.$queryRawUnsafe(
+    activeJobQuery,
     ACTIVE_STATUSES,
     requestedBy,
     orcid,
-  ]);
+  );
   const resolved = resolveExistingJob(existing[0], requestedBy, orcid);
   if (resolved) return resolved;
 
@@ -51,20 +75,22 @@ export const createOrReuseOrcidScanJob = async (
           orcid,
           requested_by
         )
-        VALUES ($1, $2)
+        VALUES ($1, $2::uuid)
         RETURNING *
       `,
-      [orcid, requestedBy],
+      orcid,
+      requestedBy,
     );
     return { job: inserted[0], reused: false };
   } catch (error) {
     if (error.code !== "23505") throw error;
 
-    const raced = await prisma.$queryRawUnsafe(activeJobQuery, [
+    const raced = await prisma.$queryRawUnsafe(
+      activeJobQuery,
       ACTIVE_STATUSES,
       requestedBy,
       orcid,
-    ]);
+    );
     const racedResolved = resolveExistingJob(
       raced[0],
       requestedBy,
@@ -79,11 +105,16 @@ export const getOrcidScanJobById = async (
   jobId,
   { databasePool = null } = {},
 ) => {
+  const cached = await getCachedJob(jobId);
+  if (cached) return cached;
+
   const result = await prisma.$queryRawUnsafe(
-    'SELECT * FROM public."Orcid_Scan_Job" WHERE job_id = $1',
-    [jobId],
+    'SELECT * FROM public."Orcid_Scan_Job" WHERE job_id = $1::uuid',
+    jobId,
   );
-  return result[0] || null;
+  const job = result[0] || null;
+  if (job) await setCachedJob(job);
+  return job;
 };
 
 export const getOrcidScanJobPublications = async (
@@ -95,6 +126,12 @@ export const getOrcidScanJobPublications = async (
     ? String(cursor)
     : "0";
   const safeLimit = Math.min(50, Math.max(1, Number(limit) || 20));
+  const cacheKey = `orcid:job-pubs:${jobId}:${safeCursor}:${safeLimit}`;
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch {}
+
   const result = await prisma.$queryRawUnsafe(
     `
       WITH page_items AS MATERIALIZED (
@@ -143,7 +180,9 @@ export const getOrcidScanJobPublications = async (
       LEFT JOIN page_rows ON true
       ORDER BY page_rows.item_id
     `,
-    [jobId, safeCursor, safeLimit + 1],
+    jobId,
+    safeCursor,
+    safeLimit + 1,
   );
 
   const totalAvailable = Number(result[0]?.total_available || 0);
@@ -156,7 +195,7 @@ export const getOrcidScanJobPublications = async (
     ? String(articles.at(-1).item_id)
     : safeCursor;
 
-  return {
+  const response = {
     articles,
     pagination: {
       cursor: safeCursor,
@@ -166,6 +205,11 @@ export const getOrcidScanJobPublications = async (
       has_next: hasNext,
     },
   };
+  try {
+    await redis.set(cacheKey, JSON.stringify(response), "EX", 1800);
+  } catch {}
+
+  return response;
 };
 
 const UPDATE_COLUMNS = new Map([
@@ -194,12 +238,19 @@ export const updateOrcidScanJob = async (
 
   for (const [key, column] of UPDATE_COLUMNS) {
     if (!Object.hasOwn(patch, key)) continue;
+    const isJson = ["sourceProgress", "sourceStatus", "summary"].includes(key);
     values.push(
-      ["sourceProgress", "sourceStatus", "summary"].includes(key)
+      isJson
         ? JSON.stringify(patch[key] ?? {})
         : patch[key],
     );
-    assignments.push(`"${column}" = $${values.length}`);
+    if (isJson) {
+      assignments.push(`"${column}" = $${values.length}::jsonb`);
+    } else if (key === "authorId") {
+      assignments.push(`"${column}" = $${values.length}::bigint`);
+    } else {
+      assignments.push(`"${column}" = $${values.length}`);
+    }
   }
 
   if (!assignments.length) return getOrcidScanJobById(jobId, { databasePool });
@@ -209,12 +260,14 @@ export const updateOrcidScanJob = async (
     `
       UPDATE public."Orcid_Scan_Job"
       SET ${assignments.join(", ")}
-      WHERE job_id = $1
+      WHERE job_id = $1::uuid
       RETURNING *
     `,
-    values,
+    ...values,
   );
-  return result[0] || null;
+  const updated = result[0] || null;
+  if (updated) await setCachedJob(updated);
+  return updated;
 };
 
 export const deleteExpiredOrcidScanJobs = async (
@@ -228,7 +281,8 @@ export const deleteExpiredOrcidScanJobs = async (
       WHERE status = ANY($1::varchar[])
         AND completed_at < now() - ($2::text || ' days')::interval
     `,
-    [TERMINAL_STATUSES, safeDays],
+    TERMINAL_STATUSES,
+    safeDays,
   );
   return result.rowCount;
 };

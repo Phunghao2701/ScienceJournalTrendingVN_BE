@@ -135,6 +135,20 @@ export const buildArticleFilter = ({
   const resolvedScope = normalizeArticleScope(scope);
   const resolvedAccess = normalizeAccessFilter({ access, isOpenAccess });
 
+  if (resolvedScope === ARTICLE_SCOPES.VN_UNIVERSITIES) {
+    where.push(`${articleAlias}."is_vn_journal" IS TRUE`);
+    where.push(`EXISTS (
+      SELECT 1
+      FROM "Author_Article" scope_aa
+      JOIN "Institution_Author" scope_ia ON scope_ia."author_id" = scope_aa."author_id"
+      JOIN "Institution" scope_inst ON scope_inst."institution_id" = scope_ia."institution_id"
+        AND COALESCE(scope_inst."is_deleted", false) = false
+      WHERE scope_aa."article_id" = ${articleAlias}."article_id"
+        AND scope_ia."year" = ${articleAlias}."publication_year"
+        AND scope_inst."country_code" = 'VN'
+    )`);
+  }
+
   const trimmedSearch = String(search || '').trim();
   if (trimmedSearch) {
     values.push(`%${trimmedSearch}%`);
@@ -143,15 +157,6 @@ export const buildArticleFilter = ({
       ${articleAlias}."title" ILIKE ${placeholder}
       OR ${articleAlias}."doi" ILIKE ${placeholder}
       OR ${articleAlias}."abstract" ILIKE ${placeholder}
-      OR ${journalAlias}."display_name" ILIKE ${placeholder}
-      OR ${journalAlias}."issn" ILIKE ${placeholder}
-      OR REPLACE(COALESCE(${journalAlias}."issn", ''), '-', '') ILIKE REPLACE(${placeholder}, '-', '')
-      OR EXISTS (
-        SELECT 1
-        FROM "Publisher" search_publisher
-        WHERE search_publisher."publisher_id" = ${journalAlias}."publisher_id"
-          AND search_publisher."display_name" ILIKE ${placeholder}
-      )
       OR EXISTS (
         SELECT 1
         FROM "Author_Article" search_aa
@@ -181,6 +186,21 @@ export const buildArticleFilter = ({
         WHERE search_st."article_id" = ${articleAlias}."article_id"
           AND COALESCE(search_topic."is_deleted", false) = false
           AND search_topic."display_name" ILIKE ${placeholder}
+      )
+      OR EXISTS (
+        SELECT 1
+        FROM "Issue" search_i
+        JOIN "Volume" search_v ON search_v."volume_id" = search_i."volume_id" AND COALESCE(search_v."is_deleted", false) = false
+        JOIN "Journal" search_j ON search_j."journal_id" = search_v."journal_id" AND COALESCE(search_j."is_deleted", false) = false
+        LEFT JOIN "Publisher" search_publisher ON search_publisher."publisher_id" = search_j."publisher_id"
+        WHERE search_i."issue_id" = ${articleAlias}."issue_id"
+          AND COALESCE(search_i."is_deleted", false) = false
+          AND (
+            search_j."display_name" ILIKE ${placeholder}
+            OR search_j."issn" ILIKE ${placeholder}
+            OR REPLACE(COALESCE(search_j."issn", ''), '-', '') ILIKE REPLACE(${placeholder}, '-', '')
+            OR search_publisher."display_name" ILIKE ${placeholder}
+          )
       )
     )`);
   }
@@ -282,19 +302,6 @@ export const buildArticleFilter = ({
     where.push(`${journalAlias}."country" = $${values.length}`);
   }
 
-  if (resolvedScope === ARTICLE_SCOPES.VN_UNIVERSITIES) {
-    where.push(`${articleAlias}."is_vn_journal" IS TRUE`);
-    where.push(`EXISTS (
-      SELECT 1
-      FROM "Author_Article" scope_aa
-      JOIN "Institution_Author" scope_ia ON scope_ia."author_id" = scope_aa."author_id"
-      JOIN "Institution" scope_inst ON scope_inst."institution_id" = scope_ia."institution_id"
-        AND COALESCE(scope_inst."is_deleted", false) = false
-      WHERE scope_aa."article_id" = ${articleAlias}."article_id"
-        AND scope_ia."year" = ${articleAlias}."publication_year"
-        AND scope_inst."country_code" = 'VN'
-    )`);
-  }
 
   return {
     values,
