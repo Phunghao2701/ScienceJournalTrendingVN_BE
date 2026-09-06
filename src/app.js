@@ -35,28 +35,11 @@ import trendingVnRoutes from './modules/system/routes/trendingVn.route.js';
 const buildApp = async () => {
   const app = Fastify({ logger: true });
 
-  const allowedOrigins = (process.env.FRONTEND_URL || '')
-    .split(',')
-    .map((o) => o.trim())
-    .filter(Boolean);
-
   await app.register(cors, {
-    origin: (origin, cb) => {
-      if (!origin) return cb(null, true);
-      if (
-        allowedOrigins.length === 0
-        || allowedOrigins.includes(origin)
-        || origin.includes('researchpulse.io.vn')
-        || origin.includes('hyperdatalab.org')
-        || origin.includes('localhost')
-      ) {
-        return cb(null, true);
-      }
-      return cb(null, false);
-    },
+    origin: process.env.FRONTEND_URL || true, // Báº­t cáº¥u hÃ¬nh cors cho Frontend
     credentials: true
   });
-  
+
   await app.register(cookie);
   await app.register(formbody);
 
@@ -107,19 +90,19 @@ const buildApp = async () => {
       else if (url.includes('issues')) tag = 'Kỳ xuất bản (Issue)';
       else if (url.includes('volumes')) tag = 'Tập san (Volume)';
       else if (url.includes('publishers')) tag = 'Nh�  xuất bản (Publisher)';
-      
+
       else if (url.includes('author')) tag = 'Tác giả (Author)';
       else if (url.includes('institution')) tag = 'Đơn vị (Institution)';
       else if (url.includes('orcid')) tag = 'Orcid (Đồng bộ)';
-      
+
       else if (url.includes('projects')) tag = 'Dự án (Project)';
       else if (url.includes('bookmarks')) tag = 'Dấu trang (Bookmark)';
-      
+
       else if (url.includes('topics')) tag = 'Chủ đề nghiên cứu (Topic)';
       else if (url.includes('subject-areas')) tag = 'Lĩnh vực (Subject Area)';
       else if (url.includes('subject-categories')) tag = 'Danh mục (Subject Category)';
       else if (url.includes('keywords')) tag = 'Từ khóa (Keyword)';
-      
+
       else if (url.includes('catalog')) tag = 'Hệ thống - Catalog';
       else if (url.includes('search')) tag = 'Hệ thống - Tìm kiếm (Search)';
       else if (url.includes('zones')) tag = 'Hệ thống - Vùng (Zone)';
@@ -149,7 +132,7 @@ const buildApp = async () => {
   app.register(subjectAreaRoutes, { prefix: '/api/v1/subject-areas' });
   app.register(subjectCategoryRoutes, { prefix: '/api/v1/subject-categories' });
   app.register(keywordRoutes, { prefix: '/api/v1/keywords' });
-  
+
   app.register(projectKeywordRoutes, { prefix: '/api/v1/projects' });
 
 
