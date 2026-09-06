@@ -18,7 +18,7 @@ jobs:
         image: pgvector/pgvector:pg16
         env:
           POSTGRES_USER: postgres
-          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: scientificjournalsystem_test
         ports:
           - 5432:5432
@@ -110,7 +110,5 @@ jobs:
           script: |
             cd ~/apps/researchpulse-vn-be
             docker-compose pull
-            docker-compose stop
-            docker-compose rm -f
-            docker-compose up -d --force-recreate
+            docker-compose up -d
             docker image prune -f
