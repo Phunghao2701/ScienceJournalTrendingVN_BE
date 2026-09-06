@@ -10,7 +10,9 @@ export const subjectCategoryServiceRef = { ...subjectCategoryService };
 
 export const getTopics = async (request, reply) => {
   try {
-    const { page, limit, search, subject_area_id, subject_category_id, sort_by, sort_order } = request.query;
+    const { page, limit, search, subject_area_id, subject_category_id } = request.query;
+    const sort_by = request.query.sort_by || request.query.sortBy;
+    const sort_order = request.query.sort_order || request.query.sortOrder;
 
     if (sort_by && !["topic_id", "display_name", "score"].includes(sort_by)) {
       return reply.status(400).send({ success: false, code: "INVALID_FILTER", message: "sort_by không hợp lệ" });
