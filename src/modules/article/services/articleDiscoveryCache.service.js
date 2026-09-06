@@ -3,7 +3,7 @@ import { getArticleAnalysis } from "./articleAnalysis.service.js";
 import { buildCacheKey, getOrSetCache } from '../../../utils/cache.js';
 import logger from '../../../utils/logger.js';
 
-const CACHE_NAMESPACE = "article-discovery-v2";
+const CACHE_NAMESPACE = "article-discovery";
 const DYNAMIC_CACHE_OPTIONS = Object.freeze({
   freshTtlSeconds: 5 * 60,
   staleTtlSeconds: 60 * 60,
