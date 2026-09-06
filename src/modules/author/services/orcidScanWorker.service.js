@@ -7,6 +7,7 @@ import {
 } from "../repositories/orcidScanJob.repository.js";
 import {
   createOrcidQueueRedisConnection,
+  isRedisAvailable,
   ORCID_SCAN_QUEUE_NAME,
 } from "./orcidScanQueue.service.js";
 
@@ -70,7 +71,9 @@ export const processOrcidScanQueueJob = async (
           event.progress = progressForPersistence(event);
         }
         await updateProgress(jobId, event, updateJob);
-        await job.updateProgress(event.progress ?? 0);
+        if (typeof job.updateProgress === "function") {
+          await job.updateProgress(event.progress ?? 0);
+        }
       },
     });
     const status = result.partial ? "partial" : "completed";
@@ -88,12 +91,12 @@ export const processOrcidScanQueueJob = async (
     return { status, authorId: result.author?.author_id ?? null };
   } catch (error) {
     const isFinalAttempt =
-      attemptCount >= Number(job.opts.attempts || 1);
+      attemptCount >= Number(job.opts?.attempts || 1);
     await updateJob(jobId, {
       status: isFinalAttempt ? "failed" : "queued",
       stage: isFinalAttempt ? "completed" : "queued",
       errorCode: error.code || "ORCID_SCAN_JOB_FAILED",
-      errorMessage: error.message || "Không thể ho� n tất tìm công trình",
+      errorMessage: error.message || "Khong the hoan tat tim cong trinh",
       heartbeatAt: new Date(),
       completedAt: isFinalAttempt ? new Date() : null,
     });
@@ -101,8 +104,14 @@ export const processOrcidScanQueueJob = async (
   }
 };
 
-export const startOrcidScanWorker = () => {
+export const startOrcidScanWorker = async () => {
   if (worker) return worker;
+
+  const hasRedis = await isRedisAvailable();
+  if (!hasRedis) {
+    logger.warn("[ORCID Scan Worker] Redis khong kha dung; chay che do in-process background worker.");
+    return null;
+  }
 
   workerConnection = createOrcidQueueRedisConnection();
   const concurrency =
@@ -122,7 +131,7 @@ export const startOrcidScanWorker = () => {
   const retentionDays =
     Math.max(1, Number(process.env.ORCID_SCAN_JOB_RETENTION_DAYS)) || 7;
   deleteExpiredOrcidScanJobs({ retentionDays }).catch((error) => {
-    logger.warn("[ORCID Scan Worker] Không thể dọn job cũ", {
+    logger.warn("[ORCID Scan Worker] Khong the don job cu", {
       code: error.code || "JOB_CLEANUP_FAILED",
     });
   });
@@ -136,7 +145,3 @@ export const closeOrcidScanWorker = async () => {
   if (workerConnection?.status !== "end") workerConnection?.disconnect();
   workerConnection = null;
 };
-
-
-
-

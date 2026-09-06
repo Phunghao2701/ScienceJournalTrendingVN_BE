@@ -83,7 +83,7 @@ export const countArticlesByKeywords = async (keywords, params = {}) => {
  * @param {Object} params
  */
 const buildConditionalJoins = (params = {}) => {
-    const needsJournal = Boolean(params.search || params.journalId || params.publisherId || params.countryId);
+    const needsJournal = Boolean(params.journalId || params.publisherId || params.countryId);
     const needsVolume = Boolean(needsJournal || params.volumeId);
     const needsIssue = Boolean(needsVolume || params.issueId);
 
@@ -136,10 +136,11 @@ export const getArticleListStats = async (params = {}) => {
                   WHERE ${filter.whereSql}
               )
               SELECT
-                  (SELECT COUNT(*)::integer FROM FilteredArticles) AS "totalArticles",
-                  (SELECT COUNT(*)::integer FROM FilteredArticles WHERE "is_open_access" IS TRUE) AS "openAccessCount",
-                  (SELECT COUNT(DISTINCT "primary_topic")::integer FROM FilteredArticles WHERE "primary_topic" IS NOT NULL) AS "topicsCount",
-                  (SELECT COUNT(DISTINCT aa."author_id")::integer FROM "Author_Article" aa JOIN FilteredArticles fa ON aa."article_id" = fa."article_id") AS "authorsCount";
+                  COUNT(*)::integer AS "totalArticles",
+                  COUNT(*) FILTER (WHERE "is_open_access" IS TRUE)::integer AS "openAccessCount",
+                  COUNT(DISTINCT "primary_topic")::integer AS "topicsCount",
+                  0::integer AS "authorsCount"
+              FROM FilteredArticles;
           `;
         const result = await prisma.$queryRawUnsafe(query, ...filter.values);
         return result[0] || {

@@ -34,7 +34,7 @@ describe("ORCID scan persistence", () => {
     );
   });
 
-  test.skip("progressive scan item migration uses an indexed durable cursor", () => {
+  test("progressive scan item migration uses an indexed durable cursor", () => {
     const migration = readFileSync(
       new URL(
         "../../../../deploy/sql/0006_create_orcid_scan_job_items.sql",

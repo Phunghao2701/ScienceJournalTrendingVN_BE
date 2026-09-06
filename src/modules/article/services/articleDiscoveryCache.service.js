@@ -18,7 +18,7 @@ export const DEFAULT_ARTICLE_DISCOVERY_PARAMS = Object.freeze({
   scope: "vn_universities",
 });
 
-const shouldCache = (params = {}) => params.scope === "vn_universities";
+const shouldCache = (params = {}) => !params.scope || params.scope === "vn_universities" || params.scope === "all";
 
 const hasValue = (value) => value !== undefined && value !== null && value !== "";
 const isDynamicRequest = (params = {}) => (
