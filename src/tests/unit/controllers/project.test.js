@@ -1,7 +1,7 @@
 import { test, describe, mock, afterEach } from 'node:test';
 import assert from 'node:assert';
 
-import { getRelatedArticles, getProjectAnalytics, projectServiceRef } from '../../../controllers/project.controller.js';
+import { getRelatedArticles, getProjectAnalytics, projectServiceRef } from '../../../modules/project/controllers/project.controller.js';
 import logger from '../../../utils/logger.js';
 
 describe('Project Controller - getRelatedArticles() Unit Test Suite', () => {
@@ -19,6 +19,7 @@ describe('Project Controller - getRelatedArticles() Unit Test Suite', () => {
             res.body = jsonData;
             return res;
         };
+        res.send = res.json;
         return res;
     };
 
@@ -44,7 +45,7 @@ describe('Project Controller - getRelatedArticles() Unit Test Suite', () => {
         assert.strictEqual(res.body.message, 'Giá trị limit không hợp lệ');
     });
 
-    test('Thành công: Tổng hợp bài viết liên quan dựa trên thông tin dự án (Dùng limit mặc định = 5)', async () => {
+    test('Th� nh công: Tổng hợp b� i viết liên quan dựa trên thông tin dự án (Dùng limit mặc định = 5)', async () => {
         const mockJournalIds = [7, 11];
         const mockCategoryIds = [3, 5];
         const mockArticles = [{
@@ -77,7 +78,7 @@ describe('Project Controller - getRelatedArticles() Unit Test Suite', () => {
         assert.deepStrictEqual(mockGetRelatedArticles.mock.calls[0].arguments, [mockJournalIds, mockCategoryIds, { limit: 5 }]);
     });
 
-    test('Thành công: Tổng hợp bài viết liên quan với giá trị limit tùy chỉnh từ client', async () => {
+    test('Th� nh công: Tổng hợp b� i viết liên quan với giá trị limit tùy chỉnh từ client', async () => {
         const mockJournalIds = [9];
         const mockCategoryIds = [2, 4];
         const mockArticles = [{
@@ -138,6 +139,7 @@ describe('Project Controller - getProjectAnalytics() Unit Test Suite', () => {
             res.body = jsonData;
             return res;
         };
+        res.send = res.json;
         return res;
     };
 
@@ -163,10 +165,10 @@ describe('Project Controller - getProjectAnalytics() Unit Test Suite', () => {
 
         assert.strictEqual(res.statusCode, 404);
         assert.strictEqual(res.body.success, false);
-        assert.strictEqual(res.body.message, 'Không tìm thấy dự án hoặc bạn không có quyền truy cập dự án này');
+        assert.strictEqual(res.body.message, 'Không tìm thấy dự án hoặc bạn không có quyền truy cập dự án n� y');
     });
 
-    test('Thành công: Trả về dữ liệu phân tích nếu dự án thuộc sở hữu của người dùng', async () => {
+    test('Th� nh công: Trả về dữ liệu phân tích nếu dự án thuộc sở hữu của người dùng', async () => {
         const mockAnalytics = {
             article_volume_trend: [{ year: 2025, article_count: 5 }],
             journal_metrics_comparison: [{ journal_name: 'Nature', journal_id: '1', metric_code: 'SJR', value: 15.2, year: 2025 }]

@@ -1,5 +1,5 @@
 /**
- * Kiểm tra một chuỗi có phải là định dạng email hợp lệ hay không.
+ * Kiểm tra một chuỗi có phải l�  định dạng email hợp lệ hay không.
  * @param {string} email - Chuỗi email cần kiểm tra.
  * @returns {boolean} True nếu định dạng hợp lệ, ngược lại false.
  */
@@ -12,9 +12,9 @@ export const isValidEmail = (email) => {
 };
 
 /**
- * Kiểm tra một chuỗi có phải là định dạng UUID hợp lệ hay không.
+ * Kiểm tra một chuỗi có phải l�  định dạng UUID hợp lệ hay không.
  * @param {string} uuid - Chuỗi cần kiểm tra.
- * @returns {boolean} True nếu là UUID hợp lệ, ngược lại false.
+ * @returns {boolean} True nếu l�  UUID hợp lệ, ngược lại false.
  */
 export const isValidUUID = (uuid) => {
     if (!uuid || typeof uuid !== 'string') {
@@ -25,7 +25,7 @@ export const isValidUUID = (uuid) => {
 };
 
 /**
- * Kiểm tra định dạng ngày tháng hợp lệ
+ * Kiểm tra định dạng ng� y tháng hợp lệ
  */
 export const isValidDate = (dateString) => {
     if (!dateString || typeof dateString !== 'string') return false;

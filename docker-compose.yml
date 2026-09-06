@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  vietnam-backend:
+    image: ghcr.io/phunghao2701/scientificjournalsystem-vietnam-be:latest
+    container_name: researchpulse_backend_vn
+    restart: unless-stopped
+
+    ports:
+      - "5000:5000"
+
+    env_file:
+      - .env
+
+    networks:
+      - researchpulse_network
+
+networks:
+  researchpulse_network:
+    external: true
+    name: researchpulse_network

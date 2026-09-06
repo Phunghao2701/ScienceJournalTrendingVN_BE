@@ -8,7 +8,7 @@ import {
   projectAuditRef,
   projectServiceRef,
   updateProject,
-} from "../../../controllers/project.controller.js";
+} from "../../../modules/project/controllers/project.controller.js";
 
 const createResponse = () => ({
   statusCode: 200,
@@ -18,6 +18,10 @@ const createResponse = () => ({
     return this;
   },
   json(payload) {
+    this.body = payload;
+    return this;
+  },
+  send(payload) {
     this.body = payload;
     return this;
   },

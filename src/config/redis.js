@@ -14,7 +14,7 @@ const redis = new Redis(process.env.REDIS_URL || "redis://127.0.0.1:6379", {
 });
 
 redis.on("connect", () => {
-  logger.db("Kết nối tới Redis thành công");
+  logger.db("Kết nối tới Redis th� nh công");
 });
 
 redis.on("error", (err) => {
