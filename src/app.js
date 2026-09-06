@@ -35,8 +35,25 @@ import trendingVnRoutes from './modules/system/routes/trendingVn.route.js';
 const buildApp = async () => {
   const app = Fastify({ logger: true });
 
+  const allowedOrigins = (process.env.FRONTEND_URL || '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+
   await app.register(cors, {
-    origin: process.env.FRONTEND_URL || true, // Báº­t cáº¥u hÃ¬nh cors cho Frontend
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);
+      if (
+        allowedOrigins.length === 0
+        || allowedOrigins.includes(origin)
+        || origin.includes('researchpulse.io.vn')
+        || origin.includes('hyperdatalab.org')
+        || origin.includes('localhost')
+      ) {
+        return cb(null, true);
+      }
+      return cb(null, false);
+    },
     credentials: true
   });
   
