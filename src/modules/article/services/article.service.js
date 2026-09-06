@@ -82,14 +82,25 @@ export const countArticlesByKeywords = async (keywords, params = {}) => {
  * Đếm tổng số b� i báo công khai theo cùng bộ lọc với trang Article List.
  * @param {Object} params
  */
+const buildConditionalJoins = (params = {}) => {
+    const needsJournal = Boolean(params.search || params.journalId || params.publisherId || params.countryId);
+    const needsVolume = Boolean(needsJournal || params.volumeId);
+    const needsIssue = Boolean(needsVolume || params.issueId);
+
+    const joins = [];
+    if (needsIssue) joins.push('LEFT JOIN "Issue" i   ON i."issue_id"   = a."issue_id" AND COALESCE(i."is_deleted", false) = false');
+    if (needsVolume) joins.push('LEFT JOIN "Volume" v  ON v."volume_id"  = i."volume_id" AND COALESCE(v."is_deleted", false) = false');
+    if (needsJournal) joins.push('LEFT JOIN "Journal" j ON j."journal_id" = v."journal_id" AND COALESCE(j."is_deleted", false) = false');
+    return joins.join('\n');
+};
+
 export const countAllArticles = async (params = {}) => {
     const filter = buildArticleFilter(params);
+    const joinSql = buildConditionalJoins(params);
     const query = `
         SELECT COUNT(*) AS "total"
         FROM "Article" a
-        LEFT JOIN "Issue" i   ON i."issue_id"   = a."issue_id" AND COALESCE(i."is_deleted", false) = false
-        LEFT JOIN "Volume" v  ON v."volume_id"  = i."volume_id" AND COALESCE(v."is_deleted", false) = false
-        LEFT JOIN "Journal" j ON j."journal_id" = v."journal_id" AND COALESCE(j."is_deleted", false) = false
+        ${joinSql}
         LEFT JOIN "Topic" t   ON t."topic_id"   = a."primary_topic"
         WHERE ${filter.whereSql}
     `;
@@ -121,9 +132,7 @@ export const getArticleListStats = async (params = {}) => {
               WITH FilteredArticles AS (
                   SELECT a."article_id", a."is_open_access", a."primary_topic"
                   FROM "Article" a
-                  LEFT JOIN "Issue" i ON i."issue_id" = a."issue_id" AND COALESCE(i."is_deleted", false) = false
-                  LEFT JOIN "Volume" v ON v."volume_id" = i."volume_id" AND COALESCE(v."is_deleted", false) = false
-                  LEFT JOIN "Journal" j ON j."journal_id" = v."journal_id" AND COALESCE(j."is_deleted", false) = false
+                  ${buildConditionalJoins(params)}
                   WHERE ${filter.whereSql}
               )
               SELECT
@@ -194,9 +203,7 @@ export const getAllArticles = async (firstParam = {}, offsetParam = 0, sortByPar
             WITH FilteredArticles AS (
                 SELECT a."article_id"
                 FROM "Article" a
-                LEFT JOIN "Issue" i   ON i."issue_id"   = a."issue_id" AND COALESCE(i."is_deleted", false) = false
-                LEFT JOIN "Volume" v  ON v."volume_id"  = i."volume_id" AND COALESCE(v."is_deleted", false) = false
-                LEFT JOIN "Journal" j ON j."journal_id" = v."journal_id" AND COALESCE(j."is_deleted", false) = false
+                ${buildConditionalJoins(params)}
                 WHERE ${filter.whereSql}
                 ORDER BY ${column} ${order} NULLS LAST, a."article_id" DESC
                 LIMIT $${limitIndex} OFFSET $${offsetIndex}
