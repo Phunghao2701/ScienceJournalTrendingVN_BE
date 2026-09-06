@@ -20,7 +20,7 @@ COPY . .
 RUN npx prisma generate
 
 # Expose port mà Fastify server đang lắng nghe (được cấu hình qua env PORT=8000)
-EXPOSE 8000
+EXPOSE 5000
 
 # Khởi chạy ứng dụng (chạy lệnh "node server.js" đã được định nghĩa trong package.json)
 CMD ["npm", "start"]
