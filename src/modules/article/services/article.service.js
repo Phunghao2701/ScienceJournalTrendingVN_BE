@@ -118,18 +118,20 @@ export const getArticleListStats = async (params = {}) => {
     try {
         const filter = buildArticleFilter(params);
         const query = `
-            SELECT
-                COUNT(DISTINCT a."article_id")::integer AS "totalArticles",
-                COUNT(DISTINCT a."article_id") FILTER (WHERE a."is_open_access" IS TRUE)::integer AS "openAccessCount",
-                COUNT(DISTINCT aa."author_id")::integer AS "authorsCount",
-                COUNT(DISTINCT a."primary_topic") FILTER (WHERE a."primary_topic" IS NOT NULL)::integer AS "topicsCount"
-            FROM "Article" a
-            LEFT JOIN "Issue" i ON i."issue_id" = a."issue_id" AND COALESCE(i."is_deleted", false) = false
-            LEFT JOIN "Volume" v ON v."volume_id" = i."volume_id" AND COALESCE(v."is_deleted", false) = false
-            LEFT JOIN "Journal" j ON j."journal_id" = v."journal_id" AND COALESCE(j."is_deleted", false) = false
-            LEFT JOIN "Author_Article" aa ON aa."article_id" = a."article_id"
-            WHERE ${filter.whereSql};
-        `;
+              WITH FilteredArticles AS (
+                  SELECT a."article_id", a."is_open_access", a."primary_topic"
+                  FROM "Article" a
+                  LEFT JOIN "Issue" i ON i."issue_id" = a."issue_id" AND COALESCE(i."is_deleted", false) = false
+                  LEFT JOIN "Volume" v ON v."volume_id" = i."volume_id" AND COALESCE(v."is_deleted", false) = false
+                  LEFT JOIN "Journal" j ON j."journal_id" = v."journal_id" AND COALESCE(j."is_deleted", false) = false
+                  WHERE ${filter.whereSql}
+              )
+              SELECT
+                  (SELECT COUNT(*)::integer FROM FilteredArticles) AS "totalArticles",
+                  (SELECT COUNT(*)::integer FROM FilteredArticles WHERE "is_open_access" IS TRUE) AS "openAccessCount",
+                  (SELECT COUNT(DISTINCT "primary_topic")::integer FROM FilteredArticles WHERE "primary_topic" IS NOT NULL) AS "topicsCount",
+                  (SELECT COUNT(DISTINCT aa."author_id")::integer FROM "Author_Article" aa JOIN FilteredArticles fa ON aa."article_id" = fa."article_id") AS "authorsCount";
+          `;
         const result = await prisma.$queryRawUnsafe(query, ...filter.values);
         return result[0] || {
             totalArticles: 0,
@@ -189,6 +191,16 @@ export const getAllArticles = async (firstParam = {}, offsetParam = 0, sortByPar
         const offsetIndex = values.length;
 
         const query = `
+            WITH FilteredArticles AS (
+                SELECT a."article_id"
+                FROM "Article" a
+                LEFT JOIN "Issue" i   ON i."issue_id"   = a."issue_id" AND COALESCE(i."is_deleted", false) = false
+                LEFT JOIN "Volume" v  ON v."volume_id"  = i."volume_id" AND COALESCE(v."is_deleted", false) = false
+                LEFT JOIN "Journal" j ON j."journal_id" = v."journal_id" AND COALESCE(j."is_deleted", false) = false
+                WHERE ${filter.whereSql}
+                ORDER BY ${column} ${order} NULLS LAST, a."article_id" DESC
+                LIMIT ${limitIndex} OFFSET ${offsetIndex}
+            )
             SELECT
                 a."article_id"::text,
                 a."version",
@@ -239,15 +251,14 @@ export const getAllArticles = async (firstParam = {}, offsetParam = 0, sortByPar
                     ),
                     '[]'::json
                 ) AS "keywords"
-            FROM "Article" a
+            FROM FilteredArticles fa
+            JOIN "Article" a ON a."article_id" = fa."article_id"
             LEFT JOIN "Issue" i   ON i."issue_id"   = a."issue_id" AND COALESCE(i."is_deleted", false) = false
             LEFT JOIN "Volume" v  ON v."volume_id"  = i."volume_id" AND COALESCE(v."is_deleted", false) = false
             LEFT JOIN "Journal" j ON j."journal_id" = v."journal_id" AND COALESCE(j."is_deleted", false) = false
             LEFT JOIN "Publisher" p ON p."publisher_id" = j."publisher_id"
             LEFT JOIN "Topic" t   ON t."topic_id"   = a."primary_topic"
-            WHERE ${filter.whereSql}
-            ORDER BY ${column} ${order} NULLS LAST, a."article_id" DESC
-            LIMIT $${limitIndex} OFFSET $${offsetIndex};
+            ORDER BY ${column} ${order} NULLS LAST, a."article_id" DESC;
         `;
 
         const result = await prisma.$queryRawUnsafe(query, ...values);
