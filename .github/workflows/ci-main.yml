@@ -110,5 +110,7 @@ jobs:
           script: |
             cd ~/apps/researchpulse-vn-be
             docker-compose pull
-            docker-compose up -d
+            docker-compose stop
+            docker-compose rm -f
+            docker-compose up -d --force-recreate
             docker image prune -f
