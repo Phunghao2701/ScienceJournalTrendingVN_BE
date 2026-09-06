@@ -94,7 +94,8 @@ export const createCache = ({
         }
 
         try {
-          if (client && client.status === "ready" && payload) {
+          const isReady = client?.status === undefined || client?.status === "ready";
+          if (client && isReady && payload) {
             await client.set(key, payload, "EX", cacheOptions.staleTtlSeconds);
           }
         } catch (err) {
