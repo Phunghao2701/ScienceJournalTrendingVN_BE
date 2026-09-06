@@ -7,13 +7,13 @@ dotenv.config();
 const { Pool } = pkg;
 
 // Kiểm tra xem database đang trỏ tới localhost/127.0.0.1 hay không (Local Development Mode).
-// Mục đích: Tránh lỗi kết nối SSL khi chạy database PostgreSQL cục bộ (vì local thường không cài đặt SSL).
-const isLocal = process.env.POSTGRES_URL && (process.env.POSTGRES_URL.includes("localhost") || process.env.POSTGRES_URL.includes("127.0.0.1"));
+// Mục đích: Tránh lỗi kết nối SSL khi chạy database PostgreSQL cục bộ (vì local thường không c� i đặt SSL).
+const isLocal = process.env.POSTGRES_URL && (process.env.POSTGRES_URL.includes("localhost") || process.env.POSTGRES_URL.includes("127.0.0.1") || process.env.POSTGRES_URL.includes("100.121.61.95"));
 
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
 
-  // Nếu là local DB thì tắt SSL, ngược lại (Supabase/Production) thì bật cấu hình rejectUnauthorized: false
+  // Nếu l�  local DB thì tắt SSL, ngược lại (Supabase/Production) thì bật cấu hình rejectUnauthorized: false
   ssl: isLocal ? false : {
     rejectUnauthorized: false,
   },
@@ -29,7 +29,7 @@ pool.query("SELECT NOW()", (err, res) => {
   if (err) {
     logger.error("Kết nối tới PostgreSQL thất bại!", err);
   } else {
-    logger.db(`Kết nối tới PostgreSQL thành công lúc: ${res.rows[0].now}`);
+    logger.db(`Kết nối tới PostgreSQL th� nh công lúc: ${res.rows[0].now}`);
   }
 });
 

@@ -2,7 +2,7 @@ import { after, describe, test } from "node:test";
 import assert from "node:assert/strict";
 
 import pool from "../../../config/database.js";
-import { hydrateArticleReferences } from "../../../services/articleReferenceHydration.service.js";
+import { hydrateArticleReferences } from "../../../modules/article/services/articleReferenceHydration.service.js";
 
 after(async () => {
   await pool.end();
@@ -19,34 +19,33 @@ const createDatabase = ({
   );
   let connectCount = 0;
   const databasePool = {
-    query: async (sql) => {
+    $queryRawUnsafe: async (sql) => {
       const compact = sql.replace(/\s+/g, " ").trim();
       if (
         compact.includes('SELECT article_id, "references", is_deleted')
       ) {
-        return {
-          rows: [{
+        return [{
             article_id: "1",
             references,
             is_deleted: deleted,
-          }],
-        };
+        }];
       }
       if (compact.includes('FROM "Article_Reference"')) {
-        return { rows: [...stored.values()] };
+        return [...stored.values()];
       }
       if (
         compact.includes('FROM "Article"') &&
         compact.includes("openalex_id")
       ) {
-        return { rows: localArticles };
+        return localArticles;
       }
-      return { rows: [] };
+      return [];
     },
-    connect: async () => {
+    $transaction: async (callback) => {
       connectCount += 1;
-      return {
-        query: async (query, values = []) => {
+      const tx = {
+        $executeRawUnsafe: async (query, ...values) => tx.$queryRawUnsafe(query, ...values),
+        $queryRawUnsafe: async (query, ...values) => {
           let sql = query;
           if (typeof query === "object") {
             sql = query.text;
@@ -54,29 +53,27 @@ const createDatabase = ({
           }
           const compact = sql.replace(/\s+/g, " ").trim();
           if (compact === "BEGIN" || compact === "COMMIT") {
-            return { rows: [] };
+            return [];
           }
-          if (compact === "ROLLBACK") return { rows: [] };
+          if (compact === "ROLLBACK") return [];
           if (compact.includes("pg_advisory_xact_lock")) {
-            return { rows: [] };
+            return [];
           }
           if (
             compact.includes('FROM "Article"') &&
             compact.includes("FOR UPDATE")
           ) {
             return deleted
-              ? { rows: [] }
-              : { rows: [{ article_id: "1" }] };
+              ? []
+              : [{ article_id: "1" }];
           }
           if (
             compact.includes('SELECT reference_key') &&
             compact.includes('FROM "Article_Reference"')
           ) {
-            return {
-              rows: [...stored.keys()].map((reference_key) => ({
+            return [...stored.keys()].map((reference_key) => ({
                 reference_key,
-              })),
-            };
+            }));
           }
           if (compact.startsWith("WITH reference_input AS MATERIALIZED")) {
             for (const record of JSON.parse(values[1])) {
@@ -89,12 +86,12 @@ const createDatabase = ({
               }
               stored.set(record.reference_key, merged);
             }
-            return { rows: [] };
+            return [];
           }
-          return { rows: [] };
+          return [];
         },
-        release: () => {},
       };
+      return callback(tx);
     },
   };
   return {

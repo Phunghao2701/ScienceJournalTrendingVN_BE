@@ -74,7 +74,7 @@ describe("POST /api/v1/articles/:id/references/hydrate", () => {
       articleReferenceHydrationServiceRef,
       "hydrateArticleReferences",
       async () => {
-        throw Object.assign(new Error("Không tìm thấy bài báo"), {
+        throw Object.assign(new Error("Không tìm thấy b� i báo"), {
           statusCode: 404,
           code: "ARTICLE_NOT_FOUND",
         });

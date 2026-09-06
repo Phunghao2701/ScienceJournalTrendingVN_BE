@@ -1,11 +1,11 @@
 import { test, describe, mock, afterEach } from 'node:test';
 import assert from 'node:assert';
 
-import pool from '../../../config/database.js';
+import prisma from '../../../config/prisma.js';
 import {
   getInstitutionById,
   getInstitutions,
-} from '../../../services/institution.service.js';
+} from '../../../modules/author/services/institution.service.js';
 
 describe('Institution Service Unit Test Suite', () => {
   afterEach(() => {
@@ -19,33 +19,33 @@ describe('Institution Service Unit Test Suite', () => {
       country_code: 'GB',
       type: 'education',
     };
-    const queryMock = mock.method(pool, 'query', async () => ({ rows: [institution] }));
+    const queryMock = mock.method(prisma, '$queryRawUnsafe', async () => ([institution]));
 
     const result = await getInstitutionById(63);
 
     assert.deepStrictEqual(result, institution);
-    assert.deepStrictEqual(queryMock.mock.calls[0].arguments[1], [63]);
+    assert.deepStrictEqual(queryMock.mock.calls[0].arguments[1], 63);
     assert.match(queryMock.mock.calls[0].arguments[0], /country_code/);
   });
 
   test('getInstitutionById() trả null khi institution không tồn tại', async () => {
-    mock.method(pool, 'query', async () => ({ rows: [] }));
+    mock.method(prisma, '$queryRawUnsafe', async () => ([]));
 
     const result = await getInstitutionById(999999);
 
     assert.strictEqual(result, null);
   });
 
-  test('getInstitutions() trả về danh sách và pagination khi có kết quả', async () => {
+  test('getInstitutions() trả về danh sách v�  pagination khi có kết quả', async () => {
     const mockRows = [
       { institution_id: '30', display_name: 'FPT University', country_code: 'VN', type: 'education', created_at: '2026-07-01T09:03:07.691Z' },
     ];
 
     let callIndex = 0;
-    mock.method(pool, 'query', async () => {
+    mock.method(prisma, '$queryRawUnsafe', async () => {
       callIndex += 1;
-      if (callIndex === 1) return { rows: mockRows };
-      return { rows: [{ total: '1' }] };
+      if (callIndex === 1) return mockRows;
+      return [{ total: '1' }];
     });
 
     const result = await getInstitutions({ page: 1, limit: 50, search: 'fpt' });
@@ -55,21 +55,21 @@ describe('Institution Service Unit Test Suite', () => {
   });
 
   test('getInstitutions() truyền đúng tham số search/limit/offset cho query', async () => {
-    const mockQuery = mock.method(pool, 'query', async () => ({ rows: [{ total: '0' }] }));
+    const mockQuery = mock.method(prisma, '$queryRawUnsafe', async () => ([{ total: '0' }]));
 
     await getInstitutions({ page: 2, limit: 20, search: 'fpt' });
 
     const [dataCallArgs, countCallArgs] = mockQuery.mock.calls.map((call) => call.arguments);
-    assert.deepStrictEqual(dataCallArgs[1], ['%fpt%', 20, 20]);
-    assert.deepStrictEqual(countCallArgs[1], ['%fpt%']);
+    assert.deepStrictEqual(dataCallArgs.slice(1), ['%fpt%', 20, 20]);
+    assert.deepStrictEqual(countCallArgs.slice(1), ['%fpt%']);
   });
 
   test('getInstitutions() trả về danh sách rỗng khi không có kết quả', async () => {
     let callIndex = 0;
-    mock.method(pool, 'query', async () => {
+    mock.method(prisma, '$queryRawUnsafe', async () => {
       callIndex += 1;
-      if (callIndex === 1) return { rows: [] };
-      return { rows: [{ total: '0' }] };
+      if (callIndex === 1) return [];
+      return [{ total: '0' }];
     });
 
     const result = await getInstitutions({ page: 1, limit: 50, search: 'khong-ton-tai' });

@@ -10,7 +10,7 @@ const REQUIRED_GMAIL_ENV = [
 
 /**
  * Tạo Gmail client tại thời điểm gửi để chắc chắn biến môi trường đã được nạp.
- * Đồng thời báo lỗi cấu hình rõ ràng thay vì gọi OAuth với giá trị rỗng.
+ * Đồng thời báo lỗi cấu hình rõ r� ng thay vì gọi OAuth với giá trị rỗng.
  */
 const getGmailClient = () => {
   const missingEnv = REQUIRED_GMAIL_ENV.filter((name) => !process.env[name]);
@@ -227,7 +227,7 @@ export const emailHelper = {
       );
 
       const deliveryError = new Error(
-        'Không thể gửi email kích hoạt tài khoản'
+        'Không thể gửi email kích hoạt t� i khoản'
       );
       deliveryError.code = 'EMAIL_DELIVERY_FAILED';
       deliveryError.statusCode = 502;

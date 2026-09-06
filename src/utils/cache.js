@@ -116,7 +116,7 @@ export const createCache = ({
 
         // Serve stale immediately and refresh without blocking this request.
         void refresh(key, fetchFn, cacheOptions).catch((err) => {
-          cacheLogger.error(`Làm mới cache Redis thất bại cho key "${key}"`, err);
+          cacheLogger.error(`L� m mới cache Redis thất bại cho key "${key}"`, err);
         });
         return parsed.data;
       }
