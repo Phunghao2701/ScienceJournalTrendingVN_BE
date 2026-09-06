@@ -23,7 +23,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d scientificjournalsystem_test"
+          --health-cmd "pg_isready -U postgres -d scientificjournalsystem_test -W"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -34,8 +34,8 @@ jobs:
           - 6379:6379
 
     env:
-      DATABASE_URL: postgresql://postgres@localhost:5432/scientificjournalsystem_test
-      POSTGRES_URL: postgresql://postgres@localhost:5432/scientificjournalsystem_test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/scientificjournalsystem_test
+      POSTGRES_URL: postgresql://postgres:postgres@localhost:5432/scientificjournalsystem_test
       JWT_SECRET: "test-dummy-jwt-secret"
       NODE_ENV: test
 
