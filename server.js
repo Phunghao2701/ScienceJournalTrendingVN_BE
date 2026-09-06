@@ -31,6 +31,14 @@ const startServer = async () => {
         }
       })
       .catch((err) => console.error("Cache warmup error:", err));
+
+    // Start background ORCID Scan Worker (BullMQ)
+    try {
+      startOrcidScanWorker();
+      console.log("⚡ ORCID Scan Worker started");
+    } catch (workerErr) {
+      console.error("Failed to start ORCID Scan Worker:", workerErr);
+    }
   } catch (err) {
     app.log.error(err);
     process.exit(1);

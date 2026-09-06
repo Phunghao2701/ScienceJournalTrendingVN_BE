@@ -35,10 +35,10 @@ export const getAuthorById = async (authorId) => {
 };
 
 /**
- * Phân tích danh mục chuyên ng� nh (Subject Category) nghiên cứu của một tác giả
+ * Phân tích danh mục chuyên ng� nh (Subject Category) nghiên cứu của một tác giả
  * @async
  * @param {number|string} authorId - ID của tác giả cần thống kê
- * @returns {Promise<Array>} Mảng danh sách chuyên ng� nh, sản lượng b� i báo v�  tỷ lệ %
+ * @returns {Promise<Array>} Mảng danh sách chuyên ng� nh, sản lượng b� i báo v�  tỷ lệ %
  */
 export const getAuthorAreasBreakdownService = async (authorId) => {
   try {
@@ -83,18 +83,18 @@ export const getAuthorAreasBreakdownService = async (authorId) => {
 };
 
 /**
- * Lấy danh sách b� i viết của một tác giả với phân trang an to� n.
+ * Lấy danh sách b� i viết của một tác giả với phân trang an to� n.
  *
- * - Chuyển `limit` v�  `page` sang các giá trị an to� n (`safeLimit`, `safePage`).
- * - Tính `OFFSET` từ `page` v�  `limit` rồi truy vấn cơ sở dữ liệu.
+ * - Chuyển `limit` v�  `page` sang các giá trị an to� n (`safeLimit`, `safePage`).
+ * - Tính `OFFSET` từ `page` v�  `limit` rồi truy vấn cơ sở dữ liệu.
  *
  * @async
- * @param {number} authorId - ID tác giả cần lấy b� i viết.
- * @param {number|string} [limit=10] - Số b� i viết trên mỗi trang (hoặc chuỗi có thể parse được).
+ * @param {number} authorId - ID tác giả cần lấy b� i viết.
+ * @param {number|string} [limit=10] - Số b� i viết trên mỗi trang (hoặc chuỗi có thể parse được).
  * @param {number|string} [page=1] - Số trang (1-based) (hoặc chuỗi có thể parse được).
- * @returns {Promise<Array<Object>>} Mảng các b� i viết, mỗi phần tử chứa các trường:
+ * @returns {Promise<Array<Object>>} Mảng các b� i viết, mỗi phần tử chứa các trường:
  * `{ article_id, title, abstract, publication_year, doi, primary_topic, created_at }`.
- * @throws {Error} Ném lỗi khi truy vấn DB gặp vấn đề; caller nên xử lý v�  log lỗi.
+ * @throws {Error} Ném lỗi khi truy vấn DB gặp vấn đề; caller nên xử lý v�  log lỗi.
  */
 export const getAuthorArticlesService = async (authorId, limit, page) => {
   try {
@@ -158,7 +158,7 @@ export const getAuthorArticlesService = async (authorId, limit, page) => {
       },
     };
   } catch (error) {
-    logger.error("Lỗi khi lấy b� i viết của tác giả:", error);
+    logger.error("Lỗi khi lấy b� i viết của tác giả:", error);
     throw error;
   }
 };
@@ -168,19 +168,35 @@ export const getAuthorArticlesService = async (authorId, limit, page) => {
  *
  * @param {number|string} [limit=10] - Số lượng bản ghi trên mỗi trang.
  * @param {number|string} [page=1] - Số trang bắt đầu từ 1.
- * @returns {Promise<Array<Object>>} Danh sách tác giả v�  chỉ số xếp hạng.
+ * @returns {Promise<Array<Object>>} Danh sách tác giả v�  chỉ số xếp hạng.
  */
+let cachedAuthorTotal = null;
+let cachedAuthorTotalTime = 0;
+export const getCachedAuthorTotal = async () => {
+  if (cachedAuthorTotal !== null && (Date.now() - cachedAuthorTotalTime < 10 * 60 * 1000)) {
+    return cachedAuthorTotal;
+  }
+  const countQuery = `
+    SELECT COUNT(*)::integer AS total
+    FROM "Author"
+    WHERE COALESCE(is_deleted, false) = false
+  `;
+  const countResult = await prisma.$queryRawUnsafe(countQuery);
+  cachedAuthorTotal = Number(countResult[0]?.total || 0);
+  cachedAuthorTotalTime = Date.now();
+  return cachedAuthorTotal;
+};
+
+export const clearCachedAuthorTotal = () => {
+  cachedAuthorTotal = null;
+  cachedAuthorTotalTime = 0;
+};
+
 export const getAuthorLeaderboardService = async (limit, page) => {
   try {
     const safeLimit = Math.max(1, parseInt(limit) || 10);
     const safePage = Math.max(1, parseInt(page) || 1);
     const safeOffset = (safePage - 1) * safeLimit;
-
-    const countQuery = `
-      SELECT COUNT(*)::integer AS total
-      FROM "Author"
-      WHERE COALESCE(is_deleted, false) = false
-    `;
 
     const dataQuery = `
       SELECT 
@@ -191,29 +207,29 @@ export const getAuthorLeaderboardService = async (limit, page) => {
         COALESCE(works_count, 0) AS works_count,
         COALESCE(cited_by_count, 0) AS cited_by_count,
         COALESCE(h_index, 0) AS h_index,
-        COALESCE(i10_index, 0) AS i10_index,
-        ROW_NUMBER() OVER (
-          ORDER BY 
-            h_index DESC NULLS LAST, 
-            cited_by_count DESC NULLS LAST, 
-            i10_index DESC NULLS LAST, 
-            works_count DESC NULLS LAST
-        ) AS final_rank
+        COALESCE(i10_index, 0) AS i10_index
       FROM "Author"
       WHERE COALESCE(is_deleted, false) = false
-      ORDER BY final_rank ASC
+      ORDER BY 
+        COALESCE(h_index, 0) DESC, 
+        COALESCE(cited_by_count, 0) DESC, 
+        COALESCE(i10_index, 0) DESC, 
+        COALESCE(works_count, 0) DESC
       LIMIT $1 OFFSET $2;
     `;
 
-    const [countResult, dataResult] = await Promise.all([
-      prisma.$queryRawUnsafe(countQuery),
+    const [total, dataResult] = await Promise.all([
+      getCachedAuthorTotal(),
       prisma.$queryRawUnsafe(dataQuery, safeLimit, safeOffset),
     ]);
 
-    const total = countResult[0]?.total || 0;
+    const items = dataResult.map((item, index) => ({
+      ...item,
+      final_rank: safeOffset + index + 1,
+    }));
 
     return {
-      items: dataResult,
+      items,
       pagination: {
         page: safePage,
         limit: safeLimit,
@@ -245,7 +261,7 @@ export const isAuthorExists = async (authorId) => {
 };
 
 /**
- * Kiểm tra tồn tại một loạt tác giả v�  trả về những `author_id` không tồn tại.
+ * Kiểm tra tồn tại một loạt tác giả v�  trả về những `author_id` không tồn tại.
  *
  * @param {Array<number|string>} authorIds - Mảng ID tác giả cần kiểm tra
  * @returns {Promise<number[]>} Mảng các `author_id` không tồn tại trên hệ thống
@@ -280,12 +296,12 @@ export const checkAuthorsExistence = async (authorIds) => {
 };
 
 /**
- * Tạo các quan hệ `Author_Article` cho một b� i báo.
+ * Tạo các quan hệ `Author_Article` cho một b� i báo.
  * - Bỏ qua nếu `authorIds` rỗng.
  * - Loại bỏ trùng lặp trước khi chèn.
  *
- * @param {number|string} articleId - ID b� i báo
- * @param {Array<number|string>} authorIds - Mảng ID tác giả để gán cho b� i báo
+ * @param {number|string} articleId - ID b� i báo
+ * @param {Array<number|string>} authorIds - Mảng ID tác giả để gán cho b� i báo
  * @returns {Promise<void>} Không trả về dữ liệu, ném lỗi nếu có sự cố
  */
 export const createAuthorArticleRelationships = async (
@@ -297,7 +313,7 @@ export const createAuthorArticleRelationships = async (
       return;
     }
 
-    // Loại bỏ trùng lặp, chuyển th� nh Number, v�  lọc bỏ NaN / ID không hợp lệ
+    // Loại bỏ trùng lặp, chuyển th� nh Number, v�  lọc bỏ NaN / ID không hợp lệ
     const uniqueAuthorIds = [...new Set(
       authorIds
         .map((id) => Number(id))
@@ -316,18 +332,18 @@ export const createAuthorArticleRelationships = async (
 
     await prisma.$executeRawUnsafe(query, articleId, uniqueAuthorIds);
 
-    logger.info(`Đã tạo ${uniqueAuthorIds.length} quan hệ tác giả - b� i báo`);
+    logger.info(`Đã tạo ${uniqueAuthorIds.length} quan hệ tác giả - b� i báo`);
   } catch (error) {
-    logger.error("Lỗi khi tạo quan hệ tác giả - b� i báo:", error);
+    logger.error("Lỗi khi tạo quan hệ tác giả - b� i báo:", error);
     throw error;
   }
 };
 
 /**
- * Cập nhật to� n bộ mối quan hệ tác giả cho b� i báo
- * - Bước 1: Xóa to� n bộ liên kết tác giả cũ của b� i báo n� y
- * - Bước 2: Gọi lại h� m create để chèn danh sách mới sạch sẽ
- * * @param {number|string} articleId - ID của b� i báo cần cập nhật
+ * Cập nhật to� n bộ mối quan hệ tác giả cho b� i báo
+ * - Bước 1: Xóa to� n bộ liên kết tác giả cũ của b� i báo n� y
+ * - Bước 2: Gọi lại h� m create để chèn danh sách mới sạch sẽ
+ * * @param {number|string} articleId - ID của b� i báo cần cập nhật
  * @param {number[]} authorIds - Mảng các ID tác giả mới (ví dụ: [1, 2, 3])
  */
 export const updateAuthorArticleRelationships = async (
@@ -337,7 +353,7 @@ export const updateAuthorArticleRelationships = async (
   try {
     if (!articleId) {
       throw new Error(
-        "Thiếu articleId khi gọi h� m updateAuthorArticleRelationships",
+        "Thiếu articleId khi gọi h� m updateAuthorArticleRelationships",
       );
     }
 
@@ -350,11 +366,11 @@ export const updateAuthorArticleRelationships = async (
     await createAuthorArticleRelationships(articleId, authorIds);
 
     logger.info(
-      `Đã cập nhật l� m mới to� n bộ quan hệ tác giả cho b� i báo ID: ${articleId}`,
+      `Đã cập nhật l� m mới to� n bộ quan hệ tác giả cho b� i báo ID: ${articleId}`,
     );
   } catch (error) {
     logger.error(
-      `Lỗi khi cập nhật quan hệ tác giả cho b� i báo ID ${articleId}:`,
+      `Lỗi khi cập nhật quan hệ tác giả cho b� i báo ID ${articleId}:`,
       error,
     );
     throw error;
@@ -363,11 +379,13 @@ export const updateAuthorArticleRelationships = async (
 
 //Phần API xử lý CRUD Author - Author Management
 /**
- * Lấy danh sách authors với pagination v�  search
+ * Lấy danh sách authors với pagination v�  search
  */
 export const getAllAuthors = async ({ page = 1, limit = 10, search = "", sort = "impact" }) => {
-  const offset = (page - 1) * limit;
-  const searchPattern = `%${search.trim()}%`;
+  const safePage = Math.max(1, parseInt(page) || 1);
+  const safeLimit = Math.max(1, parseInt(limit) || 10);
+  const offset = (safePage - 1) * safeLimit;
+  const trimmedSearch = String(search || "").trim();
 
   const sortKey = String(sort || "impact").toLowerCase();
   const orderByMap = {
@@ -379,45 +397,64 @@ export const getAllAuthors = async ({ page = 1, limit = 10, search = "", sort = 
   };
   const orderByClause = orderByMap[sortKey] || orderByMap.impact;
 
-  const countQuery = `
-    SELECT COUNT(*) AS total FROM "Author"
-    WHERE is_deleted = false
-      AND ($1 = '%%' OR (
-        LOWER(display_name) LIKE LOWER($1) OR
-        LOWER(COALESCE(last_known_institution, '')) LIKE LOWER($1)
-      ))
-  `;
+  let countPromise;
+  let dataPromise;
 
-  const dataQuery = `
-    SELECT 
-      author_id, orcid, display_name, url_image, openalex_id,
-      works_count, cited_by_count, h_index, i10_index,
-      last_known_institution, last_known_institution_id,
-      created_at
-    FROM "Author"
-    WHERE is_deleted = false
-      AND ($1 = '%%' OR (
-        LOWER(display_name) LIKE LOWER($1) OR
-        LOWER(COALESCE(last_known_institution, '')) LIKE LOWER($1)
-      ))
-    ORDER BY ${orderByClause}
-    LIMIT $2 OFFSET $3
-  `;
+  if (trimmedSearch) {
+    const searchPattern = `%${trimmedSearch}%`;
+    const countQuery = `
+      SELECT COUNT(*)::integer AS total FROM "Author"
+      WHERE COALESCE(is_deleted, false) = false
+        AND (
+          display_name ILIKE $1 OR
+          last_known_institution ILIKE $1
+        )
+    `;
 
-  const [countResult, dataResult] = await Promise.all([
-    prisma.$queryRawUnsafe(countQuery, searchPattern),
-    prisma.$queryRawUnsafe(dataQuery, searchPattern, limit, offset),
-  ]);
+    const dataQuery = `
+      SELECT 
+        author_id, orcid, display_name, url_image, openalex_id,
+        works_count, cited_by_count, h_index, i10_index,
+        last_known_institution, last_known_institution_id,
+        created_at
+      FROM "Author"
+      WHERE COALESCE(is_deleted, false) = false
+        AND (
+          display_name ILIKE $1 OR
+          last_known_institution ILIKE $1
+        )
+      ORDER BY ${orderByClause}
+      LIMIT $2 OFFSET $3
+    `;
 
-  const total = parseInt(countResult[0].total);
+    countPromise = prisma.$queryRawUnsafe(countQuery, searchPattern).then((r) => parseInt(r[0]?.total || 0, 10));
+    dataPromise = prisma.$queryRawUnsafe(dataQuery, searchPattern, safeLimit, offset);
+  } else {
+    const dataQuery = `
+      SELECT 
+        author_id, orcid, display_name, url_image, openalex_id,
+        works_count, cited_by_count, h_index, i10_index,
+        last_known_institution, last_known_institution_id,
+        created_at
+      FROM "Author"
+      WHERE COALESCE(is_deleted, false) = false
+      ORDER BY ${orderByClause}
+      LIMIT $1 OFFSET $2
+    `;
+
+    countPromise = getCachedAuthorTotal();
+    dataPromise = prisma.$queryRawUnsafe(dataQuery, safeLimit, offset);
+  }
+
+  const [total, dataResult] = await Promise.all([countPromise, dataPromise]);
 
   return {
     data: dataResult,
     pagination: {
-      page,
-      limit,
+      page: safePage,
+      limit: safeLimit,
       total,
-      total_pages: Math.ceil(total / limit),
+      total_pages: Math.max(1, Math.ceil(total / safeLimit)),
     },
   };
 };
